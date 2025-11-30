@@ -1,12 +1,21 @@
 <?php
-$host = 'db';
-$db   = 'restaurante';
-$user = 'root';
-$pass = 'root';
+require_once __DIR__ . '/config.php';
 
+function getPDO() {
+    global $dsn, $dbUser, $dbPass;
+    
+    try {
+        $pdo = new PDO($dsn, $dbUser, $dbPass);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        return $pdo;
+    } catch (Exception $e) {
+        die("Erro ao conectar: " . $e->getMessage());
+    }
+}
+
+// Para compatibilidade com código existente
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = getPDO();
 } catch (Exception $e) {
     die("Erro ao conectar: " . $e->getMessage());
 }

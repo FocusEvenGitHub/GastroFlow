@@ -1,0 +1,13 @@
+RewriteEngine On
+
+# API routes
+RewriteRule ^api/orders/([0-9]+)/complete$ api/orders.php [QSA,L]
+RewriteRule ^api/orders/([0-9]+)$ api/orders.php [QSA,L]
+RewriteRule ^api/orders$ api/orders.php [QSA,L]
+RewriteRule ^api/menu$ api/menu.php [QSA,L]
+RewriteRule ^api/categories$ api/menu.php [QSA,L]
+
+# Frontend routes
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(cashier|kitchen)/?$ $1/index.php [L]

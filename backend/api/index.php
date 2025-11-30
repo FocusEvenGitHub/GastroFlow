@@ -2,12 +2,11 @@
 header('Content-Type: application/json');
 require_once __DIR__ . '/../common/db.php';
 
-$pdo = getPDO();
+
 
 $method = $_SERVER['REQUEST_METHOD'];
 $uri = strtok($_SERVER['REQUEST_URI'], '?');
 
-// POST /api/orders
 if ($method === 'POST' && preg_match('#/api/orders$#', $uri)) {
     $data = json_decode(file_get_contents('php://input'), true);
     if (!$data['table'] || !$data['items']) {

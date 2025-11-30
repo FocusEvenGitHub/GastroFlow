@@ -1,0 +1,399 @@
+From 960c42377ea968fc23f2f117d068cc177e8d7dcf Mon Sep 17 00:00:00 2001
+From: Edgarllider <edgarllider@hotmail.com>
+Date: Sun, 30 Nov 2025 13:29:18 -0300
+Subject: [PATCH] Initial commit
+
+---
+ .env                          |  4 +++
+ .env.example                  |  4 +++
+ Dockerfile                    |  7 +++++
+ backend/api/index.php         | 52 +++++++++++++++++++++++++++++++++++
+ backend/api/orders.php        | 31 +++++++++++++++++++++
+ backend/cashier/.htaccess     |  0
+ backend/cashier/app.js        | 19 +++++++++++++
+ backend/cashier/index.php     | 20 ++++++++++++++
+ backend/common/config.php     |  8 ++++++
+ backend/common/db.php         | 12 ++++++++
+ backend/common/sql/schema.sql | 12 ++++++++
+ backend/kitchen/.htaccess     |  0
+ backend/kitchen/app.js        | 35 +++++++++++++++++++++++
+ backend/kitchen/index.php     | 14 ++++++++++
+ docker-compose.yml            | 50 +++++++++++++++++++++++++++++++++
+ frontend/index.html           |  0
+ 16 files changed, 268 insertions(+)
+ create mode 100644 .env
+ create mode 100644 .env.example
+ create mode 100644 Dockerfile
+ create mode 100644 backend/api/index.php
+ create mode 100644 backend/api/orders.php
+ create mode 100644 backend/cashier/.htaccess
+ create mode 100644 backend/cashier/app.js
+ create mode 100644 backend/cashier/index.php
+ create mode 100644 backend/common/config.php
+ create mode 100644 backend/common/db.php
+ create mode 100644 backend/common/sql/schema.sql
+ create mode 100644 backend/kitchen/.htaccess
+ create mode 100644 backend/kitchen/app.js
+ create mode 100644 backend/kitchen/index.php
+ create mode 100644 docker-compose.yml
+ create mode 100644 frontend/index.html
+
+diff --git a/.env b/.env
+new file mode 100644
+index 0000000..ee62dc8
+--- /dev/null
++++ b/.env
+@@ -0,0 +1,4 @@
++MYSQL_ROOT_PASSWORD=rootpass
++MYSQL_DATABASE=restaurant
++MYSQL_USER=restuser
++MYSQL_PASSWORD=restpass
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..28ef9a7
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,4 @@
++MYSQL_ROOT_PASSWORD=rootpass
++MYSQL_DATABASE=restaurant
++MYSQL_USER=restuser
++MYSQL_PASSWORD=restpass
+\ No newline at end of file
+diff --git a/Dockerfile b/Dockerfile
+new file mode 100644
+index 0000000..74365d2
+--- /dev/null
++++ b/Dockerfile
+@@ -0,0 +1,7 @@
++FROM php:8.2-apache
++
++RUN docker-php-ext-install pdo pdo_mysql
++
++COPY . /var/www/html/
++
++EXPOSE 80
+diff --git a/backend/api/index.php b/backend/api/index.php
+new file mode 100644
+index 0000000..d5abdf3
+--- /dev/null
++++ b/backend/api/index.php
+@@ -0,0 +1,52 @@
++<?php
++header('Content-Type: application/json');
++require_once __DIR__ . '/../common/db.php';
++
++$pdo = getPDO();
++
++$method = $_SERVER['REQUEST_METHOD'];
++$uri = strtok($_SERVER['REQUEST_URI'], '?');
++
++// POST /api/orders
++if ($method === 'POST' && preg_match('#/api/orders$#', $uri)) {
++    $data = json_decode(file_get_contents('php://input'), true);
++    if (!$data['table'] || !$data['items']) {
++        http_response_code(400);
++        echo json_encode(["error" => "Missing fields"]);
++        exit;
++    }
++
++    $stmt = $pdo->prepare("INSERT INTO orders (table_number, items) VALUES (?, ?)");
++    $stmt->execute([$data['table'], $data['items']]);
++
++    echo json_encode(["ok" => true, "id" => $pdo->lastInsertId()]);
++    exit;
++}
++
++// GET /api/orders
++if ($method === 'GET' && preg_match('#/api/orders$#', $uri)) {
++    $status = $_GET['status'] ?? 'pending';
++
++    if ($status == "all") {
++        $stmt = $pdo->query("SELECT * FROM orders ORDER BY created_at DESC");
++    } else {
++        $stmt = $pdo->prepare("SELECT * FROM orders WHERE status = ? ORDER BY created_at ASC");
++        $stmt->execute([$status]);
++    }
++
++    echo json_encode($stmt->fetchAll());
++    exit;
++}
++
++// POST /api/orders/{id}/complete
++if ($method === 'POST' && preg_match('#/api/orders/([0-9]+)/complete$#', $uri, $m)) {
++    $id = $m[1];
++    $stmt = $pdo->prepare("UPDATE orders SET status='done' WHERE id=?");
++    $stmt->execute([$id]);
++
++    echo json_encode(["ok" => true]);
++    exit;
++}
++
++http_response_code(404);
++echo json_encode(["error" => "Not found"]);
+diff --git a/backend/api/orders.php b/backend/api/orders.php
+new file mode 100644
+index 0000000..a78156c
+--- /dev/null
++++ b/backend/api/orders.php
+@@ -0,0 +1,31 @@
++<?php
++header("Content-Type: application/json");
++header("Access-Control-Allow-Origin: *");
++header("Access-Control-Allow-Methods: GET, POST");
++
++require_once "../common/db.php";
++
++$method = $_SERVER['REQUEST_METHOD'];
++
++if ($method === 'GET') {
++    $stmt = $pdo->query("SELECT * FROM pedidos ORDER BY id DESC");
++    echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
++    exit;
++}
++
++if ($method === 'POST') {
++    $data = json_decode(file_get_contents("php://input"), true);
++
++    if (!isset($data['mesa']) || !isset($data['descricao'])) {
++        echo json_encode(["error" => "Campos obrigatórios não enviados"]);
++        exit;
++    }
++
++    $stmt = $pdo->prepare("INSERT INTO pedidos (mesa, descricao, status) VALUES (?, ?, 'pendente')");
++    $stmt->execute([$data['mesa'], $data['descricao']]);
++
++    echo json_encode(["success" => true]);
++    exit;
++}
++
++echo json_encode(["error" => "Método não suportado"]);
+diff --git a/backend/cashier/.htaccess b/backend/cashier/.htaccess
+new file mode 100644
+index 0000000..e69de29
+diff --git a/backend/cashier/app.js b/backend/cashier/app.js
+new file mode 100644
+index 0000000..73cb39e
+--- /dev/null
++++ b/backend/cashier/app.js
+@@ -0,0 +1,19 @@
++document.getElementById('orderForm').addEventListener('submit', async (e) => {
++    e.preventDefault();
++
++    const data = new FormData(e.target);
++
++    const body = {
++        table: data.get('table'),
++        items: data.get('items')
++    };
++
++    const res = await fetch('/api/orders', {
++        method: 'POST',
++        headers: {"Content-Type": "application/json"},
++        body: JSON.stringify(body)
++    });
++
++    document.getElementById('msg').textContent = await res.text();
++    e.target.reset();
++});
+diff --git a/backend/cashier/index.php b/backend/cashier/index.php
+new file mode 100644
+index 0000000..9664e88
+--- /dev/null
++++ b/backend/cashier/index.php
+@@ -0,0 +1,20 @@
++<!DOCTYPE html>
++<html>
++<head>
++    <meta charset="utf-8">
++    <title>Caixa - Novo Pedido</title>
++</head>
++<body>
++<h1>Novo Pedido</h1>
++
++<form id="orderForm">
++    Mesa: <input type="text" name="table" required><br><br>
++    Itens: <textarea name="items" required></textarea><br><br>
++    <button type="submit">Enviar</button>
++</form>
++
++<div id="msg"></div>
++
++<script src="app.js"></script>
++</body>
++</html>
+diff --git a/backend/common/config.php b/backend/common/config.php
+new file mode 100644
+index 0000000..b81ce85
+--- /dev/null
++++ b/backend/common/config.php
+@@ -0,0 +1,8 @@
++<?php
++
++$dbHost = getenv('DB_HOST') ?: 'db';
++$dbName = getenv('MYSQL_DATABASE') ?: 'restaurant';
++$dbUser = getenv('MYSQL_USER') ?: 'restuser';
++$dbPass = getenv('MYSQL_PASSWORD') ?: 'restpass';
++
++$dsn = "mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4";
+diff --git a/backend/common/db.php b/backend/common/db.php
+new file mode 100644
+index 0000000..0c4750b
+--- /dev/null
++++ b/backend/common/db.php
+@@ -0,0 +1,12 @@
++<?php
++$host = 'db';
++$db   = 'restaurante';
++$user = 'root';
++$pass = 'root';
++
++try {
++    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
++    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
++} catch (Exception $e) {
++    die("Erro ao conectar: " . $e->getMessage());
++}
+diff --git a/backend/common/sql/schema.sql b/backend/common/sql/schema.sql
+new file mode 100644
+index 0000000..5016ff0
+--- /dev/null
++++ b/backend/common/sql/schema.sql
+@@ -0,0 +1,12 @@
++CREATE DATABASE IF NOT EXISTS restaurant;
++USE restaurant;
++
++CREATE TABLE IF NOT EXISTS orders (
++  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
++  table_number VARCHAR(50) NOT NULL,
++  items TEXT NOT NULL,
++  status ENUM('pending','done') NOT NULL DEFAULT 'pending',
++  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
++  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
++  PRIMARY KEY (id)
++);
+diff --git a/backend/kitchen/.htaccess b/backend/kitchen/.htaccess
+new file mode 100644
+index 0000000..e69de29
+diff --git a/backend/kitchen/app.js b/backend/kitchen/app.js
+new file mode 100644
+index 0000000..cabb3c4
+--- /dev/null
++++ b/backend/kitchen/app.js
+@@ -0,0 +1,35 @@
++async function load() {
++    const res = await fetch('/api/orders?status=pending');
++    const orders = await res.json();
++    const list = document.getElementById('list');
++
++    if (!orders.length) {
++        list.innerHTML = "<p>Nenhum pedido pendente.</p>";
++        return;
++    }
++
++    list.innerHTML = "";
++
++    orders.forEach(o => {
++        const div = document.createElement('div');
++        div.style.border = "1px solid #ccc";
++        div.style.margin = "8px";
++        div.style.padding = "8px";
++
++        div.innerHTML = `
++            <b>Pedido #${o.id} — Mesa ${o.table_number}</b>
++            <p>${o.items}</p>
++            <button onclick="complete(${o.id})">Dar baixa</button>
++        `;
++
++        list.appendChild(div);
++    });
++}
++
++async function complete(id) {
++    await fetch(`/api/orders/${id}/complete`, {method: 'POST'});
++    load();
++}
++
++load();
++setInterval(load, 4000);
+diff --git a/backend/kitchen/index.php b/backend/kitchen/index.php
+new file mode 100644
+index 0000000..65eec11
+--- /dev/null
++++ b/backend/kitchen/index.php
+@@ -0,0 +1,14 @@
++<!DOCTYPE html>
++<html>
++<head>
++    <meta charset="utf-8">
++    <title>Cozinha - Pedidos</title>
++</head>
++<body>
++<h1>Pedidos Pendentes</h1>
++
++<div id="list"></div>
++
++<script src="app.js"></script>
++</body>
++</html>
+diff --git a/docker-compose.yml b/docker-compose.yml
+new file mode 100644
+index 0000000..8466726
+--- /dev/null
++++ b/docker-compose.yml
+@@ -0,0 +1,50 @@
++services:
++  db:
++    image: mysql:8.0
++    environment:
++      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
++      MYSQL_DATABASE: ${MYSQL_DATABASE}
++      MYSQL_USER: ${MYSQL_USER}
++      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
++    volumes:
++      - db_data:/var/lib/mysql
++      - ./sql:/docker-entrypoint-initdb.d:ro
++    ports:
++      - "3306:3306"
++
++  cashier:
++    build: .
++    container_name: cashier
++    volumes:
++      - ./src/cashier:/var/www/html
++      - ./src/common:/var/www/common
++      - ./src/api:/var/www/api
++    depends_on:
++      - db
++    ports:
++      - "8080:80"
++    environment:
++      DB_HOST: db
++      MYSQL_DATABASE: ${MYSQL_DATABASE}
++      MYSQL_USER: ${MYSQL_USER}
++      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
++
++  kitchen:
++    build: .
++    container_name: kitchen
++    volumes:
++      - ./src/kitchen:/var/www/html
++      - ./src/common:/var/www/common
++      - ./src/api:/var/www/api
++    depends_on:
++      - db
++    ports:
++      - "8081:80"
++    environment:
++      DB_HOST: db
++      MYSQL_DATABASE: ${MYSQL_DATABASE}
++      MYSQL_USER: ${MYSQL_USER}
++      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
++
++volumes:
++  db_data:
+diff --git a/frontend/index.html b/frontend/index.html
+new file mode 100644
+index 0000000..e69de29
+-- 
+2.52.0.windows.1
+

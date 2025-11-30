@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   db:
     image: mysql:8.0
@@ -8,38 +10,19 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
-      - ./sql:/docker-entrypoint-initdb.d:ro
+      - ./backend/common/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
     ports:
       - "3306:3306"
 
-  cashier:
+  web:
     build: .
-    container_name: cashier
+    container_name: restaurant_web
     volumes:
-      - ./src/cashier:/var/www/html
-      - ./src/common:/var/www/common
-      - ./src/api:/var/www/api
+      - ./backend:/var/www/html
     depends_on:
       - db
     ports:
       - "8080:80"
-    environment:
-      DB_HOST: db
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-
-  kitchen:
-    build: .
-    container_name: kitchen
-    volumes:
-      - ./src/kitchen:/var/www/html
-      - ./src/common:/var/www/common
-      - ./src/api:/var/www/api
-    depends_on:
-      - db
-    ports:
-      - "8081:80"
     environment:
       DB_HOST: db
       MYSQL_DATABASE: ${MYSQL_DATABASE}
