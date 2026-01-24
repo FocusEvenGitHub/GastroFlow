@@ -95,7 +95,7 @@ $(document).ready(function() {
                                                 <h6 class="card-title">${item.name}</h6>
                                                 <p class="card-text text-muted small">${item.description || 'Sem descrição'}</p>
                                                 <div class="d-flex justify-content-between align-items-center">
-                                                    <span class="h5 text-success mb-0">R$ ${item.price.toFixed(2)}</span>
+                                                    <span class="h5 text-success mb-0">R$ ${parseFloat(item.price).toFixed(2)}</span>
                                                     <button class="btn btn-sm btn-outline-primary add-item-btn" data-item-id="${item.id}">
                                                         <i class="fas fa-plus"></i> Adicionar
                                                     </button>
@@ -150,7 +150,7 @@ $(document).ready(function() {
             selectedItems.push({
                 id: item.id,
                 name: item.name,
-                price: item.price,
+                price: parseFloat(item.price),
                 quantity: 1,
                 notes: ''
             });
