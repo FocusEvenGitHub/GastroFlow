@@ -10,7 +10,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
-      - ./backend/common/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./app/common/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
     ports:
       - "3306:3306"
 
@@ -18,7 +18,7 @@ services:
     build: .
     container_name: restaurant_web
     volumes:
-      - ./backend:/var/www/html
+      - ./app:/var/www/html
     depends_on:
       - db
     ports:
