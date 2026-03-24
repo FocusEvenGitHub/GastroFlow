@@ -153,10 +153,6 @@ $(document).ready(function() {
     
     // Função para finalizar pedido
     function completeOrder(orderId) {
-        if (!confirm(`Tem certeza que deseja dar baixa no Pedido #${orderId}?`)) {
-            return;
-        }
-        
         // Desabilitar botão e mostrar loading
         $(`#order-${orderId} .complete-order`)
             .prop('disabled', true)

@@ -1,6 +1,12 @@
 # Welcome to GastroFlow 👋
+> A complete web application for restaurants to register and take orders for customers, built with PHP, JavaScript, and Docker...
 
-> A complete web application for restaurants to register and take orders for customers, built with PHP, JavaScript, and Docker... 
+<p align="center">
+  <img src="app\common\assets\img\tela1.png" alt="Interface do Caixa" width="800">
+</p>
+<p align="center">
+  <img src="app\common\assets\img\tela2.png" alt="Interface do Caixa" width="800">
+</p>
 ## Author
 👤 **Henry Sampaio**
 
@@ -29,20 +35,21 @@ This README provides complete instructions for starting, developing, and contrib
 
 ## 🚀 Features
 
-- Restaurant registration and authentication
-- Customer order interface
-- PHP backend
-- JavaScript frontend
-- Docker configuration
+- 🧾 **Cashier** – interface for placing orders, selecting items, adding notes, and sending them to the kitchen.
+- 👨‍🍳 **Kitchen** – real-time view of pending orders, with the option to finalize them.
+- 🛠️ **Admin** – complete menu management: add, edit, and activate/deactivate items.
+- 🔌 **RESTful API** – endpoints ready for integration with other systems.
+- 🐳 **Docker Environment** – fast and standardized execution.
 
 ---
 
 ## 📦 Technologies Used
 
-- 🐘 PHP
-- 📜 JavaScript
+- 🐘 PHP (sem framework, com rotas via .htaccess)
+- 🎨 Bootstrap 5 + Font Awesome
+- ⚡ JavaScript puro (fetch API)
+- 🐬 MySQL (com suporte a UTF-8)
 - 🐳 Docker & Docker Compose
-- 🧩 Possible use of frameworks/libraries (depending on the implementation)
 
 ---
 
@@ -90,7 +97,7 @@ docker compose up -d
 ``` 
 5. Access in your browser:
 ```
-http://localhost
+http://localhost:8080
 ```
 ---
 ## 🧪 How to Use
@@ -101,15 +108,52 @@ After setting up the environment with Docker:
 - Log in to the administrative interface
 - Test the order flow as a customer
 ---
-## 📍 Endpoints (example)
-
-Add important endpoints here when the backend is documented
+## 📍 Endpoints
+Important endpoints here when the backend is documented
 ``` 
-GET /api/restaurants
-POST /api/login
-POST /api/orders
+| Method | Endpoint                     | Description                         |
+|--------|------------------------------|-------------------------------------|
+| GET    | `/api/menu`                  | List all menu items                 |
+| POST   | `/api/orders`                | Create a new order                  |
+| GET    | `/api/orders?status=pending` | List orders by status               |
+| POST   | `/api/orders/{id}/complete`  | Mark an order as completed          |
+| POST   | `/api/items`                 | Add a new item to the menu          |
+| PATCH  | `/api/items/{id}`            | Activate/deactivate a menu item     |
 ```
+## 📍 Access
+After starting the containers with Docker:
+
+- Access the **cash register** at: [http://localhost:8080/cashier](http://localhost:8080/cashier)
+- Access the **kitchen** at: [http://localhost:8080/kitchen](http://localhost:8080/kitchen)
+- Access the **admin** at: [http://localhost:8080/admin](http://localhost:8080/admin) (menu management)
+
+To create a new order, fill in the table number, select the items, and click "Submit Order".
+
+In the kitchen, orders appear automatically and can be finalized.
+In the admin, you can add new items, edit descriptions/prices, and enable/disable items.
+
 ---
+## Folder Structure
+
+Update with the actual project layout:
+```
+GastroFlow/
+├── app/
+│   ├── cashier/          
+│   ├── kitchen/          
+│   ├── admin/            
+│   ├── api/              
+│   │   ├── index.php
+│   │   ├── menu.php
+│   │   └── orders.php
+│   └── common/           # db, helpers
+│       └──assets/        # img
+├── .htaccess             # routes rules
+├── docker-compose.yml
+├── Dockerfile
+└── README.md
+```
+
 ## 🧩 Contributing
 
 If you want to contribute:
@@ -129,13 +173,6 @@ git push origin feature/feature-name
 ```
 
 5. Open a Pull Request 📨
----
-## 📜 License
-
-This project is under the repository's license (if any).
-
-See the LICENSE file for details.
-
 ---
 ### Contacts
 
