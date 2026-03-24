@@ -28,6 +28,35 @@
         .quantity-input {
             width: 70px;
         }
+
+        /* Animação ao adicionar item */
+        @keyframes pulse {
+            0% { transform: scale(1); background-color: rgba(13,110,253,0); }
+            50% { transform: scale(1.02); background-color: rgba(13,110,253,0.1); }
+            100% { transform: scale(1); background-color: rgba(13,110,253,0); }
+        }
+        .menu-item-card.added {
+            animation: pulse 0.5s ease;
+        }
+
+        /* Melhorias nos itens selecionados */
+        .selected-item {
+            transition: all 0.2s;
+            background-color: #fff;
+        }
+        .selected-item:hover {
+            background-color: #f8f9fa;
+        }
+        .notes-icon {
+            cursor: pointer;
+            color: #6c757d;
+        }
+        .notes-icon:hover {
+            color: #0d6efd;
+        }
+        .notes-textarea {
+            transition: all 0.3s;
+        }
     </style>
 </head>
 <body>
@@ -45,26 +74,18 @@
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">Informações do Pedido</h5>
+                        <h5 class="mb-0">Selecione os Itens:</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label for="tableNumber" class="form-label">Número da Mesa:</label>
-                            <input type="number" class="form-control" id="tableNumber" min="1" max="50" required>
-                        </div>
-                        
-                        <h5 class="mt-4 mb-3">Selecione os Itens:</h5>
+                        <!-- Nova barra de categorias -->
+                        <ul class="nav nav-tabs mb-3" id="categoryTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" data-category="all">Todos</button>
+                            </li>
+                        </ul>
+
                         <div id="menuItems" class="row">
                             <!-- Itens do menu serão carregados aqui -->
-                        </div>
-                        
-                        <div class="mt-4" id="selectedItemsSection" style="display: none;">
-                            <h5>Itens Selecionados:</h5>
-                            <div class="selected-items-list p-3 border rounded">
-                                <div id="selectedItems">
-                                    <!-- Itens selecionados aparecerão aqui -->
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -105,6 +126,6 @@
     <script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script>
     
     <!-- Nosso JavaScript -->
-    <script src="app.js"></script>
+    <script src="app.js" charset="UTF-8">></script>
 </body>
 </html>

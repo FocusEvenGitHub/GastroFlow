@@ -40,6 +40,6 @@
         <div id="currentMenu"></div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js" charset="UTF-8"></script>
 </body>
 </html>

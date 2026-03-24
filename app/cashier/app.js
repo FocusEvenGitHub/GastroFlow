@@ -7,39 +7,68 @@ $(document).ready(function() {
     const $orderSummary = $('#orderSummary');
     const $submitOrder = $('#submitOrder');
     const $messageContainer = $('#messageContainer');
-    
+    const $categoryTabs = $('#categoryTabs');
+
     // Variáveis de estado
     let menuData = [];
     let selectedItems = [];
     let categories = [];
-    
+    let currentCategory = 'all'; // 'all' ou nome da categoria
+
     // Inicializar
     loadMenuData();
-    
+
     // Carregar dados do menu
     function loadMenuData() {
         showMessage('Carregando cardápio...', 'info');
-        
-        // Carregar categorias
+
         $.ajax({
             url: '/api/menu',
             method: 'GET',
             dataType: 'json',
             success: function(data) {
                 menuData = data;
+                prepareCategories();
                 displayMenu();
                 hideMessage();
             },
             error: function(xhr, status, error) {
                 showMessage('Erro ao carregar cardápio. Recarregue a página.', 'error');
                 console.error('Erro ao carregar menu:', error);
-                
-                // Carregar dados de exemplo se a API falhar
                 loadSampleData();
             }
         });
     }
-    
+
+    // Preparar lista de categorias e criar abas
+    function prepareCategories() {
+        categories = menuData.map(cat => cat.category_name);
+        $categoryTabs.empty();
+        // Adiciona aba "Todos"
+        $categoryTabs.append(`
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-category="all">Todos</button>
+            </li>
+        `);
+        // Adiciona aba para cada categoria
+        categories.forEach(cat => {
+            $categoryTabs.append(`
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-category="${cat}">${cat}</button>
+                </li>
+            `);
+        });
+        // Evento de clique nas abas
+        $categoryTabs.find('.nav-link').on('click', function() {
+            const category = $(this).data('category');
+            if (category === currentCategory) return;
+            currentCategory = category;
+            $categoryTabs.find('.nav-link').removeClass('active');
+            $(this).addClass('active');
+            displayMenu();
+        });
+    }
+
     // Carregar dados de exemplo (fallback)
     function loadSampleData() {
         menuData = [
@@ -61,28 +90,41 @@ $(document).ready(function() {
                 ]
             }
         ];
+        prepareCategories();
         displayMenu();
         hideMessage();
     }
-    
-    // Exibir cardápio
+
+    // Exibir cardápio filtrado por categoria
     function displayMenu() {
         $menuItems.empty();
-        
+
         if (!menuData || menuData.length === 0) {
             $menuItems.html('<div class="col-12"><div class="alert alert-warning">Nenhum item disponível no cardápio.</div></div>');
             return;
         }
-        
-        menuData.forEach(category => {
+
+        // Filtrar categorias com base na seleção atual
+        let filteredCategories = menuData;
+        if (currentCategory !== 'all') {
+            filteredCategories = menuData.filter(cat => cat.category_name === currentCategory);
+        }
+
+        if (filteredCategories.length === 0) {
+            $menuItems.html('<div class="col-12"><div class="alert alert-info">Nenhum item nesta categoria.</div></div>');
+            return;
+        }
+
+        filteredCategories.forEach(category => {
             const categoryId = category.category_name.toLowerCase().replace(/\s+/g, '-');
-            
+            const iconClass = category.type === 'food' ? 'fa-utensils' : 'fa-glass-cheers';
+
             const categoryHtml = `
                 <div class="col-12 mb-4">
                     <div class="card">
                         <div class="card-header bg-light">
                             <h5 class="mb-0">
-                                <i class="${category.type === 'food' ? 'fas fa-utensils' : 'fas fa-glass-whiskey'} me-2"></i>
+                                <i class="fas ${iconClass} me-2"></i>
                                 ${category.category_name}
                             </h5>
                         </div>
@@ -92,7 +134,10 @@ $(document).ready(function() {
                                     <div class="col-md-4 col-sm-6 mb-3">
                                         <div class="card menu-item-card h-100" data-item-id="${item.id}">
                                             <div class="card-body">
-                                                <h6 class="card-title">${item.name}</h6>
+                                                <h6 class="card-title">
+                                                    <i class="fas ${iconClass} me-1 text-muted"></i>
+                                                    ${item.name}
+                                                </h6>
                                                 <p class="card-text text-muted small">${item.description || 'Sem descrição'}</p>
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <span class="h5 text-success mb-0">R$ ${parseFloat(item.price).toFixed(2)}</span>
@@ -109,25 +154,25 @@ $(document).ready(function() {
                     </div>
                 </div>
             `;
-            
+
             $menuItems.append(categoryHtml);
         });
-        
+
         // Adicionar eventos aos botões de adicionar
         $('.add-item-btn').on('click', function(e) {
             e.stopPropagation();
             const itemId = $(this).data('item-id');
             addItemToOrder(itemId);
         });
-        
+
         // Adicionar evento de clique nos cards
         $('.menu-item-card').on('click', function() {
             const itemId = $(this).data('item-id');
             addItemToOrder(itemId);
         });
     }
-    
-    // Adicionar item ao pedido
+
+    // Adicionar item ao pedido com animação
     function addItemToOrder(itemId) {
         // Encontrar o item no menu
         let item = null;
@@ -135,116 +180,124 @@ $(document).ready(function() {
             item = category.items.find(i => i.id == itemId);
             if (item) break;
         }
-        
+
         if (!item) {
             showMessage('Item não encontrado!', 'error');
             return;
         }
-        
+
         // Verificar se o item já está selecionado
         const existingItem = selectedItems.find(i => i.id == itemId);
-        
+
         if (existingItem) {
             existingItem.quantity += 1;
         } else {
+            // Determinar o tipo do item para ícone
+            let itemType = 'food';
+            for (const cat of menuData) {
+                if (cat.items.some(i => i.id == itemId)) {
+                    itemType = cat.type;
+                    break;
+                }
+            }
             selectedItems.push({
                 id: item.id,
                 name: item.name,
                 price: parseFloat(item.price),
                 quantity: 1,
-                notes: ''
+                notes: '',
+                type: itemType
             });
         }
-        
+
         // Atualizar interface
         updateSelectedItemsDisplay();
         updateOrderSummary();
-        
+
         // Feedback visual
-        $(`.menu-item-card[data-item-id="${itemId}"]`).addClass('selected');
+        const $card = $(`.menu-item-card[data-item-id="${itemId}"]`);
+        $card.addClass('added');
         setTimeout(() => {
-            $(`.menu-item-card[data-item-id="${itemId}"]`).removeClass('selected');
-        }, 300);
+            $card.removeClass('added');
+        }, 500);
     }
-    
-    // Atualizar exibição dos itens selecionados
+
+    // Atualizar exibição dos itens selecionados (compacta com ícones)
     function updateSelectedItemsDisplay() {
         if (selectedItems.length === 0) {
             $selectedItemsSection.hide();
             $selectedItems.html('<p class="text-muted mb-0">Nenhum item selecionado</p>');
             return;
         }
-        
+
         $selectedItemsSection.show();
         $selectedItems.empty();
-        
+
         selectedItems.forEach((item, index) => {
+            const iconClass = item.type === 'food' ? 'fa-utensils' : 'fa-glass-cheers';
             const itemHtml = `
-                <div class="selected-item mb-3 p-3 border rounded" data-index="${index}">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">${item.name}</h6>
-                            <div class="d-flex align-items-center">
-                                <span class="me-3">Quantidade:</span>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-secondary quantity-minus" data-index="${index}">
-                                        <i class="fas fa-minus"></i>
-                                    </button>
-                                    <input type="number" class="form-control text-center quantity-input mx-1" 
-                                           value="${item.quantity}" min="1" style="width: 60px;" 
-                                           data-index="${index}">
-                                    <button type="button" class="btn btn-outline-secondary quantity-plus" data-index="${index}">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                </div>
-                                <span class="ms-3 text-success fw-bold">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+                <div class="selected-item mb-2 p-2 border rounded" data-index="${index}">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap">
+                        <div class="d-flex align-items-center flex-grow-1">
+                            <i class="fas ${iconClass} me-2 text-secondary"></i>
+                            <span class="fw-bold me-2">${item.name}</span>
+                            <div class="btn-group btn-group-sm ms-2" role="group">
+                                <button type="button" class="btn btn-outline-secondary quantity-minus" data-index="${index}">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span class="mx-2" style="min-width: 35px; text-align: center;">${item.quantity}</span>
+                                <button type="button" class="btn btn-outline-secondary quantity-plus" data-index="${index}">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-danger btn-sm remove-item" data-index="${index}">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="d-flex align-items-center mt-1 mt-sm-0">
+                            <span class="text-success fw-bold me-3">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+                            <i class="fas fa-pencil-alt notes-icon me-2" data-index="${index}" title="Adicionar observação"></i>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-item" data-index="${index}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="mt-2">
+                    <div class="notes-container mt-2" style="display: none;">
                         <label class="form-label small mb-1">Observações:</label>
-                        <textarea class="form-control form-control-sm notes-input" 
-                                  rows="2" 
+                        <textarea class="form-control form-control-sm notes-input" rows="2" 
                                   placeholder="Ex: sem arroz, bem passado, etc."
-                                  data-index="${index}">${item.notes}</textarea>
+                                  data-index="${index}">${item.notes || ''}</textarea>
                     </div>
                 </div>
             `;
             $selectedItems.append(itemHtml);
         });
-        
+
         // Adicionar eventos
         $('.quantity-minus').on('click', function() {
             const index = $(this).data('index');
             updateQuantity(index, selectedItems[index].quantity - 1);
         });
-        
+
         $('.quantity-plus').on('click', function() {
             const index = $(this).data('index');
             updateQuantity(index, selectedItems[index].quantity + 1);
         });
-        
-        $('.quantity-input').on('change', function() {
-            const index = $(this).data('index');
-            const newQuantity = parseInt($(this).val()) || 1;
-            updateQuantity(index, newQuantity);
+
+        $('.notes-icon').on('click', function() {
+            const $container = $(this).closest('.selected-item').find('.notes-container');
+            $container.slideToggle();
         });
-        
+
         $('.notes-input').on('change', function() {
             const index = $(this).data('index');
             selectedItems[index].notes = $(this).val();
             updateOrderSummary();
         });
-        
+
         $('.remove-item').on('click', function() {
             const index = $(this).data('index');
             removeItem(index);
         });
     }
-    
+
     // Atualizar quantidade de um item
     function updateQuantity(index, newQuantity) {
         if (newQuantity < 1) newQuantity = 1;
@@ -252,7 +305,7 @@ $(document).ready(function() {
         updateSelectedItemsDisplay();
         updateOrderSummary();
     }
-    
+
     // Remover item do pedido
     function removeItem(index) {
         if (confirm(`Remover "${selectedItems[index].name}" do pedido?`)) {
@@ -261,62 +314,66 @@ $(document).ready(function() {
             updateOrderSummary();
         }
     }
-    
-    // Atualizar resumo do pedido
+
+    // Atualizar resumo do pedido (mais detalhado)
     function updateOrderSummary() {
         if (selectedItems.length === 0) {
             $orderSummary.html('<p class="text-muted">Nenhum item selecionado</p>');
             $submitOrder.prop('disabled', true);
             return;
         }
-        
+
         let total = 0;
+        let totalItems = 0;
         let itemsHtml = '';
-        
+
         selectedItems.forEach(item => {
             const subtotal = item.price * item.quantity;
             total += subtotal;
-            
+            totalItems += item.quantity;
+
             itemsHtml += `
                 <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
                     <div>
                         <span class="badge bg-secondary me-2">${item.quantity}x</span>
                         <span>${item.name}</span>
-                        ${item.notes ? `<br><small class="text-muted">${item.notes}</small>` : ''}
+                        ${item.notes ? `<br><small class="text-muted"><i class="fas fa-comment"></i> ${item.notes}</small>` : ''}
                     </div>
                     <span class="text-end">R$ ${subtotal.toFixed(2)}</span>
                 </div>
             `;
         });
-        
+
         $orderSummary.html(`
+            <div class="mb-2">
+                <strong>Total de itens:</strong> ${totalItems}
+            </div>
             ${itemsHtml}
             <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
                 <strong>TOTAL:</strong>
                 <strong class="h5 text-success">R$ ${total.toFixed(2)}</strong>
             </div>
         `);
-        
+
         // Habilitar botão de envio se tiver mesa e itens
         $submitOrder.prop('disabled', !$tableNumber.val() || selectedItems.length === 0);
     }
-    
-    // Enviar pedido
+
+    // Enviar pedido (igual ao original, mas com validações)
     $submitOrder.on('click', function() {
         const tableNumber = $tableNumber.val().trim();
-        
+
         if (!tableNumber) {
             showMessage('Informe o número da mesa!', 'error');
             $tableNumber.focus();
             return;
         }
-        
+
         if (selectedItems.length === 0) {
             showMessage('Selecione pelo menos um item!', 'error');
             return;
         }
-        
-        // Preparar dados para envio
+
         const orderData = {
             table: tableNumber,
             items: selectedItems.map(item => ({
@@ -325,14 +382,12 @@ $(document).ready(function() {
                 notes: item.notes
             }))
         };
-        
-        // Desabilitar botão e mostrar loading
+
         $submitOrder.prop('disabled', true).html(`
             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
             Enviando...
         `);
-        
-        // Enviar para API
+
         $.ajax({
             url: '/api/orders',
             method: 'POST',
@@ -342,11 +397,7 @@ $(document).ready(function() {
                 if (response.ok || response.success) {
                     const orderId = response.id || 'N/A';
                     showMessage(`✅ Pedido #${orderId} enviado com sucesso para a cozinha!`, 'success');
-                    
-                    // Limpar formulário
                     resetForm();
-                    
-                    // Recarregar menu (opcional)
                     setTimeout(() => {
                         loadMenuData();
                     }, 2000);
@@ -362,8 +413,7 @@ $(document).ready(function() {
             }
         });
     });
-    
-    // Resetar formulário
+
     function resetForm() {
         $tableNumber.val('');
         selectedItems = [];
@@ -371,12 +421,11 @@ $(document).ready(function() {
         updateOrderSummary();
         $submitOrder.prop('disabled', true).html('<i class="fas fa-paper-plane me-2"></i>Enviar Pedido');
     }
-    
-    // Mostrar mensagem
+
     function showMessage(text, type = 'info') {
-        const alertClass = type === 'error' ? 'alert-danger' : 
-                          type === 'success' ? 'alert-success' : 'alert-info';
-        
+        const alertClass = type === 'error' ? 'alert-danger' :
+            type === 'success' ? 'alert-success' : 'alert-info';
+
         $messageContainer.html(`
             <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
                 ${text}
@@ -384,20 +433,17 @@ $(document).ready(function() {
             </div>
         `);
     }
-    
-    // Esconder mensagem
+
     function hideMessage() {
         $messageContainer.empty();
     }
-    
-    // Evento para validar quando mesa é alterada
+
     $tableNumber.on('input', function() {
         updateOrderSummary();
     });
-    
-    // Tecla Enter no campo mesa
+
     $tableNumber.on('keypress', function(e) {
-        if (e.which === 13) { // Enter
+        if (e.which === 13) {
             e.preventDefault();
             if (selectedItems.length > 0) {
                 $submitOrder.click();
