@@ -73,6 +73,10 @@
         <div class="row">
             <div class="col-md-8">
                 <div class="card">
+                    <div class="m-3">
+                        <label for="tableNumber" class="form-label">Número da Mesa:</label>
+                        <input type="number" class="form-control" id="tableNumber" min="1" max="50" required>
+                    </div>
                     <div class="card-header">
                         <h5 class="mb-0">Selecione os Itens:</h5>
                     </div>
