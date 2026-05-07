@@ -1,8 +1,8 @@
 # Welcome to GastroFlow 👋
 > A complete web application for restaurants to register and take orders for customers, built with PHP, JavaScript, and Docker...
 
-![Tela do Caixa](app/common/assets/img/tela1.png)
-![Tela da Cozinha](app/common/assets/img/tela2.png)
+![Tela do Caixa](public/assets/img/tela1.png)
+![Tela da Cozinha](public/assets/img/tela2.png)
 ## Author
 👤 **Henry Sampaio**
 
