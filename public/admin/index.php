@@ -116,11 +116,14 @@
                                             <p class="card-text text-muted small" x-text="item.description || ''"></p>
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <span class="price">R$ <span x-text="parseFloat(item.price).toFixed(2)"></span></span>
-                                                <button class="btn btn-sm"
+                                                <button class="btn btn-sm mt-2"
                                                         :class="item.available ? 'btn-outline-danger' : 'btn-outline-success'"
                                                         @click="toggleAvailability(item.id, !item.available)">
                                                     <i class="fas" :class="item.available ? 'fa-ban' : 'fa-check'"></i>
                                                     <span x-text="item.available ? 'Desativar' : 'Ativar'"></span>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info mt-2" @click="openRecipeModal(item)">
+                                                    <i class="fas fa-edit me-1"></i> Editar
                                                 </button>
                                             </div>
                                         </div>
@@ -131,6 +134,45 @@
                     </div>
                 </div>
             </template>
+        </div>
+    </div>
+
+    <!-- Modal para editar receita -->
+    <div x-show="showRecipeModal" x-transition x-cloak style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1050; overflow-y: auto;">
+        <div class="modal-dialog modal-lg border rounded shadow" style="margin: 1.75rem auto; background: #fff; padding: 1.5rem;">
+            <div class="modal-content" style="border: none;">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Receita: <span x-text="selectedDish?.name"></span></h5>
+                    <button type="button" class="btn-close" @click="showRecipeModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div x-show="recipeLoading" class="text-center py-4">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                    <div x-show="!recipeLoading">
+                        <div class="mb-3">
+                            <label class="form-label">Ingredientes</label>
+                            <template x-for="(ing, index) in recipeIngredients" :key="index">
+                                <div class="input-group mb-2">
+                                    <select class="form-select" x-model="ing.ingredient_id">
+                                        <option :value="ing.ingredient_id" x-text="ing.name + ' (' + ing.unit + ')'"></option>
+                                        <template x-for="avail in allIngredients" :key="avail.id">
+                                            <option :value="avail.id" x-text="avail.name + ' (' + avail.unit + ')'"></option>
+                                        </template>
+                                    </select>
+                                    <input type="number" class="form-control" x-model="ing.quantity" placeholder="Qtd" step="0.01" style="max-width: 100px;">
+                                    <button class="btn btn-outline-danger" @click="removeRecipeRow(index)"><i class="fas fa-times"></i></button>
+                                </div>
+                            </template>
+                            <button class="btn btn-sm btn-outline-secondary" @click="addRecipeRow"><i class="fas fa-plus"></i> Adicionar ingrediente</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="showRecipeModal = false">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @click="saveRecipe">Salvar Receita</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
