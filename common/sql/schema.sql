@@ -72,3 +72,16 @@ INSERT INTO menu_items (category_id, name, description, price) VALUES
 (3, 'Coca-Cola', 'Lata 350ml', 5.00),
 (3, 'Suco de Laranja', 'Copo 300ml', 7.00),
 (4, 'Pudim', 'Pudim de leite condensado', 8.00);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('admin','staff') NOT NULL DEFAULT 'staff',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Inserir um usuário admin padrão (senha: admin123, hash bcrypt)
+INSERT INTO users (username, password, role) VALUES
+    ('admin', '$2y$10$kAdCtbkdV7SCeV8aL3gJput/GXQsvgpjxTSI/lVfMhgaEPuXiMRry', 'admin');
