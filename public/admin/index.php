@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin – Cardápio</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .menu-item-card { transition: all 0.2s; }
+        .menu-item-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .price { font-size: 1.25rem; color: #198754; }
+    </style>
+</head>
+<body>
+<div x-data="adminApp()" class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2"><i class="fas fa-utensils me-2 text-primary"></i>Gerenciar Cardápio</h1>
+        <a href="/cashier/" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Voltar ao Caixa</a>
+    </div>
+
+    <!-- Mensagens -->
+    <div x-show="message.text" x-transition>
+        <div :class="'alert alert-'+message.type+' alert-dismissible fade show'" role="alert">
+            <span x-text="message.text"></span>
+            <button type="button" class="btn-close" @click="message.text=''"></button>
+        </div>
+    </div>
+
+    <!-- Formulário de novo item -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Adicionar Novo Item</h5>
+        </div>
+        <div class="card-body">
+            <form @submit.prevent="addItem">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Nome *</label>
+                        <input type="text" x-model="newItem.name" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Preço (R$) *</label>
+                        <input type="number" step="0.01" x-model="newItem.price" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Categoria *</label>
+                        <select x-model="newItem.category_name" class="form-select" required>
+                            <option value="">Selecione...</option>
+                            <template x-for="cat in categories" :key="cat">
+                                <option :value="cat" x-text="cat"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100" :disabled="saving">
+                            <span x-show="!saving"><i class="fas fa-save me-1"></i> Salvar</span>
+                            <span x-show="saving"><span class="spinner-border spinner-border-sm me-1"></span> Salvando...</span>
+                        </button>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descrição</label>
+                        <textarea x-model="newItem.description" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cardápio Atual -->
+    <h3 class="mb-3"><i class="fas fa-list me-2"></i>Cardápio Atual</h3>
+    <div x-show="loading" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+    </div>
+    <div x-show="!loading">
+        <template x-for="category in menu" :key="category.category_name">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas" :class="category.type === 'food' ? 'fa-utensils' : 'fa-glass-cheers'"></i> <span x-text="category.category_name"></span></h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <template x-for="item in category.items" :key="item.id">
+                            <div class="col-md-4 col-sm-6 mb-3">
+                                <div class="card h-100 menu-item-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title mb-1" x-text="item.name"></h5>
+                                        <p class="card-text text-muted small" x-text="item.description || ''"></p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="price">R$ <span x-text="parseFloat(item.price).toFixed(2)"></span></span>
+                                            <button class="btn btn-sm"
+                                                    :class="item.available ? 'btn-outline-danger' : 'btn-outline-success'"
+                                                    @click="toggleAvailability(item.id, !item.available)">
+                                                <i class="fas" :class="item.available ? 'fa-ban' : 'fa-check'"></i>
+                                                <span x-text="item.available ? 'Desativar' : 'Ativar'"></span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
+
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

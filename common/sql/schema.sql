@@ -1,58 +1,68 @@
-CREATE DATABASE IF NOT EXISTS restaurant;
+CREATE DATABASE IF NOT EXISTS restaurant
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
 USE restaurant;
 
+-- Garantir acesso do usuário da aplicação vindo de qualquer host
+CREATE USER IF NOT EXISTS 'restuser'@'%' IDENTIFIED BY 'restpass';
+GRANT ALL PRIVILEGES ON restaurant.* TO 'restuser'@'%';
+FLUSH PRIVILEGES;
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
 -- Tabela de categorias
 CREATE TABLE IF NOT EXISTS categories (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name VARCHAR(100) NOT NULL,
-  type ENUM('food', 'drink') NOT NULL,
-  PRIMARY KEY (id)
-);
+id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+name VARCHAR(100) NOT NULL,
+type ENUM('food', 'drink') NOT NULL,
+PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de itens do cardápio
 CREATE TABLE IF NOT EXISTS menu_items (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  category_id INT UNSIGNED NOT NULL,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  price DECIMAL(10,2) NOT NULL,
-  available BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  FOREIGN KEY (category_id) REFERENCES categories(id)
-);
+id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+category_id INT UNSIGNED NOT NULL,
+name VARCHAR(100) NOT NULL,
+description TEXT,
+price DECIMAL(10,2) NOT NULL,
+available BOOLEAN NOT NULL DEFAULT TRUE,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (id),
+FOREIGN KEY (category_id) REFERENCES categories(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Tabela de pedidos (modificada)
+-- Tabela de pedidos
 CREATE TABLE IF NOT EXISTS orders (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  table_number VARCHAR(50) NOT NULL,
-  status ENUM('pending','preparing','ready','done') NOT NULL DEFAULT 'pending',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id)
-);
+id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+table_number VARCHAR(50) NOT NULL,
+status ENUM('pending','preparing','ready','done') NOT NULL DEFAULT 'pending',
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Tabela de itens do pedido (com observações)
+-- Tabela de itens do pedido
 CREATE TABLE IF NOT EXISTS order_items (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  order_id BIGINT UNSIGNED NOT NULL,
-  menu_item_id INT UNSIGNED NOT NULL,
-  quantity INT NOT NULL DEFAULT 1,
-  notes TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-  FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
-);
+id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+order_id BIGINT UNSIGNED NOT NULL,
+menu_item_id INT UNSIGNED NOT NULL,
+quantity INT NOT NULL DEFAULT 1,
+notes TEXT,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (id),
+FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Inserir categorias e itens de exemplo
-INSERT INTO categories (name, type) VALUES 
+INSERT INTO categories (name, type) VALUES
 ('Pratos Principais', 'food'),
 ('Acompanhamentos', 'food'),
 ('Bebidas', 'drink'),
 ('Sobremesas', 'food');
 
-INSERT INTO menu_items (category_id, name, description, price) VALUES 
+INSERT INTO menu_items (category_id, name, description, price) VALUES
 (1, 'Feijoada Completa', 'Feijoada com arroz, couve, farofa e laranja', 25.90),
 (1, 'Bife à Parmegiana', 'Bife à parmegiana com arroz e batata frita', 22.50),
 (1, 'Frango Grelhado', 'Frango grelhado com legumes', 18.90),
