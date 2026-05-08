@@ -1,5 +1,5 @@
 # Welcome to GastroFlow 👋
-> A complete web application for restaurants to register and take orders for customers, built with PHP, JavaScript, and Docker...
+> A complete web application for restaurants to register and take orders for customers, built with PHP, Alphine, and Docker...
 
 ![Tela do Caixa](public/assets/img/tela1.png)
 ![Tela da Cozinha](public/assets/img/tela2.png)
@@ -41,22 +41,39 @@ This README provides complete instructions for starting, developing, and contrib
 
 ## 📦 Technologies Used
 
-- 🐘 PHP (sem framework, com rotas via .htaccess)
+- 🐘 PHP 8.2 + Slim 4 (micro-framework)
+- 🎲 Eloquent ORM (Illuminate Database)
 - 🎨 Bootstrap 5 + Font Awesome
-- ⚡ JavaScript puro (fetch API)
-- 🐬 MySQL (com suporte a UTF-8)
+- ⚡ Alpine.js
+- 🐬 MySQL
+- 🔐 JWT (JSON Web Tokens)
 - 🐳 Docker & Docker Compose
 
 ---
 
 ## 🧱 Project Structure
-
-📦 GastroFlow\
-├── app/\
-├── Dockerfile\
-├── docker-compose.yml\
-├── .env.example\
-└── (others) (files/patches)
+```
+📦 GastroFlow
+├── public/               # DocumentRoot (Slim Entry)
+│   ├── index.php
+│   ├── .htaccess
+│   └── assets/
+├── src/                  # Application code (PSR‑4)
+│   ├── Controllers/
+│   ├── Middleware/
+│   ├── Models/
+│   ├── Repositories/
+│   ├── Services/
+│   └── Validators/
+├── legacy/               # Old Code (backup)
+│   └── api, cashier, kitchen, admin
+├── common/               # SQL schema
+├── composer.json
+├── Dockerfile
+├── docker-compose.yml
+├── .env.example
+└── README.md
+```
 
 ---
 
@@ -86,7 +103,9 @@ cd GastroFlow
 
 ```
 cp .env.example .env
+openssl rand -base64 48    # gerar JWT_SECRET
 ```
+- Paste the string generated in `.env` as `JWT_SECRET`
 4. Start the containers:
 ```
 docker compose up -d
@@ -98,57 +117,79 @@ http://localhost:8080
 ---
 ## 🧪 How to Use
 
-After setting up the environment with Docker:
+After `docker compose up -d`:
 
-- Create a restaurant in the system
-- Log in to the administrative interface
-- Test the order flow as a customer
+- Access **Cashier** – create orders by table number, items and notes.
+- Access **Kitchen** – see pending orders appear in real time, mark them as completed.
+- Access **Admin** – login with the default user (`admin` / `admin123`), then manage the menu (add / enable / disable items).
+- All changes are persisted inside the MySQL container.
+- To use the API directly, refer to the cURL examples below.
 ---
 ## 📍 Endpoints
 Important endpoints here when the backend is documented
 ``` 
-| Method | Endpoint                     | Description                         |
-|--------|------------------------------|-------------------------------------|
-| GET    | `/api/menu`                  | List all menu items                 |
-| POST   | `/api/orders`                | Create a new order                  |
-| GET    | `/api/orders?status=pending` | List orders by status               |
-| POST   | `/api/orders/{id}/complete`  | Mark an order as completed          |
-| POST   | `/api/items`                 | Add a new item to the menu          |
-| PATCH  | `/api/items/{id}`            | Activate/deactivate a menu item     |
+| Method | Endpoint                     | Description                      | Auth   |
+|--------|------------------------------|----------------------------------|--------|
+| GET    | `/api/menu`                  | Full menu                        | Public |
+| POST   | `/api/orders`                | Create a new order               | Public |
+| GET    | `/api/orders?status=pending` | List orders by status            | Public |
+| POST   | `/api/orders/{id}/complete`  | Mark an order as done            | Public |
+| POST   | `/api/login`                 | Obtain a JWT token               | Public |
+| GET    | `/api/admin/menu`            | Menu (admin)                     | JWT    |
+| POST   | `/api/admin/items`           | Add a menu item                  | JWT    |
+| PATCH  | `/api/admin/items/{id}`      | Toggle item availability         | JWT    |
 ```
-## 📍 Access
-After starting the containers with Docker:
 
-- Access the **cash register** at: [http://localhost:8080/cashier](http://localhost:8080/cashier)
-- Access the **kitchen** at: [http://localhost:8080/kitchen](http://localhost:8080/kitchen)
-- Access the **admin** at: [http://localhost:8080/admin](http://localhost:8080/admin) (menu management)
+## 🧪 Testing with cURL
 
-To create a new order, fill in the table number, select the items, and click "Submit Order".
+Make sure the containers are running (`docker compose up -d`).  
+All endpoints return **JSON**.
 
-In the kitchen, orders appear automatically and can be finalized.
-In the admin, you can add new items, edit descriptions/prices, and enable/disable items.
+```bash
+# 1. Get the full menu
+curl -s http://localhost:8080/api/menu | python -m json.tool
+
+# 2. Create a new order
+curl -s -X POST http://localhost:8080/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{"table":"3","items":[{"id":1,"quantity":2,"notes":"no onion"}]}' | python -m json.tool
+
+# 3. List pending orders
+curl -s http://localhost:8080/api/orders?status=pending | python -m json.tool
+
+# 4. Complete an order (replace {id} with real order id)
+curl -s -X POST http://localhost:8080/api/orders/1/complete | python -m json.tool
+
+# 5. Login as admin (default credentials: admin/admin123)
+curl -s -X POST http://localhost:8080/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' | python -m json.tool
+
+# 6. Use the token to access admin routes
+TOKEN="paste-your-token-here"
+
+# 6a. Get menu (admin version)
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/menu | python -m json.tool
+
+# 6b. Add a new menu item
+curl -s -X POST http://localhost:8080/api/admin/items \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"Caesar Salad","price":14.90,"category_name":"Pratos Principais","description":"Fresh salad"}' | python -m json.tool
+
+# 6c. Toggle item availability (1 = available, 0 = unavailable)
+curl -s -X PATCH http://localhost:8080/api/admin/items/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"available":false}' | python -m json.tool
+  ```
 
 ---
-## Folder Structure
 
-Update with the actual project layout:
-```
-GastroFlow/
-├── app/
-│   ├── cashier/          
-│   ├── kitchen/          
-│   ├── admin/            
-│   ├── api/              
-│   │   ├── index.php
-│   │   ├── menu.php
-│   │   └── orders.php
-│   └── common/           # db, helpers
-│       └──assets/        # img
-├── .htaccess             # routes rules
-├── docker-compose.yml
-├── Dockerfile
-└── README.md
-```
+## 📐 Commit Convention
+
+This project follows [Conventional Commits](https://www.conventionalcommits.org/) with emojis.  
+For a complete guide, check [COMMIT_CONVENTION.md](COMMIT_CONVENTION.md).
 
 ## 🧩 Contributing
 
@@ -170,7 +211,7 @@ git push origin feature/feature-name
 
 5. Open a Pull Request 📨
 ---
-### Contacts
+### Issue
 
 If you want to discuss improvements or have technical questions, open an issue on GitHub or contact the maintainers.
 
