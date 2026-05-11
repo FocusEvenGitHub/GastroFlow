@@ -10,11 +10,16 @@ function ingredientsApp() {
         editIngredientData: { id: null, name: '', unit: '', category: '' },
 
         async init() {
-            if (!this.token) {
-                window.location.href = '/admin/'; // need login
-                return;
-            }
+            if (!this.token) { window.location.href = '/admin/'; return; }
+            await this.loadIngredientCategories();
             await this.loadIngredients();
+        },
+
+        async loadIngredientCategories() {
+            const res = await fetch('/api/admin/ingredient-categories', {
+                headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            this.ingredientCategories = await res.json();
         },
 
         async loadIngredients() {
@@ -42,7 +47,11 @@ function ingredientsApp() {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${this.token}`
                     },
-                    body: JSON.stringify(this.newIngredient)
+                    body: JSON.stringify({
+                        name: this.newIngredient.name,
+                        unit: this.newIngredient.unit,
+                        category_id: this.newIngredient.category_id || null
+                    })
                 });
                 if (res.status === 401) { window.location.href = '/admin/'; return; }
                 if (!res.ok) throw new Error('Erro ao adicionar ingrediente');

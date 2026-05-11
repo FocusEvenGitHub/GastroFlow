@@ -1,7 +1,9 @@
 <?php
 namespace App;
 
+use App\Controllers\CategoryController;
 use App\Controllers\DishController;
+use App\Controllers\IngredientCategoryController;
 use App\Controllers\IngredientController;
 use App\Controllers\KitchenController;
 use Slim\App;
@@ -61,6 +63,18 @@ class Routes
             // Dish recipe management
             $group->get('/dishes/{id}', [DishController::class, 'show']);
             $group->put('/dishes/{id}', [DishController::class, 'update']);
+
+            // Dish categories
+            $group->get('/categories', [CategoryController::class, 'index']);
+            $group->post('/categories', [CategoryController::class, 'store']);
+            $group->put('/categories/{id}', [CategoryController::class, 'update']);
+            $group->delete('/categories/{id}', [CategoryController::class, 'destroy']);
+
+            // Ingredient categories
+            $group->get('/ingredient-categories', [IngredientCategoryController::class, 'index']);
+            $group->post('/ingredient-categories', [IngredientCategoryController::class, 'store']);
+            $group->put('/ingredient-categories/{id}', [IngredientCategoryController::class, 'update']);
+            $group->delete('/ingredient-categories/{id}', [IngredientCategoryController::class, 'destroy']);
         })->add($jwt);
     }
 }

@@ -40,14 +40,11 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Categoria</label>
-                        <select x-model="newIngredient.category" class="form-select">
+                        <select x-model="newIngredient.category_id" class="form-select">
                             <option value="">Selecione...</option>
-                            <option value="meat">Carne / Proteína</option>
-                            <option value="grain">Grão / Acompanhamento</option>
-                            <option value="vegetable">Vegetal</option>
-                            <option value="fruit">Fruta</option>
-                            <option value="dairy">Laticínio</option>
-                            <option value="sauce">Molho</option>
+                            <template x-for="cat in ingredientCategories" :key="cat.id">
+                                <option :value="cat.id" x-text="cat.name"></option>
+                            </template>
                         </select>
                     </div>
                     <div class="col-md-3 d-flex align-items-end">

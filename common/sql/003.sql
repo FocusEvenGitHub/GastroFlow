@@ -1,3 +1,4 @@
+
 -- 1. Create ingredients table
 CREATE TABLE IF NOT EXISTS ingredients (
 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -59,3 +60,18 @@ INSERT INTO item_ingredients (menu_item_id, ingredient_id, quantity) VALUES
 (3, (SELECT id FROM ingredients WHERE name='Peito de Frango'), 1),
 (3, (SELECT id FROM ingredients WHERE name='Arroz Branco'), 150),
 (3, (SELECT id FROM ingredients WHERE name='Legumes'), 100);
+
+CREATE TABLE ingredient_categories (
+id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Seed data from the existing strings
+INSERT INTO ingredient_categories (name) VALUES
+('meat'),('protein'),('grain'),('vegetable'),('fruit'),('dairy'),('sauce');
+
+-- Alter ingredients table: add category_id, drop old column
+ALTER TABLE ingredients ADD COLUMN category_id INT UNSIGNED NULL;
+UPDATE ingredients i JOIN ingredient_categories ic ON i.category = ic.name SET i.category_id = ic.id;
+ALTER TABLE ingredients DROP COLUMN category;
+ALTER TABLE ingredien

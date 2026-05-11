@@ -22,11 +22,74 @@ function adminApp() {
         allIngredients: [],
         recipeIngredients: [],
         recipeLoading: false,
+        newItemIngredients: [],
 
         init() {
             if (this.token) {
                 this.loggedIn = true;
                 this.loadMenu();
+                this.loadAllIngredients();
+            }
+        },
+
+        loadAllIngredients() {
+            fetch('/api/admin/ingredients', {
+                headers: { 'Authorization': `Bearer ${this.token}` }
+            })
+                .then(res => res.json())
+                .then(data => { this.allIngredients = data; })
+                .catch(() => {});
+        },
+
+// métodos de manipulação de ingredientes no formulário:
+        addNewIngredient() {
+            this.newItemIngredients.push({ id: '', quantity: 1 });
+        },
+        removeNewIngredient(index) {
+            this.newItemIngredients.splice(index, 1);
+        },
+
+// modificar addItem() para enviar ingredients
+        async addItem() {
+            if (!this.newItem.name || !this.newItem.price || !this.newItem.category_name) {
+                this.showMessage('Preencha todos os campos obrigatórios.', 'warning');
+                return;
+            }
+            if (this.newItemIngredients.length === 0) {
+                this.showMessage('Adicione pelo menos um ingrediente.', 'warning');
+                return;
+            }
+            this.saving = true;
+            try {
+                const payload = {
+                    name: this.newItem.name,
+                    price: parseFloat(this.newItem.price),
+                    category_name: this.newItem.category_name,
+                    description: this.newItem.description,
+                    ingredients: this.newItemIngredients.filter(i => i.id).map(i => ({
+                        id: parseInt(i.id),
+                        quantity: parseFloat(i.quantity)
+                    }))
+                };
+                const res = await fetch('/api/admin/items', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.status === 401) { this.logout(); return; }
+                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao adicionar');
+                this.showMessage('Item adicionado!', 'success');
+                this.newItem = { name: '', price: '', category_name: '', description: '' };
+                this.newItemIngredients = [];
+                await this.loadMenu();
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            } finally {
+                this.saving = false;
             }
         },
 
@@ -81,35 +144,6 @@ function adminApp() {
                 this.showMessage(err.message, 'danger');
             } finally {
                 this.loading = false;
-            }
-        },
-
-        async addItem() {
-            if (!this.newItem.name || !this.newItem.price || !this.newItem.category_name) {
-                this.showMessage('Preencha todos os campos obrigatórios.', 'warning');
-                return;
-            }
-            this.saving = true;
-            try {
-                const res = await fetch('/api/admin/items', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.token}`
-                    },
-                    body: JSON.stringify({...this.newItem, price: parseFloat(this.newItem.price)})
-                });
-                const data = await res.json();
-                if (res.status === 401) { this.logout(); return; }
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao adicionar');
-                this.showMessage('Item adicionado!', 'success');
-                this.newItem = { name: '', price: '', category_name: '', description: '' };
-                this.loadMenu();
-
-            } catch (err) {
-                this.showMessage(err.message, 'danger');
-            } finally {
-                this.saving = false;
             }
         },
 

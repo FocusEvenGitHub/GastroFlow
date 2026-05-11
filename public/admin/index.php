@@ -92,6 +92,25 @@
                             <textarea x-model="newItem.description" class="form-control" rows="2"></textarea>
                         </div>
                     </div>
+                    <!-- Ingredientes (opcional na criação, obrigatório ao menos um) -->
+                    <div class="mt-3">
+                        <label class="form-label">Ingredientes <small class="text-muted">(pelo menos 1)</small></label>
+                        <div id="ingredient-rows">
+                            <template x-for="(ing, index) in newItemIngredients" :key="index">
+                                <div class="input-group mb-2">
+                                    <select class="form-select" x-model.number="ing.id" required>
+                                        <option value="">Selecione ingrediente...</option>
+                                        <template x-for="avail in allIngredients" :key="avail.id">
+                                            <option :value="avail.id" x-text="avail.name + ' (' + avail.unit + ')'"></option>
+                                        </template>
+                                    </select>
+                                    <input type="number" class="form-control" x-model.number="ing.quantity" placeholder="Qtd" step="0.01" required style="max-width: 100px;">
+                                    <button type="button" class="btn btn-outline-danger" @click="removeNewIngredient(index)"><i class="fas fa-times"></i></button>
+                                </div>
+                            </template>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="addNewIngredient"><i class="fas fa-plus"></i> Adicionar ingrediente</button>
+                    </div>
                 </form>
             </div>
         </div>

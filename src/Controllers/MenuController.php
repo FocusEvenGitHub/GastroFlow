@@ -29,22 +29,49 @@ class MenuController
     public function store(Request $request, Response $response): Response
     {
         $data = $request->getParsedBody();
-        if (!isset($data['name'], $data['price'], $data['category_name'])) {
-            $response->getBody()->write(json_encode([
-                'error' => 'Campos obrigatórios: name, price, category_name'
-            ]));
+        $validator = new \Valitron\Validator($data);
+        $validator->rule('required', ['name', 'price', 'category_name']);
+        $validator->rule('numeric', 'price');
+        $validator->rule('array', 'ingredients');
+        // at least one ingredient if ingredients array is provided
+        $validator->rule(function($field, $value, $params, $fields) {
+            if (!is_array($value)) return true;
+            return count($value) >= 1;
+        }, 'ingredients')->message('Informe pelo menos um ingrediente.');
+
+        if (!$validator->validate()) {
+            $response->getBody()->write(json_encode(['error' => 'Validation failed', 'messages' => $validator->errors()]));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        try {
-            $item = $this->menuService->addItem($data);
-            $payload = ['success' => true, 'id' => $item->id, 'message' => 'Item adicionado'];
-            $response->getBody()->write(json_encode($payload));
-            return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
-        } catch (\Exception $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        // Find category
+        $category = \App\Models\Category::where('name', $data['category_name'])->first();
+        if (!$category) {
+            $response->getBody()->write(json_encode(['error' => 'Categoria não encontrada.']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
+
+        // Create menu item
+        $item = \App\Models\MenuItem::create([
+            'name' => $data['name'],
+            'description' => $data['description'] ?? '',
+            'price' => $data['price'],
+            'category_id' => $category->id,
+            'available' => $data['available'] ?? true,
+        ]);
+
+        // Sync ingredients (with quantities)
+        if (!empty($data['ingredients'])) {
+            $sync = [];
+            foreach ($data['ingredients'] as $ing) {
+                $sync[$ing['id']] = ['quantity' => $ing['quantity']];
+            }
+            $item->ingredients()->sync($sync);
+        }
+
+        $item->load('ingredients');
+        $response->getBody()->write(json_encode($item));
+        return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
     }
 
     // PATCH /api/items/{id}

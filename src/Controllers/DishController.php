@@ -40,8 +40,13 @@ class DishController
             'category_id' => $data['category_id'] ?? $dish->category_id,
         ]);
 
-        // Update ingredients (pivot table)
+        // Update ingredients
         if (isset($data['ingredients']) && is_array($data['ingredients'])) {
+            if (empty($data['ingredients'])) {
+                $response->getBody()->write(json_encode(['error' => 'O prato deve ter ao menos um ingrediente.']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
+
             $sync = [];
             foreach ($data['ingredients'] as $ing) {
                 $sync[$ing['id']] = ['quantity' => $ing['quantity']];

@@ -12,7 +12,20 @@ class IngredientController
     // GET /api/admin/ingredients
     public function index(Request $request, Response $response): Response
     {
-        $ingredients = Ingredient::orderBy('category')->orderBy('name')->get();
+        $ingredients = Ingredient::with('category')
+            ->orderBy('category_id')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($ing) {
+                return [
+                    'id'          => $ing->id,
+                    'name'        => $ing->name,
+                    'unit'        => $ing->unit,
+                    'category_id' => $ing->category_id,
+                    'category'    => $ing->category ? $ing->category->name : null,
+                ];
+            });
+
         $response->getBody()->write(json_encode($ingredients));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -47,9 +60,17 @@ class IngredientController
     // DELETE /api/admin/ingredients/{id}
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $ingredient = Ingredient::findOrFail((int)$args['id']);
-        $ingredient->delete();
-        $response->getBody()->write(json_encode(['success' => true]));
-        return $response->withHeader('Content-Type', 'application/json');
+        try {
+            $ingredient = Ingredient::findOrFail((int)$args['id']);
+            $ingredient->delete();
+            $response->getBody()->write(json_encode(['success' => true]));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) { // integrity constraint violation
+                $response->getBody()->write(json_encode(['error' => 'Este ingrediente está em uso em um ou mais pratos.']));
+                return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
+            }
+            throw $e;
+        }
     }
 }
