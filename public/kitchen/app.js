@@ -3,13 +3,17 @@ function kitchenApp() {
         orders: [],
         loading: true,
         message: { text: '', type: 'info' },
-        completing: null,  // id do pedido sendo finalizado
+        completing: null,
         refreshInterval: null,
+        foodSummary: [],
 
         async init() {
             await this.fetchOrders();
-            // Atualiza automaticamente a cada 5 segundos
-            this.refreshInterval = setInterval(() => this.fetchOrders(), 5000);
+            await this.loadFoodSummary();
+            this.refreshInterval = setInterval(() => {
+                this.fetchOrders();
+                this.loadFoodSummary();
+            }, 5000);
         },
 
         async fetchOrders() {
@@ -27,6 +31,28 @@ function kitchenApp() {
         async refresh() {
             this.loading = true;
             await this.fetchOrders();
+            await this.loadFoodSummary();
+        },
+
+        async loadFoodSummary() {
+            try {
+                const res = await fetch('/api/kitchen/food-summary');
+                if (!res.ok) throw new Error('Erro ao buscar resumo');
+                const data = await res.json();
+                this.foodSummary = data.items || [];
+            } catch (err) {
+                console.error('Erro food-summary:', err);
+            }
+        },
+
+        groupedSummary() {
+            const groups = {};
+            for (const item of this.foodSummary) {
+                const cat = item.food_category || 'other';
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push(item);
+            }
+            return groups;
         },
 
         async completeOrder(orderId) {
@@ -36,15 +62,14 @@ function kitchenApp() {
                 const data = await res.json();
                 if (!res.ok || data.error) throw new Error(data.error || 'Erro ao finalizar');
                 this.showMessage(`Pedido #${orderId} finalizado!`, 'success');
-                // Remove o pedido da lista com animação
                 const order = this.orders.find(o => o.id === orderId);
-                if (order) order.hidden = true;  // dispara o x-show e transição
+                if (order) order.hidden = true;
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {
                 this.completing = null;
-                // Recarrega lista após um curto delay
                 setTimeout(() => this.fetchOrders(), 1000);
+                setTimeout(() => this.loadFoodSummary(), 1000);
             }
         },
 
@@ -53,7 +78,6 @@ function kitchenApp() {
             setTimeout(() => { this.message.text = ''; }, 5000);
         },
 
-        // Limpa o intervalo quando a página é fechada (boas práticas)
         destroy() {
             clearInterval(this.refreshInterval);
         }

@@ -11,74 +11,117 @@
         .order-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .order-card.completed { border-left-color: #28a745; opacity: 0.7; }
         .item-note { font-size: 0.85em; color: #6c757d; font-style: italic; }
+        .summary-card .cat-protein { border-left: 4px solid #dc3545; }
+        .summary-card .cat-grain { border-left: 4px solid #ffc107; }
+        .summary-card .cat-vegetable { border-left: 4px solid #28a745; }
+        .summary-card .cat-sauce { border-left: 4px solid #17a2b8; }
     </style>
 </head>
 <body>
 <div x-data="kitchenApp()" class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h2"><i class="fas fa-utensils me-2"></i>Cozinha – Pedidos Pendentes</h1>
-        <div>
-            <button @click="refresh" class="btn btn-outline-primary me-2">
-                <i class="fas fa-sync-alt me-1"></i> Atualizar
-            </button>
-            <span class="badge bg-secondary fs-6" x-text="orders.length + ' pedido(s)'"></span>
-        </div>
-    </div>
+    <div class="row">
+        <!-- Pedidos -->
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h2"><i class="fas fa-utensils me-2"></i>Cozinha – Pedidos Pendentes</h1>
+                <div>
+                    <button @click="refresh" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-sync-alt me-1"></i> Atualizar
+                    </button>
+                    <span class="badge bg-secondary fs-6" x-text="orders.length + ' pedido(s)'"></span>
+                </div>
+            </div>
 
-    <!-- Mensagens -->
-    <div x-show="message.text" x-transition class="mb-3">
-        <div :class="'alert alert-'+message.type+' alert-dismissible fade show'" role="alert">
-            <span x-text="message.text"></span>
-            <button type="button" class="btn-close" @click="message.text=''"></button>
-        </div>
-    </div>
+            <div x-show="message.text" x-transition class="mb-3">
+                <div :class="'alert alert-'+message.type+' alert-dismissible fade show'" role="alert">
+                    <span x-text="message.text"></span>
+                    <button type="button" class="btn-close" @click="message.text=''"></button>
+                </div>
+            </div>
 
-    <!-- Loading -->
-    <div x-show="loading" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2">Carregando pedidos...</p>
-    </div>
+            <div x-show="loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">Carregando pedidos...</p>
+            </div>
 
-    <!-- Lista de pedidos -->
-    <div x-show="!loading">
-        <div x-show="orders.length === 0" class="text-center py-5">
-            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-            <h3>Tudo pronto!</h3>
-            <p class="text-muted">Nenhum pedido pendente no momento.</p>
-        </div>
+            <div x-show="!loading">
+                <div x-show="orders.length === 0" class="text-center py-5">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h3>Tudo pronto!</h3>
+                    <p class="text-muted">Nenhum pedido pendente no momento.</p>
+                </div>
 
-        <template x-for="order in orders" :key="order.id">
-            <div class="card order-card mb-4" :class="{ 'completed': completing === order.id }" x-show="!order.hidden">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Pedido #<span x-text="order.id"></span></h5>
-                        <small class="text-muted" x-text="order.created_at"></small>
+                <template x-for="order in orders" :key="order.id">
+                    <div class="card order-card mb-4" :class="{ 'completed': completing === order.id }" x-show="!order.hidden">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Pedido #<span x-text="order.id"></span></h5>
+                                <small class="text-muted" x-text="order.created_at"></small>
+                            </div>
+                            <div>
+                                <span class="badge bg-primary"><i class="fas fa-hashtag me-1"></i> Senha <span x-text="order.table_number"></span></span>
+                                <span class="badge bg-warning ms-2">Pendente</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h6>Itens:</h6>
+                            <template x-for="item in order.items" :key="item.name">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <div>
+                                        <strong x-text="item.quantity + 'x ' + item.name"></strong>
+                                        <div x-show="item.notes" class="item-note"><i class="fas fa-sticky-note me-1"></i><span x-text="item.notes"></span></div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0">
+                            <button class="btn btn-success btn-lg w-100" @click="completeOrder(order.id)"
+                                    :disabled="completing === order.id">
+                                <span x-show="completing !== order.id"><i class="fas fa-check-circle me-2"></i> Dar Baixa (Finalizar)</span>
+                                <span x-show="completing === order.id"><span class="spinner-border spinner-border-sm me-2"></span> Finalizando...</span>
+                            </button>
+                        </div>
                     </div>
-                    <div>
-                        <span class="badge bg-primary"><i class="fas fa-hashtag me-1"></i> Senha <span x-text="order.table_number"></span></span>
-                        <span class="badge bg-warning ms-2">Pendente</span>
-                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Sidebar: Resumo de Ingredientes -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm summary-card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Resumo de Ingredientes</h5>
                 </div>
                 <div class="card-body">
-                    <h6>Itens:</h6>
-                    <template x-for="item in order.items" :key="item.name">
-                        <div class="d-flex justify-content-between mb-2">
-                            <div>
-                                <strong x-text="item.quantity + 'x ' + item.name"></strong>
-                                <div x-show="item.notes" class="item-note"><i class="fas fa-sticky-note me-1"></i><span x-text="item.notes"></span></div>
-                            </div>
+                    <div x-show="Object.keys(groupedSummary()).length === 0" class="text-center text-muted py-3">
+                        <i class="fas fa-box-open fa-2x mb-2"></i>
+                        <p class="small mb-0">Nenhum ingrediente necessário no momento.</p>
+                    </div>
+
+                    <template x-for="(items, category) in groupedSummary()" :key="category">
+                        <div class="mb-3">
+                            <h6 class="text-uppercase small fw-bold text-muted border-bottom pb-1"
+                                x-text="category === 'protein' ? '🥩 Proteínas' :
+                                       category === 'grain' ? '🌾 Grãos' :
+                                       category === 'vegetable' ? '🥬 Vegetais' :
+                                       category === 'sauce' ? '🧂 Molhos' :
+                                       category === 'side' ? '🍟 Acompanhamentos' :
+                                       '📦 Outros'">
+                            </h6>
+                            <template x-for="item in items" :key="item.id">
+                                <div class="d-flex justify-content-between align-items-center py-1 px-2 rounded mb-1"
+                                     :class="'cat-' + item.food_category"
+                                     style="background:#f8f9fa;">
+                                    <span class="small" x-text="item.name"></span>
+                                    <span class="badge" :class="item.food_category === 'protein' ? 'bg-danger' : 'bg-secondary'"
+                                          x-text="item.total_quantity"></span>
+                                </div>
+                            </template>
                         </div>
                     </template>
                 </div>
-                <div class="card-footer bg-transparent border-top-0">
-                    <button class="btn btn-success btn-lg w-100" @click="completeOrder(order.id)"
-                            :disabled="completing === order.id">
-                        <span x-show="completing !== order.id"><i class="fas fa-check-circle me-2"></i> Dar Baixa (Finalizar)</span>
-                        <span x-show="completing === order.id"><span class="spinner-border spinner-border-sm me-2"></span> Finalizando...</span>
-                    </button>
-                </div>
             </div>
-        </template>
+        </div>
     </div>
 </div>
 

@@ -69,7 +69,15 @@
                                     <div class="card menu-item-card h-100" @click="addItem(item)">
                                         <div class="card-body">
                                             <h6 class="card-title" x-text="item.name"></h6>
-                                            <p class="card-text text-muted small" x-text="item.description || 'Sem descrição'"></p>
+                                            <template x-if="category.category_name !== 'Pratos Principais'">
+                                                <p class="card-text text-muted small" x-text="item.description || 'Sem descrição'"></p>
+                                            </template>
+                                            <template x-if="category.category_name === 'Pratos Principais'">
+                                                <p class="card-text text-muted small">
+                                                    <i class="fas fa-layer-group me-1 text-primary"></i>
+                                                    <span x-text="(item.components || []).map(c => c.name + ' x' + c.quantity).join(', ')"></span>
+                                                </p>
+                                            </template>
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <span class="h5 text-success mb-0">R$ <span x-text="item.price.toFixed(2)"></span></span>
                                                 <button class="btn btn-sm btn-outline-primary" @click.stop="addItem(item)">

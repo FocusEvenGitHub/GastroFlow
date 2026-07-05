@@ -9,14 +9,19 @@ function cashierApp() {
         loading: true,
         submitting: false,
 
-        // Inicializa carregando o menu
         async init() {
             try {
-                const res = await fetch('/api/menu');
-                if (!res.ok) throw new Error('Erro ao carregar cardápio');
-                this.menu = await res.json();
-                // Extrai categorias únicas para as tabs
+                const [menuRes, nextRes] = await Promise.all([
+                    fetch('/api/menu'),
+                    fetch('/api/orders/next-number')
+                ]);
+                if (!menuRes.ok) throw new Error('Erro ao carregar cardápio');
+                this.menu = await menuRes.json();
                 this.categories = [...new Set(this.menu.map(c => c.category_name))];
+                if (nextRes.ok) {
+                    const data = await nextRes.json();
+                    this.tableNumber = String(data.next);
+                }
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {
@@ -99,9 +104,15 @@ function cashierApp() {
                     throw new Error(data.error || 'Erro ao enviar pedido');
                 }
                 this.showMessage(`Pedido #${data.id} enviado com sucesso!`, 'success');
-                // Limpa formulário
-                this.tableNumber = '';
                 this.selectedItems = [];
+                // Atualiza para o próximo número
+                try {
+                    const nextRes = await fetch('/api/orders/next-number');
+                    if (nextRes.ok) {
+                        const nextData = await nextRes.json();
+                        this.tableNumber = String(nextData.next);
+                    }
+                } catch (_) {}
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {
