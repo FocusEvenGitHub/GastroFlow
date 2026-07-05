@@ -1,28 +1,22 @@
 function kitchenApp() {
     return {
         orders: [],
-        ingredientSummary: [],
         loading: true,
         message: { text: '', type: 'info' },
-        completing: null,
+        completing: null,  // id do pedido sendo finalizado
         refreshInterval: null,
 
         async init() {
-            await this.fetchAll();
-            this.refreshInterval = setInterval(() => this.fetchAll(), 5000);
+            await this.fetchOrders();
+            // Atualiza automaticamente a cada 5 segundos
+            this.refreshInterval = setInterval(() => this.fetchOrders(), 5000);
         },
 
-        async fetchAll() {
+        async fetchOrders() {
             try {
-                const [ordersRes, ingredientsRes] = await Promise.all([
-                    fetch('/api/orders?status=pending'),
-                    fetch('/api/kitchen/ingredients-summary')
-                ]);
-                if (!ordersRes.ok) throw new Error('Erro ao buscar pedidos');
-                if (!ingredientsRes.ok) throw new Error('Erro ao buscar ingredientes');
-
-                this.orders = await ordersRes.json();
-                this.ingredientSummary = await ingredientsRes.json().then(d => d.ingredients);
+                const res = await fetch('/api/orders?status=pending');
+                if (!res.ok) throw new Error('Erro ao buscar pedidos');
+                this.orders = await res.json();
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {
@@ -32,7 +26,7 @@ function kitchenApp() {
 
         async refresh() {
             this.loading = true;
-            await this.fetchAll();
+            await this.fetchOrders();
         },
 
         async completeOrder(orderId) {
@@ -42,50 +36,16 @@ function kitchenApp() {
                 const data = await res.json();
                 if (!res.ok || data.error) throw new Error(data.error || 'Erro ao finalizar');
                 this.showMessage(`Pedido #${orderId} finalizado!`, 'success');
+                // Remove o pedido da lista com animação
                 const order = this.orders.find(o => o.id === orderId);
-                if (order) order.hidden = true;
+                if (order) order.hidden = true;  // dispara o x-show e transição
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {
                 this.completing = null;
-                setTimeout(() => this.fetchAll(), 1500);
+                // Recarrega lista após um curto delay
+                setTimeout(() => this.fetchOrders(), 1000);
             }
-        },
-
-        // Group ingredients by their category
-        get groupedIngredients() {
-            if (!this.ingredientSummary.length) return {};
-            const categoryOrder = ['meat', 'protein', 'grain', 'vegetable', 'fruit', 'dairy', 'sauce'];
-            const groups = this.ingredientSummary.reduce((acc, ing) => {
-                const cat = ing.category || 'outros';
-                if (!acc[cat]) acc[cat] = [];
-                acc[cat].push(ing);
-                return acc;
-            }, {});
-            // Reorder keys according to categoryOrder, then append anything else alphabetically
-            const ordered = {};
-            categoryOrder.forEach(cat => {
-                if (groups[cat]) ordered[cat] = groups[cat];
-            });
-            Object.keys(groups).sort().forEach(cat => {
-                if (!ordered[cat]) ordered[cat] = groups[cat];
-            });
-            return ordered;
-        },
-
-        // Optional: translate category names for display
-        translateCategory(category) {
-            const map = {
-                meat: 'Carnes / Proteínas',
-                grain: 'Acompanhamentos / Grãos',
-                vegetable: 'Vegetais',
-                fruit: 'Frutas',
-                dairy: 'Laticínios',
-                sauce: 'Molhos',
-                protein: 'Proteínas',
-                outros: 'Outros'
-            };
-            return map[category] || category;
         },
 
         showMessage(text, type = 'info') {
@@ -93,6 +53,7 @@ function kitchenApp() {
             setTimeout(() => { this.message.text = ''; }, 5000);
         },
 
+        // Limpa o intervalo quando a página é fechada (boas práticas)
         destroy() {
             clearInterval(this.refreshInterval);
         }

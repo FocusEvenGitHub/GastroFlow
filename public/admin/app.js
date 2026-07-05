@@ -16,13 +16,6 @@ function adminApp() {
         saving: false,
         message: { text: '', type: 'info' },
 
-        // Recipe modal state
-        selectedDish: null,
-        showRecipeModal: false,
-        allIngredients: [],
-        recipeIngredients: [],
-        recipeLoading: false,
-
         init() {
             if (this.token) {
                 this.loggedIn = true;
@@ -105,7 +98,6 @@ function adminApp() {
                 this.showMessage('Item adicionado!', 'success');
                 this.newItem = { name: '', price: '', category_name: '', description: '' };
                 this.loadMenu();
-
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {
@@ -126,75 +118,13 @@ function adminApp() {
                 if (res.status === 401) { this.logout(); return; }
                 const data = await res.json();
                 if (!res.ok || data.error) throw new Error(data.error || 'Erro');
+                // Atualiza localmente
                 const cat = this.menu.find(c => c.items.some(i => i.id === itemId));
                 if (cat) {
                     const item = cat.items.find(i => i.id === itemId);
                     if (item) item.available = newAvailable;
                 }
                 this.showMessage(`Item ${newAvailable ? 'ativado' : 'desativado'}!`, 'success');
-            } catch (err) {
-                this.showMessage(err.message, 'danger');
-            }
-        },
-
-        // Recipe modal methods
-        async openRecipeModal(dish) {
-            this.selectedDish = dish;
-            this.showRecipeModal = true;
-            this.recipeLoading = true;
-            try {
-                const res = await fetch(`/api/admin/dishes/${dish.id}`, {
-                    headers: { 'Authorization': `Bearer ${this.token}` }
-                });
-                if (!res.ok) throw new Error('Falha ao carregar receita');
-                const data = await res.json();
-                this.recipeIngredients = (data.ingredients || []).map(ing => ({
-                    ingredient_id: Number(ing.ingredient_id),
-                    quantity: Number(ing.quantity),
-                    name: String(ing.name),
-                    unit: String(ing.unit),
-                }));
-            } catch (err) {
-                this.recipeIngredients = [];
-            }
-            // Load all ingredients for the dropdown
-            try {
-                const res = await fetch('/api/admin/ingredients', {
-                    headers: { 'Authorization': `Bearer ${this.token}` }
-                });
-                this.allIngredients = await res.json();
-            } catch (err) {
-                this.allIngredients = [];
-            }
-            this.recipeLoading = false;
-        },
-
-        addRecipeRow() {
-            this.recipeIngredients.push({ ingredient_id: '', quantity: 0 });
-        },
-
-        removeRecipeRow(index) {
-            this.recipeIngredients.splice(index, 1);
-        },
-
-        async saveRecipe() {
-            const ingredients = this.recipeIngredients
-                .filter(i => i.ingredient_id && i.quantity > 0)
-                .map(i => ({ id: parseInt(i.ingredient_id), quantity: parseFloat(i.quantity) }));
-
-            try {
-                const res = await fetch(`/api/admin/dishes/${this.selectedDish.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.token}`
-                    },
-                    body: JSON.stringify({ ingredients })
-                });
-                if (!res.ok) throw new Error('Erro ao salvar receita');
-                this.showRecipeModal = false;
-                this.showMessage('Receita atualizada!', 'success');
-                this.loadMenu();
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             }

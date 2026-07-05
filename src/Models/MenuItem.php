@@ -16,10 +16,4 @@ class MenuItem extends Model
     {
         return $this->belongsTo(Category::class);
     }
-
-    public function ingredients()
-    {
-        return $this->belongsToMany(Ingredient::class, 'item_ingredients', 'menu_item_id', 'ingredient_id')
-            ->withPivot('quantity');
-    }
 }

@@ -1,9 +1,6 @@
 <?php
 namespace App;
 
-use App\Controllers\DishController;
-use App\Controllers\IngredientController;
-use App\Controllers\KitchenController;
 use Slim\App;
 use App\Controllers\MenuController;
 use App\Controllers\OrderController;
@@ -14,7 +11,8 @@ class Routes
 {
     public function register(App $app): void
     {
-        $secret = $_ENV['JWT_SECRET'];
+        // Definir a chave secreta (use uma variável de ambiente na prática)
+        $secret = $_ENV['JWT_SECRET'] ?? 'your-secret-key-change-me';
 
         // Middleware JWT
         $jwt = new JwtMiddleware($secret);
@@ -23,20 +21,10 @@ class Routes
         $app->group('/api', function ($group) {
             // Cardápio
             $group->get('/menu', [MenuController::class, 'index']);
-            // Pedidos
+            // Pedidos (caixa e cozinha precisam criar/completar, mas sem autenticação por enquanto)
             $group->get('/orders', [OrderController::class, 'index']);
             $group->post('/orders', [OrderController::class, 'store']);
             $group->post('/orders/{id}/complete', [OrderController::class, 'complete']);
-
-            $group->get('/kitchen/ingredients-summary', [KitchenController::class, 'ingredientsSummary']);
-
-            $group->get('/ingredients', [IngredientController::class, 'index']);
-            $group->post('/ingredients', [IngredientController::class, 'store']);
-            $group->put('/ingredients/{id}', [IngredientController::class, 'update']);
-            $group->delete('/ingredients/{id}', [IngredientController::class, 'destroy']);
-
-            $group->get('/dishes/{id}', [DishController::class, 'show']);
-            $group->put('/dishes/{id}', [DishController::class, 'update']);
         });
 
         // Rota de login (pública)
@@ -45,22 +33,11 @@ class Routes
             return $controller->login($request, $response);
         });
 
-        // Admin protected routes (JWT required)
+        // Grupo protegido (admin) – exige JWT
         $app->group('/api/admin', function ($group) {
-            // Menu management
             $group->get('/menu', [MenuController::class, 'index']);
             $group->post('/items', [MenuController::class, 'store']);
             $group->patch('/items/{id}', [MenuController::class, 'updateAvailability']);
-
-            // Ingredients CRUD
-            $group->get('/ingredients', [IngredientController::class, 'index']);
-            $group->post('/ingredients', [IngredientController::class, 'store']);
-            $group->put('/ingredients/{id}', [IngredientController::class, 'update']);
-            $group->delete('/ingredients/{id}', [IngredientController::class, 'destroy']);
-
-            // Dish recipe management
-            $group->get('/dishes/{id}', [DishController::class, 'show']);
-            $group->put('/dishes/{id}', [DishController::class, 'update']);
-        })->add($jwt);
+        })->add($jwt); // middleware aplicado a todo o grupo
     }
 }
