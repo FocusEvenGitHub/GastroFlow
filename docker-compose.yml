@@ -16,7 +16,13 @@ services:
     build: .
     container_name: restaurant_web
     volumes:
-      - .:/var/www/html
+      - ./public:/var/www/html/public
+      - ./src:/var/www/html/src
+      - ./common:/var/www/html/common
+      - ./legacy:/var/www/html/legacy
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+      - ./.env:/var/www/html/.env
     depends_on:
       - db
     ports:

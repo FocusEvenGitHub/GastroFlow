@@ -37,11 +37,11 @@
     <div class="row">
         <!-- Lado esquerdo: mesa + cardápio -->
         <div class="col-md-8">
-            <!-- Mesa -->
+            <!-- Senha -->
             <div class="mb-4">
-                <label for="tableNumber" class="form-label fw-bold">Número da Mesa *</label>
-                <input type="number" id="tableNumber" x-model="tableNumber" min="1" max="50"
-                       class="form-control form-control-lg" placeholder="Ex: 5">
+                <label for="tableNumber" class="form-label fw-bold">Número da Senha *</label>
+                <input type="text" id="tableNumber" x-model="tableNumber"
+                       class="form-control form-control-lg" placeholder="Ex: 42">
             </div>
 
             <!-- Categorias -->
@@ -112,7 +112,7 @@
                                 </div>
                             </div>
                             <div x-show="item.notes" class="mt-1"><small class="text-muted"><i class="fas fa-sticky-note"></i> <span x-text="item.notes"></span></small></div>
-                            <div class="mt-2" x-show="item.showNotes !== undefined">
+                            <div class="mt-2" x-show="item.showNotes">
                                 <textarea class="form-control form-control-sm" placeholder="Observação (ex: sem cebola)" x-model="item.notes" @keyup.enter="item.showNotes = false"></textarea>
                             </div>
                             <button class="btn btn-link btn-sm p-0 mt-1" @click="item.showNotes = !item.showNotes">

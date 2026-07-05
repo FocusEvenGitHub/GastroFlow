@@ -55,7 +55,7 @@
                         <small class="text-muted" x-text="order.created_at"></small>
                     </div>
                     <div>
-                        <span class="badge bg-primary"><i class="fas fa-table me-1"></i> Mesa <span x-text="order.table_number"></span></span>
+                        <span class="badge bg-primary"><i class="fas fa-hashtag me-1"></i> Senha <span x-text="order.table_number"></span></span>
                         <span class="badge bg-warning ms-2">Pendente</span>
                     </div>
                 </div>

@@ -76,7 +76,7 @@ function cashierApp() {
         // Envia o pedido para a API
         async submitOrder() {
             if (!this.tableNumber) {
-                this.showMessage('Informe o número da mesa!', 'warning');
+                this.showMessage('Informe o número da senha!', 'warning');
                 return;
             }
             this.submitting = true;
