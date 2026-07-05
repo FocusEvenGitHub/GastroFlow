@@ -1,0 +1,35 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * GastroFlow Migration Runner
+ *
+ * Uso:
+ *   php bin/migrate
+ *
+ * Executa todos os arquivos .sql em common/sql/ que ainda
+ * não foram aplicados ao banco de dados.
+ */
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use App\Database\MigrationRunner;
+use App\Settings;
+use App\Database as DB;
+
+// Carregar variáveis de ambiente
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
+
+// Inicializar conexão com o banco (Eloquent)
+$settings = new Settings();
+DB::boot($settings);
+
+echo "=== GastroFlow Migrations ===\n\n";
+
+$runner = new MigrationRunner();
+$runner->run();
+
+echo "\n✓ Concluído.\n";

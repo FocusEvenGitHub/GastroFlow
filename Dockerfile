@@ -37,6 +37,7 @@ COPY public/ ./public/
 COPY src/ ./src/
 COPY common/ ./common/
 COPY legacy/ ./legacy/
+COPY bin/ ./bin/
 COPY .env ./
 
 # Ajustar permissões finais
