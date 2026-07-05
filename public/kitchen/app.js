@@ -52,7 +52,23 @@ function kitchenApp() {
                 if (!groups[cat]) groups[cat] = [];
                 groups[cat].push(item);
             }
-            return groups;
+
+            // Ordenar itens por nome dentro de cada grupo
+            for (const cat of Object.keys(groups)) {
+                groups[cat].sort((a, b) => a.name.localeCompare(b.name));
+            }
+
+            // Ordem fixa: protein sempre no topo
+            const order = ['protein', 'grain', 'vegetable', 'sauce', 'side', 'other'];
+            const sorted = {};
+            for (const key of order) {
+                if (groups[key]) sorted[key] = groups[key];
+            }
+            // Demais categorias inesperadas no final
+            for (const key of Object.keys(groups).sort()) {
+                if (!sorted[key]) sorted[key] = groups[key];
+            }
+            return sorted;
         },
 
         async completeOrder(orderId) {
