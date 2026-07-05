@@ -5,6 +5,7 @@ class Settings
 {
     public function get(string $key, $default = null)
     {
-        return $_ENV[$key] ?? $default;
+        $value = $_ENV[$key] ?? null;
+        return ($value !== null && $value !== '') ? $value : $default;
     }
 }
