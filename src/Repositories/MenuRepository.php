@@ -108,4 +108,10 @@ class MenuRepository
         }
         $dish->components()->sync($sync);
     }
+
+    public function deleteItem(int $id): void
+    {
+        $item = MenuItem::findOrFail($id);
+        $item->delete();
+    }
 }

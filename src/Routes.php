@@ -35,6 +35,7 @@ class Routes
             $group->patch('/items/{id}', [MenuController::class, 'updateItem']);
             $group->get('/items/{id}/components', [MenuController::class, 'getComponents']);
             $group->put('/items/{id}/components', [MenuController::class, 'updateComponents']);
+            $group->delete('/items/{id}', [MenuController::class, 'delete']);
         })->add($jwt);
     }
 }

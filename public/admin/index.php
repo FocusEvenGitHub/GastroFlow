@@ -136,6 +136,9 @@
                                                             @click="toggleAvailability(item.id, !item.available)">
                                                         <i class="fas" :class="item.available ? 'fa-ban' : 'fa-check'"></i>
                                                     </button>
+                                                    <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(item)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>

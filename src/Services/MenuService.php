@@ -45,4 +45,9 @@ class MenuService
     {
         $this->menuRepo->setDishComponents($dishId, $components);
     }
+
+    public function deleteItem(int $id): void
+    {
+        $this->menuRepo->deleteItem($id);
+    }
 }

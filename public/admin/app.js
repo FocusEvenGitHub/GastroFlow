@@ -250,6 +250,27 @@ function adminApp() {
             }
         },
 
+        confirmDelete(item) {
+            if (!confirm(`Tem certeza que deseja excluir "${item.name}"?`)) return;
+            this.deleteItem(item.id);
+        },
+
+        async deleteItem(itemId) {
+            try {
+                const res = await fetch(`/api/admin/items/${itemId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${this.token}` }
+                });
+                if (res.status === 401) { this.logout(); return; }
+                const data = await res.json();
+                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao excluir');
+                this.showMessage('Item excluído com sucesso!', 'success');
+                this.loadMenu();
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            }
+        },
+
         showMessage(text, type = 'info') {
             this.message = { text, type };
             setTimeout(() => { this.message.text = ''; }, 4000);

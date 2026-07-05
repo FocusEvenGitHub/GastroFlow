@@ -104,4 +104,29 @@ class MenuController
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
     }
+
+    // DELETE /api/admin/items/{id}
+    public function delete(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)$args['id'];
+
+        try {
+            $this->menuService->deleteItem($id);
+            $payload = ['success' => true, 'message' => 'Item excluído com sucesso'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Item não encontrado']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Foreign key constraint — item vinculado a pedidos existentes
+            $response->getBody()->write(json_encode([
+                'error' => 'Não é possível excluir este item, pois ele está vinculado a pedidos existentes.'
+            ]));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
 }
