@@ -115,6 +115,35 @@ docker compose up -d
 http://localhost:8080
 ```
 ---
+
+## 📦 Gerenciamento de Dependências (Composer)
+
+Após subir os containers com `docker compose up -d`, você pode executar comandos do Composer diretamente de dentro do container:
+
+```bash
+# Instalar as dependências atuais (baseado no composer.lock)
+docker compose exec web composer install
+
+# Atualizar as dependências (modifica o composer.lock)
+docker compose exec web composer update
+
+# Adicionar uma nova dependência
+docker compose exec web composer require nome-do-pacote
+
+# Remover uma dependência
+docker compose exec web composer remove nome-do-pacote
+```
+
+Alternativa usando `docker exec` com o nome do container:
+
+```bash
+docker exec -it restaurant_web composer update
+```
+
+> ⚠️ Lembre-se de que o `composer.json` e `composer.lock` do host estão montados como volumes no container, então as alterações feitas dentro do container são refletidas automaticamente no seu projeto local.
+
+---
+
 ## 🧪 How to Use
 
 After `docker compose up -d`:
