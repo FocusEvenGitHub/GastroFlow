@@ -11,10 +11,13 @@
 <div x-data="ingredientsApp()" class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h2"><i class="fas fa-carrot me-2"></i>Gerenciar Ingredientes</h1>
-        <a href="/admin/" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Voltar</a>
+        <div>
+            <a href="/admin/categories.php" class="btn btn-outline-secondary me-2"><i class="fas fa-tags"></i> Categorias de pratos</a>
+            <a href="/admin/ingredient-categories.php" class="btn btn-outline-secondary me-2"><i class="fas fa-boxes"></i> Categorias de ingredientes</a>
+            <a href="/admin/" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Voltar ao cardápio</a>
+        </div>
     </div>
 
-    <!-- Mensagens -->
     <div x-show="message.text" x-transition>
         <div :class="'alert alert-'+message.type+' alert-dismissible fade show'" role="alert">
             <span x-text="message.text"></span>
@@ -22,7 +25,6 @@
         </div>
     </div>
 
-    <!-- Formulário de novo ingrediente -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-white">
             <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Adicionar Ingrediente</h5>
@@ -49,7 +51,7 @@
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary w-100" :disabled="saving">
-                            <span x-show="!saving"><i class="fas fa-save me-1"></i> Salvar</span>
+                            <span x-show="!saving">Salvar</span>
                             <span x-show="saving"><span class="spinner-border spinner-border-sm me-1"></span> Salvando...</span>
                         </button>
                     </div>
@@ -58,7 +60,6 @@
         </div>
     </div>
 
-    <!-- Lista de ingredientes -->
     <h3 class="mb-3"><i class="fas fa-list me-2"></i>Ingredientes Cadastrados</h3>
     <div x-show="loading" class="text-center py-5">
         <div class="spinner-border text-primary"></div>
@@ -66,19 +67,14 @@
     <div x-show="!loading">
         <table class="table table-striped table-hover">
             <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Unidade</th>
-                <th>Categoria</th>
-                <th style="width: 150px;">Ações</th>
-            </tr>
+            <tr><th>Nome</th><th>Unidade</th><th>Categoria</th><th style="width:150px;">Ações</th></tr>
             </thead>
             <tbody>
             <template x-for="ing in ingredients" :key="ing.id">
                 <tr>
                     <td x-text="ing.name"></td>
                     <td x-text="ing.unit"></td>
-                    <td x-text="ing.category"></td>
+                    <td x-text="ing.category || '—'"></td>
                     <td>
                         <button class="btn btn-sm btn-outline-warning me-1" @click="editIngredient(ing)"><i class="fas fa-edit"></i></button>
                         <button class="btn btn-sm btn-outline-danger" @click="deleteIngredient(ing.id)"><i class="fas fa-trash"></i></button>
@@ -89,10 +85,10 @@
         </table>
     </div>
 
-    <!-- Modal de edição (simples com campos alteráveis) -->
-    <div class="modal fade" id="editModal" tabindex="-1" x-show="editMode" x-transition>
-        <div class="modal-dialog">
-            <div class="modal-content">
+    <!-- Modal de edição -->
+    <div x-show="editMode" x-transition style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1050;">
+        <div class="modal-dialog" style="margin:1.75rem auto; background:#fff; border-radius:0.5rem; box-shadow:0 0.5rem 1rem rgba(0,0,0,0.15);">
+            <div class="modal-content" style="border:none;">
                 <div class="modal-header">
                     <h5 class="modal-title">Editar Ingrediente</h5>
                     <button type="button" class="btn-close" @click="editMode = false"></button>
@@ -108,14 +104,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Categoria</label>
-                        <select x-model="editIngredientData.category" class="form-select">
+                        <select x-model="editIngredientData.category_id" class="form-select">
                             <option value="">Selecione...</option>
-                            <option value="meat">Carne / Proteína</option>
-                            <option value="grain">Grão / Acompanhamento</option>
-                            <option value="vegetable">Vegetal</option>
-                            <option value="fruit">Fruta</option>
-                            <option value="dairy">Laticínio</option>
-                            <option value="sauce">Molho</option>
+                            <template x-for="cat in ingredientCategories" :key="cat.id">
+                                <option :value="cat.id" x-text="cat.name"></option>
+                            </template>
                         </select>
                     </div>
                 </div>

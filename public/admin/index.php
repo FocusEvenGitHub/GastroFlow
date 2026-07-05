@@ -44,6 +44,19 @@
     <div x-show="loggedIn" x-transition>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h2"><i class="fas fa-utensils me-2 text-primary"></i>Gerenciar Cardápio</h1>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <a href="/admin/ingredients.php" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-carrot me-1"></i> Ingredientes
+                    </a>
+                    <a href="/admin/categories.php" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-tags me-1"></i> Categorias de pratos
+                    </a>
+                    <a href="/admin/ingredient-categories.php" class="btn btn-outline-primary">
+                        <i class="fas fa-boxes me-1"></i> Categorias de ingredientes
+                    </a>
+                </div>
+            </div>
             <div>
                 <span class="me-3">Olá, <strong x-text="username"></strong></span>
                 <button @click="logout" class="btn btn-outline-secondary btn-sm">Sair</button>
@@ -98,12 +111,33 @@
                         <div id="ingredient-rows">
                             <template x-for="(ing, index) in newItemIngredients" :key="index">
                                 <div class="input-group mb-2">
-                                    <select class="form-select" x-model.number="ing.id" required>
-                                        <option value="">Selecione ingrediente...</option>
-                                        <template x-for="avail in allIngredients" :key="avail.id">
-                                            <option :value="avail.id" x-text="avail.name + ' (' + avail.unit + ')'"></option>
-                                        </template>
-                                    </select>
+                                    <div class="position-relative flex-grow-1">
+                                        <input type="text"
+                                               class="form-control"
+                                               placeholder="Buscar ingrediente..."
+                                               x-model="ing.searchText"
+                                               @input="filterDishIngredients(index)"
+                                               @focus="ing.showDropdown = true"
+                                               @click.away="ing.showDropdown = false"
+                                               autocomplete="off" required>
+                                        <ul class="list-group position-absolute w-100 shadow" style="z-index:1000; max-height:200px; overflow-y:auto;"
+                                            x-show="ing.showDropdown && (filteredDishIngredients.length > 0 || ing.searchText.length > 0)">
+                                            <template x-for="avail in filteredDishIngredients" :key="avail.id">
+                                                <li class="list-group-item list-group-item-action"
+                                                    @click="selectDishIngredient(index, avail)"
+                                                    style="cursor:pointer;">
+                                                    <span x-text="avail.name + ' (' + avail.unit + ')'"></span>
+                                                    <small class="text-muted" x-text="avail.category || ''"></small>
+                                                </li>
+                                            </template>
+                                            <li class="list-group-item list-group-item-action text-primary"
+                                                x-show="ing.searchText.length > 0 && !exactDishIngredientMatch(ing.searchText)"
+                                                @click="createIngredientOnFly(index)"
+                                                style="cursor:pointer;">
+                                                <i class="fas fa-plus-circle me-1"></i> Adicionar novo: <strong x-text="ing.searchText"></strong> (un)
+                                            </li>
+                                        </ul>
+                                    </div>
                                     <input type="number" class="form-control" x-model.number="ing.quantity" placeholder="Qtd" step="0.01" required style="max-width: 100px;">
                                     <button type="button" class="btn btn-outline-danger" @click="removeNewIngredient(index)"><i class="fas fa-times"></i></button>
                                 </div>

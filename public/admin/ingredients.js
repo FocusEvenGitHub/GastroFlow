@@ -1,25 +1,38 @@
 function ingredientsApp() {
     return {
         ingredients: [],
-        newIngredient: { name: '', unit: '', category: '' },
+        ingredientCategories: [],
+        newIngredient: { name: '', unit: '', category_id: '' },
         saving: false,
         loading: true,
         message: { text: '', type: 'info' },
         token: localStorage.getItem('admin_token') || '',
         editMode: false,
-        editIngredientData: { id: null, name: '', unit: '', category: '' },
+        editIngredientData: { id: null, name: '', unit: '', category_id: '' },
+        categorySearch: '',
+        showCategoryDropdown: false,
+        filteredCategories: [],
 
         async init() {
-            if (!this.token) { window.location.href = '/admin/'; return; }
-            await this.loadIngredientCategories();
-            await this.loadIngredients();
+            if (!this.token) {
+                window.location.href = '/admin/';
+                return;
+            }
+            await Promise.all([this.loadIngredientCategories(), this.loadIngredients()]);
+            this.filteredCategories = [...this.ingredientCategories];
         },
 
         async loadIngredientCategories() {
-            const res = await fetch('/api/admin/ingredient-categories', {
-                headers: { 'Authorization': `Bearer ${this.token}` }
-            });
-            this.ingredientCategories = await res.json();
+            try {
+                const res = await fetch('/api/admin/ingredient-categories', {
+                    headers: { 'Authorization': `Bearer ${this.token}` }
+                });
+                if (!res.ok) throw new Error('Erro ao carregar categorias de ingredientes');
+                this.ingredientCategories = await res.json();
+                this.filteredCategories = [...this.ingredientCategories];
+            } catch (err) {
+                console.error(err);
+            }
         },
 
         async loadIngredients() {
@@ -54,8 +67,11 @@ function ingredientsApp() {
                     })
                 });
                 if (res.status === 401) { window.location.href = '/admin/'; return; }
-                if (!res.ok) throw new Error('Erro ao adicionar ingrediente');
-                this.newIngredient = { name: '', unit: '', category: '' };
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Erro ao adicionar');
+                }
+                this.newIngredient = { name: '', unit: '', category_id: '' };
                 await this.loadIngredients();
                 this.showMessage('Ingrediente adicionado!', 'success');
             } catch (err) {
@@ -66,7 +82,12 @@ function ingredientsApp() {
         },
 
         editIngredient(ing) {
-            this.editIngredientData = { ...ing };
+            this.editIngredientData = {
+                id: ing.id,
+                name: ing.name,
+                unit: ing.unit,
+                category_id: ing.category_id || ''
+            };
             this.editMode = true;
         },
 
@@ -78,10 +99,17 @@ function ingredientsApp() {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${this.token}`
                     },
-                    body: JSON.stringify(this.editIngredientData)
+                    body: JSON.stringify({
+                        name: this.editIngredientData.name,
+                        unit: this.editIngredientData.unit,
+                        category_id: this.editIngredientData.category_id || null
+                    })
                 });
                 if (res.status === 401) { window.location.href = '/admin/'; return; }
-                if (!res.ok) throw new Error('Erro ao atualizar');
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Erro ao atualizar');
+                }
                 this.editMode = false;
                 await this.loadIngredients();
                 this.showMessage('Ingrediente atualizado!', 'success');
@@ -98,7 +126,8 @@ function ingredientsApp() {
                     headers: { 'Authorization': `Bearer ${this.token}` }
                 });
                 if (res.status === 401) { window.location.href = '/admin/'; return; }
-                if (!res.ok) throw new Error('Erro ao excluir');
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao excluir');
                 await this.loadIngredients();
                 this.showMessage('Ingrediente excluído!', 'success');
             } catch (err) {
@@ -109,6 +138,55 @@ function ingredientsApp() {
         showMessage(text, type = 'info') {
             this.message = { text, type };
             setTimeout(() => { this.message.text = ''; }, 4000);
+        },
+
+        get exactCategoryMatch() {
+            return this.ingredientCategories.some(
+                cat => cat.name.toLowerCase() === this.categorySearch.trim().toLowerCase()
+            );
+        },
+
+        filterCategories() {
+            const term = this.categorySearch.toLowerCase().trim();
+            if (term === '') {
+                this.filteredCategories = [...this.ingredientCategories];
+            } else {
+                this.filteredCategories = this.ingredientCategories.filter(
+                    cat => cat.name.toLowerCase().includes(term)
+                );
+            }
+            this.showCategoryDropdown = true;
+        },
+
+        selectCategory(cat) {
+            this.newIngredient.category_id = cat.id;
+            this.categorySearch = cat.name;
+            this.showCategoryDropdown = false;
+        },
+
+        async createCategoryFromSearch() {
+            const name = this.categorySearch.trim();
+            if (!name) return;
+
+            try {
+                const res = await fetch('/api/admin/ingredient-categories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.token}`
+                    },
+                    body: JSON.stringify({ name })
+                });
+                const newCat = await res.json();
+                if (!res.ok) throw new Error(newCat.error || 'Erro ao criar categoria');
+                // Atualiza lista de categorias e seleciona a nova
+                await this.loadIngredientCategories();
+                this.newIngredient.category_id = newCat.id;
+                this.categorySearch = newCat.name;
+                this.showCategoryDropdown = false;
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            }
         }
     };
 }

@@ -55,4 +55,33 @@ class MenuRepository
         $item->save();
         return $item;
     }
+
+    public function getFullMenuPublic(): array
+    {
+        $categories = Category::with(['menuItems' => function ($query) {
+            $query->where('available', true)->orderBy('name');
+        }])->orderBy('type')->orderBy('name')->get();
+
+        $menu = [];
+        foreach ($categories as $cat) {
+            $items = $cat->menuItems->map(function ($item) {
+                return [
+                    'id'          => $item->id,
+                    'name'        => $item->name,
+                    'description' => $item->description,
+                    'price'       => $item->price,
+                    'available'   => $item->available,
+                ];
+            })->all();
+
+            if (!empty($items)) {
+                $menu[] = [
+                    'category_name' => $cat->name,
+                    'type'          => $cat->type,
+                    'items'         => $items,
+                ];
+            }
+        }
+        return $menu;
+    }
 }

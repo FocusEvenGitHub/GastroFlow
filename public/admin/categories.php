@@ -32,13 +32,28 @@
                         <label class="form-label">Nome *</label>
                         <input type="text" x-model="newCategory.name" class="form-control" required>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 position-relative">
                         <label class="form-label">Tipo *</label>
-                        <select x-model="newCategory.type" class="form-select" required>
-                            <option value="">Selecione...</option>
-                            <option value="food">Comida</option>
-                            <option value="drink">Bebida</option>
-                        </select>
+                        <input type="text"
+                               class="form-control"
+                               placeholder="Buscar tipo ou digitar novo..."
+                               x-model="typeSearch"
+                               @input="filterTypes()"
+                               @focus="showTypeDropdown = true"
+                               @click.away="showTypeDropdown = false"
+                               autocomplete="off" required>
+                        <ul class="list-group position-absolute w-100 shadow" style="z-index:1000; max-height:200px; overflow-y:auto;"
+                            x-show="showTypeDropdown && (filteredTypes.length > 0 || typeSearch.length > 0)">
+                            <template x-for="t in filteredTypes" :key="t">
+                                <li class="list-group-item list-group-item-action" @click="selectType(t)" style="cursor:pointer;" x-text="t"></li>
+                            </template>
+                            <li class="list-group-item list-group-item-action text-primary"
+                                x-show="typeSearch.length > 0 && !exactTypeMatch"
+                                @click="useNewType()"
+                                style="cursor:pointer;">
+                                <i class="fas fa-plus-circle me-1"></i> Usar novo tipo: <strong x-text="typeSearch"></strong>
+                            </li>
+                        </ul>
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary w-100" :disabled="saving">

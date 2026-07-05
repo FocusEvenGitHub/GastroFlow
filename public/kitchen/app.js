@@ -55,37 +55,36 @@ function kitchenApp() {
         // Group ingredients by their category
         get groupedIngredients() {
             if (!this.ingredientSummary.length) return {};
-            const categoryOrder = ['meat', 'protein', 'grain', 'vegetable', 'fruit', 'dairy', 'sauce'];
+
+            // Mapeamento: nome da categoria → prioridade (menor = primeiro)
+            const priority = {
+                'Carnes': 1,
+                'Proteínas': 2,
+                'Frituras': 3,
+                'Grãos / Acompanhamentos': 4,
+                'Vegetais': 5,
+                'Frutas': 6,
+                'Laticínios': 7,
+                'Molhos': 8,
+            };
+
             const groups = this.ingredientSummary.reduce((acc, ing) => {
-                const cat = ing.category || 'outros';
+                const cat = ing.category && ing.category.trim() !== '' ? ing.category : 'Outros';
                 if (!acc[cat]) acc[cat] = [];
                 acc[cat].push(ing);
                 return acc;
             }, {});
-            // Reorder keys according to categoryOrder, then append anything else alphabetically
-            const ordered = {};
-            categoryOrder.forEach(cat => {
-                if (groups[cat]) ordered[cat] = groups[cat];
-            });
-            Object.keys(groups).sort().forEach(cat => {
-                if (!ordered[cat]) ordered[cat] = groups[cat];
-            });
-            return ordered;
-        },
 
-        // Optional: translate category names for display
-        translateCategory(category) {
-            const map = {
-                meat: 'Carnes / Proteínas',
-                grain: 'Acompanhamentos / Grãos',
-                vegetable: 'Vegetais',
-                fruit: 'Frutas',
-                dairy: 'Laticínios',
-                sauce: 'Molhos',
-                protein: 'Proteínas',
-                outros: 'Outros'
-            };
-            return map[category] || category;
+            // Ordenar chaves pela prioridade definida, depois alfabeticamente
+            const sortedKeys = Object.keys(groups).sort((a, b) => {
+                const pA = priority[a] ?? 99;
+                const pB = priority[b] ?? 99;
+                return pA - pB || a.localeCompare(b);
+            });
+
+            const ordered = {};
+            sortedKeys.forEach(k => { ordered[k] = groups[k]; });
+            return ordered;
         },
 
         showMessage(text, type = 'info') {

@@ -68,10 +68,17 @@ name VARCHAR(50) NOT NULL UNIQUE
 
 -- Seed data from the existing strings
 INSERT INTO ingredient_categories (name) VALUES
-('meat'),('protein'),('grain'),('vegetable'),('fruit'),('dairy'),('sauce');
+('Carnes'),
+('Proteínas'),
+('Grãos / Acompanhamentos'),
+('Frituras'),
+('Vegetais'),
+('Frutas'),
+('Laticínios'),
+('Molhos');
 
 -- Alter ingredients table: add category_id, drop old column
 ALTER TABLE ingredients ADD COLUMN category_id INT UNSIGNED NULL;
 UPDATE ingredients i JOIN ingredient_categories ic ON i.category = ic.name SET i.category_id = ic.id;
 ALTER TABLE ingredients DROP COLUMN category;
-ALTER TABLE ingredien
+ALTER TABLE categories MODIFY type VARCHAR(50) NOT NULL;

@@ -41,15 +41,15 @@ function adminApp() {
                 .catch(() => {});
         },
 
-// métodos de manipulação de ingredientes no formulário:
+        // métodos de manipulação de ingredientes no formulário:
         addNewIngredient() {
-            this.newItemIngredients.push({ id: '', quantity: 1 });
+            this.newItemIngredients.push({ id: null, quantity: 1, searchText: '', showDropdown: false });
         },
         removeNewIngredient(index) {
             this.newItemIngredients.splice(index, 1);
         },
 
-// modificar addItem() para enviar ingredients
+        // modificar addItem() para enviar ingredients
         async addItem() {
             if (!this.newItem.name || !this.newItem.price || !this.newItem.category_name) {
                 this.showMessage('Preencha todos os campos obrigatórios.', 'warning');
@@ -229,6 +229,70 @@ function adminApp() {
                 this.showRecipeModal = false;
                 this.showMessage('Receita atualizada!', 'success');
                 this.loadMenu();
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            }
+        },
+
+        // Computed para verificar correspondência exata global (não por linha)
+        exactDishIngredientMatch(searchText) {
+            if (!searchText) return false;
+            const term = searchText.toLowerCase().trim();
+            return this.allIngredients.some(i => i.name.toLowerCase() === term);
+        },
+
+// Filtro aplicado sobre allIngredients (reutilizado por todas as linhas)
+        filteredDishIngredients: [],   // será atualizado por filterDishIngredients
+
+        filterDishIngredients(index) {
+            const search = this.newItemIngredients[index].searchText || '';
+            const term = search.toLowerCase().trim();
+            if (term === '') {
+                this.filteredDishIngredients = [...this.allIngredients];
+            } else {
+                this.filteredDishIngredients = this.allIngredients.filter(i =>
+                    i.name.toLowerCase().includes(term)
+                );
+            }
+            // Mostra o dropdown para essa linha
+            this.newItemIngredients[index].showDropdown = true;
+        },
+
+        // Seleciona um ingrediente da lista
+        selectDishIngredient(index, ingredient) {
+            const row = this.newItemIngredients[index];
+            row.id = ingredient.id;
+            row.searchText = ingredient.name;
+            row.showDropdown = false;
+            this.filteredDishIngredients = [...this.allIngredients];  // reset
+        },
+
+        // Cria um novo ingrediente via API e seleciona
+        async createIngredientOnFly(index) {
+            const row = this.newItemIngredients[index];
+            const name = row.searchText.trim();
+            if (!name) return;
+
+            try {
+                const res = await fetch('/api/admin/ingredients', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.token}`
+                    },
+                    body: JSON.stringify({ name: name, unit: 'un' })   // unidade padrão
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Erro ao criar ingrediente');
+                }
+                const newIng = await res.json();
+                // Atualiza a lista global de ingredientes e seleciona na linha
+                this.allIngredients.push(newIng);
+                row.id = newIng.id;
+                row.searchText = newIng.name;
+                row.showDropdown = false;
+                this.filteredDishIngredients = [...this.allIngredients];
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             }

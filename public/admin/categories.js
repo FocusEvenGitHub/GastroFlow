@@ -9,6 +9,12 @@ function categoriesApp() {
         editMode: false,
         editData: { id: null, name: '', type: '' },
 
+        // Autocomplete de tipo
+        typeSearch: '',
+        showTypeDropdown: false,
+        allTypes: [],        // tipos distintos carregados das categorias
+        filteredTypes: [],
+
         init() {
             if (!this.token) {
                 window.location.href = '/admin/';
@@ -25,11 +31,41 @@ function categoriesApp() {
                 if (res.status === 401) { window.location.href = '/admin/'; return; }
                 if (!res.ok) throw new Error('Erro ao carregar categorias');
                 this.categories = await res.json();
+                // Extrair tipos distintos para o autocomplete
+                this.allTypes = [...new Set(this.categories.map(c => c.type))].sort();
+                this.filteredTypes = [...this.allTypes];
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {
                 this.loading = false;
             }
+        },
+
+        get exactTypeMatch() {
+            return this.allTypes.some(t => t.toLowerCase() === this.typeSearch.trim().toLowerCase());
+        },
+
+        filterTypes() {
+            const term = this.typeSearch.toLowerCase().trim();
+            if (term === '') {
+                this.filteredTypes = [...this.allTypes];
+            } else {
+                this.filteredTypes = this.allTypes.filter(t => t.toLowerCase().includes(term));
+            }
+            this.showTypeDropdown = true;
+        },
+
+        selectType(type) {
+            this.newCategory.type = type;
+            this.typeSearch = type;
+            this.showTypeDropdown = false;
+        },
+
+        useNewType() {
+            // Usa exatamente o que o usuário digitou, sem precisar criar nada no servidor
+            this.newCategory.type = this.typeSearch.trim();
+            this.typeSearch = this.newCategory.type;
+            this.showTypeDropdown = false;
         },
 
         async addCategory() {
@@ -48,6 +84,7 @@ function categoriesApp() {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Erro ao adicionar');
                 this.newCategory = { name: '', type: '' };
+                this.typeSearch = '';
                 await this.loadCategories();
                 this.showMessage('Categoria adicionada!', 'success');
             } catch (err) {
