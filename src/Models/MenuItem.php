@@ -16,4 +16,24 @@ class MenuItem extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
+    public function components()
+    {
+        return $this->belongsToMany(
+            MenuItem::class,
+            'dish_components',
+            'dish_id',
+            'component_id'
+        )->withPivot('quantity');
+    }
+
+    public function usedInDishes()
+    {
+        return $this->belongsToMany(
+            MenuItem::class,
+            'dish_components',
+            'component_id',
+            'dish_id'
+        );
+    }
 }

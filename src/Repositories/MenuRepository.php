@@ -9,20 +9,29 @@ class MenuRepository
 {
     public function getFullMenu(): array
     {
-        // Load categories with items, ordered
         $categories = Category::with(['menuItems' => function ($query) {
             $query->orderBy('name');
-        }])->orderBy('type')->orderBy('name')->get();
+        }, 'menuItems.components'])->orderBy('type')->orderBy('name')->get();
 
         $menu = [];
         foreach ($categories as $cat) {
-            $items = $cat->menuItems->map(function ($item) {
+            $catName = $cat->name;
+            $items = $cat->menuItems->map(function ($item) use ($catName) {
                 return [
-                    'id'          => $item->id,
-                    'name'        => $item->name,
-                    'description' => $item->description,
-                    'price'       => $item->price,
-                    'available'   => $item->available,
+                    'id'            => $item->id,
+                    'name'          => $item->name,
+                    'description'   => $item->description,
+                    'price'         => $item->price,
+                    'available'     => $item->available,
+                    'food_category' => $item->food_category,
+                    'category_name' => $catName,
+                    'components'    => $item->relationLoaded('components')
+                        ? $item->components->map(fn($c) => [
+                            'id'       => $c->id,
+                            'name'     => $c->name,
+                            'quantity' => $c->pivot->quantity,
+                        ])->values()->all()
+                        : [],
                 ];
             })->all();
 
@@ -37,14 +46,13 @@ class MenuRepository
 
     public function addItem(array $data): MenuItem
     {
-        // Find category by name
         $category = Category::where('name', $data['category_name'])->firstOrFail();
         return MenuItem::create([
-            'category_id' => $category->id,
-            'name'        => $data['name'],
-            'description' => $data['description'] ?? '',
-            'price'       => $data['price'],
-            'available'   => $data['available'] ?? true,
+            'category_id'  => $category->id,
+            'name'         => $data['name'],
+            'description'  => $data['description'] ?? '',
+            'price'        => $data['price'],
+            'available'    => $data['available'] ?? true,
         ]);
     }
 
@@ -54,5 +62,50 @@ class MenuRepository
         $item->available = $available;
         $item->save();
         return $item;
+    }
+
+    public function updateItem(int $id, array $data): MenuItem
+    {
+        $item = MenuItem::findOrFail($id);
+
+        if (isset($data['name'])) {
+            $item->name = $data['name'];
+        }
+        if (isset($data['description'])) {
+            $item->description = $data['description'];
+        }
+        if (isset($data['price'])) {
+            $item->price = (float) $data['price'];
+        }
+        if (isset($data['available'])) {
+            $item->available = (bool) $data['available'];
+        }
+        if (isset($data['category_name'])) {
+            $category = Category::where('name', $data['category_name'])->firstOrFail();
+            $item->category_id = $category->id;
+        }
+
+        $item->save();
+        return $item;
+    }
+
+    public function getDishComponents(int $dishId): array
+    {
+        $dish = MenuItem::with('components')->findOrFail($dishId);
+        return $dish->components->map(fn($c) => [
+            'id'       => $c->id,
+            'name'     => $c->name,
+            'quantity' => $c->pivot->quantity,
+        ])->all();
+    }
+
+    public function setDishComponents(int $dishId, array $components): void
+    {
+        $dish = MenuItem::findOrFail($dishId);
+        $sync = [];
+        foreach ($components as $comp) {
+            $sync[$comp['id']] = ['quantity' => $comp['quantity'] ?? 1];
+        }
+        $dish->components()->sync($sync);
     }
 }

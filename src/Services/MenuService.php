@@ -23,12 +23,26 @@ class MenuService
 
     public function addItem(array $data): MenuItem
     {
-        // Additional business rules (e.g., check category existence) can go here
         return $this->menuRepo->addItem($data);
     }
 
     public function updateAvailability(int $id, bool $available): MenuItem
     {
         return $this->menuRepo->updateAvailability($id, $available);
+    }
+
+    public function updateItem(int $id, array $data): MenuItem
+    {
+        return $this->menuRepo->updateItem($id, $data);
+    }
+
+    public function getDishComponents(int $dishId): array
+    {
+        return $this->menuRepo->getDishComponents($dishId);
+    }
+
+    public function updateDishComponents(int $dishId, array $components): void
+    {
+        $this->menuRepo->setDishComponents($dishId, $components);
     }
 }

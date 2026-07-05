@@ -49,6 +49,13 @@ class OrderController
         }
     }
 
+    public function nextNumber(Request $request, Response $response): Response
+    {
+        $next = $this->orderService->getNextNumber();
+        $response->getBody()->write(json_encode(['next' => $next]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
     public function complete(Request $request, Response $response, array $args): Response
     {
         $id = (int)$args['id'];

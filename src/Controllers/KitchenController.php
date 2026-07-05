@@ -16,10 +16,10 @@ class KitchenController
         $this->kitchenService = $kitchenService;
     }
 
-    public function ingredientsSummary(Request $request, Response $response): Response
+    public function foodCategorySummary(Request $request, Response $response): Response
     {
-        $data = $this->kitchenService->getIngredientsSummary();
-        $response->getBody()->write(json_encode(['ingredients' => $data]));
+        $data = $this->kitchenService->getFoodCategorySummary();
+        $response->getBody()->write(json_encode(['items' => $data]));
         return $response->withHeader('Content-Type', 'application/json');
     }
 }

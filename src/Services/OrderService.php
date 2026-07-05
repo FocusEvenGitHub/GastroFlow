@@ -29,4 +29,9 @@ class OrderService
     {
         $this->orderRepo->completeOrder($id);
     }
+
+    public function getNextNumber(): int
+    {
+        return $this->orderRepo->getNextNumber();
+    }
 }

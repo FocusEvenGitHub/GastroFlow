@@ -77,4 +77,10 @@ class OrderRepository
         $order->status = Order::STATUS_DONE;
         $order->save();
     }
+
+    public function getNextNumber(): int
+    {
+        $result = DB::select('SELECT COALESCE(MAX(CAST(table_number AS UNSIGNED)), 0) + 1 AS next FROM orders');
+        return (int) $result[0]->next;
+    }
 }

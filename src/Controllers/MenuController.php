@@ -25,7 +25,7 @@ class MenuController
         return $response->withHeader('Content-Type', 'application/json');
     }
 
-    // POST /api/items
+    // POST /api/admin/items
     public function store(Request $request, Response $response): Response
     {
         $data = $request->getParsedBody();
@@ -47,20 +47,56 @@ class MenuController
         }
     }
 
-    // PATCH /api/items/{id}
-    public function updateAvailability(Request $request, Response $response, array $args): Response
+    // PATCH /api/admin/items/{id}
+    public function updateItem(Request $request, Response $response, array $args): Response
     {
         $id = (int)$args['id'];
         $data = $request->getParsedBody();
-        if (!isset($data['available'])) {
-            $response->getBody()->write(json_encode(['error' => "Campo 'available' obrigatório"]));
+
+        if (empty($data)) {
+            $response->getBody()->write(json_encode(['error' => 'Nenhum dado enviado']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
         try {
-            $newAvailable = (bool)$data['available'];
-            $item = $this->menuService->updateAvailability($id, $newAvailable);
-            $payload = ['success' => true, 'message' => 'Disponibilidade atualizada'];
+            $this->menuService->updateItem($id, $data);
+            $payload = ['success' => true, 'message' => 'Item atualizado'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    // GET /api/admin/items/{id}/components
+    public function getComponents(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)$args['id'];
+        try {
+            $components = $this->menuService->getDishComponents($id);
+            $response->getBody()->write(json_encode($components));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    // PUT /api/admin/items/{id}/components
+    public function updateComponents(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)$args['id'];
+        $data = $request->getParsedBody();
+
+        if (!isset($data['components']) || !is_array($data['components'])) {
+            $response->getBody()->write(json_encode(['error' => 'Campo "components" obrigatório']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        try {
+            $this->menuService->updateDishComponents($id, $data['components']);
+            $payload = ['success' => true, 'message' => 'Componentes atualizados'];
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Exception $e) {
