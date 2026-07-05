@@ -1,11 +1,26 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- 1. Add food_category column to menu_items
-ALTER TABLE menu_items
-  ADD COLUMN food_category VARCHAR(30) NULL DEFAULT NULL AFTER available;
+-- ================================================================
+-- Migration: Food Category & Dish Components
+-- Adiciona coluna food_category e cria tabela de componentes do prato
+-- ================================================================
 
--- 2. Classify Adicionais by food category
+-- 1. Add food_category column to menu_items (only if it doesn't exist)
+-- Usa prepared statement para evitar erro se a coluna já existir
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'menu_items'
+    AND COLUMN_NAME = 'food_category';
+SET @alter_sql = IF(@col_exists = 0,
+    'ALTER TABLE menu_items ADD COLUMN food_category VARCHAR(30) NULL DEFAULT NULL AFTER available',
+    'SELECT 1 AS dummy'
+);
+PREPARE stmt FROM @alter_sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 2. Classify Adicionais by food category (idempotent: UPDATE é seguro re-executar)
 UPDATE menu_items SET food_category = 'protein' WHERE name IN (
     'Filé de Tilápia', 'Filé de Frango', 'Filé de Carne', 'Linguiça Fina', 'Ovo Frito'
 );
