@@ -69,4 +69,18 @@ class OrderController
         $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json')->withStatus($status ?? 200);
     }
+
+    public function uncomplete(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)$args['id'];
+        try {
+            $this->orderService->uncompleteOrder($id);
+            $payload = ['success' => true, 'message' => 'Order reopened'];
+        } catch (\Exception $e) {
+            $payload = ['error' => $e->getMessage()];
+            $status = 500;
+        }
+        $response->getBody()->write(json_encode($payload));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus($status ?? 200);
+    }
 }

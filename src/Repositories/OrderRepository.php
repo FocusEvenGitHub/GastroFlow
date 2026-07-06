@@ -78,6 +78,16 @@ class OrderRepository
         $order->save();
     }
 
+    /**
+     * Reopen a completed order (undo "dar baixa").
+     */
+    public function uncompleteOrder(int $id): void
+    {
+        $order = Order::findOrFail($id);
+        $order->status = Order::STATUS_PENDING;
+        $order->save();
+    }
+
     public function getNextNumber(): int
     {
         $result = DB::select('SELECT COALESCE(MAX(CAST(table_number AS UNSIGNED)), 0) + 1 AS next FROM orders');

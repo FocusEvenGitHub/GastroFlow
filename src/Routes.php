@@ -20,6 +20,7 @@ class Routes
             $group->get('/orders', [OrderController::class, 'index']);
             $group->post('/orders', [OrderController::class, 'store']);
             $group->post('/orders/{id}/complete', [OrderController::class, 'complete']);
+            $group->post('/orders/{id}/uncomplete', [OrderController::class, 'uncomplete']);
             $group->get('/orders/next-number', [OrderController::class, 'nextNumber']);
             $group->get('/kitchen/food-summary', [KitchenController::class, 'foodCategorySummary']);
         });

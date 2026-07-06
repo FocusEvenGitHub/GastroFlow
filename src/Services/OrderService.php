@@ -30,6 +30,11 @@ class OrderService
         $this->orderRepo->completeOrder($id);
     }
 
+    public function uncompleteOrder(int $id): void
+    {
+        $this->orderRepo->uncompleteOrder($id);
+    }
+
     public function getNextNumber(): int
     {
         return $this->orderRepo->getNextNumber();
