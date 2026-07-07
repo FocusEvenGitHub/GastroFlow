@@ -85,3 +85,4 @@ composer.lock
 # Uploads de usuários (se houver)
 /public/uploads/*
 !/public/uploads/.gitkeep
+/public/assets/img/*
