@@ -11,10 +11,12 @@ class OrderRepository
 {
     /**
      * Return orders with their items (name, description from menu).
+     * Only orders from the current day.
      */
     public function getOrdersByStatus(string $status): array
     {
-        $query = Order::with(['items.menuItem']);
+        $today = date('Y-m-d');
+        $query = Order::with(['items.menuItem'])->whereDate('created_at', $today);
         if ($status === 'all') {
             $query->orderBy('created_at', 'desc');
         } else {
@@ -26,10 +28,11 @@ class OrderRepository
         return $orders->map(function ($order) {
             $items = $order->items->map(function ($item) {
                 return [
-                    'name'        => $item->menuItem->name ?? 'Unknown',
-                    'description' => $item->menuItem->description ?? '',
-                    'quantity'    => (int)$item->quantity,
-                    'notes'       => $item->notes ?? '',
+                    'name'          => $item->menuItem->name ?? 'Unknown',
+                    'description'   => $item->menuItem->description ?? '',
+                    'quantity'      => (int)$item->quantity,
+                    'notes'         => $item->notes ?? '',
+                    'dining_option' => $item->dining_option ?? 'local',
                 ];
             })->all();
 
@@ -57,10 +60,11 @@ class OrderRepository
 
             foreach ($data['items'] as $item) {
                 OrderItem::create([
-                    'order_id'    => $order->id,
-                    'menu_item_id' => $item['id'],
-                    'quantity'    => $item['quantity'],
-                    'notes'       => $item['notes'] ?? '',
+                    'order_id'      => $order->id,
+                    'menu_item_id'  => $item['id'],
+                    'quantity'      => $item['quantity'],
+                    'notes'         => $item['notes'] ?? '',
+                    'dining_option' => $item['dining_option'] ?? 'local',
                 ]);
             }
 

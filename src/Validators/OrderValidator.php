@@ -22,6 +22,12 @@ class OrderValidator
             foreach ($value as $item) {
                 if (!isset($item['id'], $item['quantity'])) return false;
                 if (!is_numeric($item['id']) || !is_numeric($item['quantity'])) return false;
+                // dining_option is optional; if present must be valid
+                if (isset($item['dining_option'])) {
+                    if (!in_array($item['dining_option'], ['local', 'viagem_simples', 'viagem_vip'], true)) {
+                        return false;
+                    }
+                }
             }
             return true;
         }, 'items');

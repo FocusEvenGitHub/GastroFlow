@@ -35,7 +35,7 @@ function cashierApp() {
             return this.menu.filter(cat => cat.category_name === this.currentCategory);
         },
 
-        // Adiciona item ao pedido
+        // Adiciona item ao pedido (padrão: Local)
         addItem(item) {
             const existing = this.selectedItems.find(i => i.id === item.id);
             if (existing) {
@@ -47,9 +47,34 @@ function cashierApp() {
                     price: parseFloat(item.price),
                     quantity: 1,
                     notes: '',
-                    showNotes: false
+                    showNotes: false,
+                    category_name: item.category_name || '',
+                    diningOption: 'local'
                 });
             }
+        },
+
+        // Altera a opção de onde comer (local / viagem_simples / viagem_vip)
+        setDiningOption(index, option) {
+            if (this.selectedItems[index]) {
+                this.selectedItems[index].diningOption = option;
+            }
+        },
+
+        // Custo da embalagem para um item
+        packagingCost(item) {
+            if (item.diningOption === 'viagem_simples') return 1.0;
+            if (item.diningOption === 'viagem_vip') return 2.0;
+            return 0;
+        },
+
+        // Total do item incluindo embalagem
+        itemTotal(index) {
+            const item = this.selectedItems[index];
+            if (!item) return 0;
+            const base = item.price * item.quantity;
+            const packing = this.packagingCost(item) * item.quantity;
+            return base + packing;
         },
 
         // Altera quantidade (mínimo 1)
@@ -67,9 +92,17 @@ function cashierApp() {
             this.selectedItems.splice(index, 1);
         },
 
-        // Total do pedido
+        // Total do pedido (inclui custo de embalagem)
         get total() {
-            return this.selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            return this.selectedItems.reduce((sum, item) => {
+                let itemTotal = item.price * item.quantity;
+                if (item.diningOption === 'viagem_simples') {
+                    itemTotal += 1.0 * item.quantity;
+                } else if (item.diningOption === 'viagem_vip') {
+                    itemTotal += 2.0 * item.quantity;
+                }
+                return sum + itemTotal;
+            }, 0);
         },
 
         // Exibe mensagens
@@ -91,7 +124,8 @@ function cashierApp() {
                     items: this.selectedItems.map(i => ({
                         id: i.id,
                         quantity: i.quantity,
-                        notes: i.notes
+                        notes: i.notes,
+                        dining_option: i.diningOption
                     }))
                 };
                 const res = await fetch('/api/orders', {

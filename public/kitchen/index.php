@@ -99,7 +99,16 @@
                                         <template x-for="item in order.items" :key="item.name">
                                             <div class="mb-1">
                                                 <div class="item-row d-flex justify-content-between">
-                                                    <span><strong x-text="item.quantity + 'x'"></strong> <span x-text="item.name"></span></span>
+                                                    <span>
+                                                        <strong x-text="item.quantity + 'x'"></strong>
+                                                        <template x-if="item.dining_option === 'viagem_simples'">
+                                                            <span class="badge bg-warning text-dark me-1" style="font-size:0.6rem;">Simples</span>
+                                                        </template>
+                                                        <template x-if="item.dining_option === 'viagem_vip'">
+                                                            <span class="badge bg-danger me-1" style="font-size:0.6rem;">VIP</span>
+                                                        </template>
+                                                        <span x-text="item.name"></span>
+                                                    </span>
                                                 </div>
                                                 <div x-show="item.notes" class="item-note"><i class="fas fa-sticky-note me-1"></i><span x-text="item.notes"></span></div>
                                             </div>
@@ -139,7 +148,16 @@
                                             <template x-for="item in order.items" :key="item.name">
                                                 <div class="mb-1">
                                                     <div class="item-row d-flex justify-content-between">
-                                                        <span><strong x-text="item.quantity + 'x'"></strong> <span x-text="item.name"></span></span>
+                                                        <span>
+                                                        <strong x-text="item.quantity + 'x'"></strong>
+                                                        <template x-if="item.dining_option === 'viagem_simples'">
+                                                            <span class="badge bg-warning text-dark me-1" style="font-size:0.6rem;">Simples</span>
+                                                        </template>
+                                                        <template x-if="item.dining_option === 'viagem_vip'">
+                                                            <span class="badge bg-danger me-1" style="font-size:0.6rem;">VIP</span>
+                                                        </template>
+                                                        <span x-text="item.name"></span>
+                                                    </span>
                                                     </div>
                                                     <div x-show="item.notes" class="item-note"><i class="fas fa-sticky-note me-1"></i><span x-text="item.notes"></span></div>
                                                 </div>

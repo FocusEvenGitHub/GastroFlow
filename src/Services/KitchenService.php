@@ -10,7 +10,9 @@ class KitchenService
 {
     public function getFoodCategorySummary(): array
     {
+        $today = date('Y-m-d');
         $pendingOrders = Order::where('status', 'pending')
+            ->whereDate('created_at', $today)
             ->with(['items.menuItem.components'])
             ->get();
 

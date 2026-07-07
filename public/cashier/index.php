@@ -107,7 +107,15 @@
                         <div class="selected-item mb-2 p-2 border rounded">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <strong x-text="item.name"></strong><br>
+                                    <strong x-text="item.name"></strong>
+                                    <!-- Badge da opção de consumo -->
+                                    <template x-if="item.diningOption === 'viagem_simples'">
+                                        <span class="badge bg-warning text-dark ms-1">Simples</span>
+                                    </template>
+                                    <template x-if="item.diningOption === 'viagem_vip'">
+                                        <span class="badge bg-danger ms-1">VIP</span>
+                                    </template>
+                                    <br>
                                     <div class="btn-group btn-group-sm mt-1">
                                         <button class="btn btn-outline-secondary quantity-btn" @click="changeQuantity(index, -1)">−</button>
                                         <span class="mx-2" x-text="item.quantity"></span>
@@ -115,10 +123,38 @@
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <span class="text-success fw-bold">R$ <span x-text="(item.price * item.quantity).toFixed(2)"></span></span>
+                                    <span class="text-success fw-bold">R$ <span x-text="itemTotal(index).toFixed(2)"></span></span>
                                     <button class="btn btn-sm btn-outline-danger ms-2" @click="removeItem(index)"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
+                            <!-- Seletor de onde comer (só para Pratos Principais e Adicionais) -->
+                            <div x-show="item.category_name === 'Pratos Principais' || item.category_name === 'Adicionais'"
+                                 class="btn-group btn-group-sm mt-1">
+                                <button class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                        :class="item.diningOption === 'local' ? 'btn-success' : 'btn-outline-success'"
+                                        @click="setDiningOption(index, 'local')" title="Consumo no local">
+                                    Local
+                                </button>
+                                <button class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                        :class="item.diningOption === 'viagem_simples' ? 'btn-warning' : 'btn-outline-warning'"
+                                        @click="setDiningOption(index, 'viagem_simples')" title="Viagem Simples (+R$ 1,00)">
+                                    Simples
+                                </button>
+                                <button class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                        :class="item.diningOption === 'viagem_vip' ? 'btn-danger' : 'btn-outline-danger'"
+                                        @click="setDiningOption(index, 'viagem_vip')" title="Viagem VIP (+R$ 2,00)">
+                                    VIP
+                                </button>
+                            </div>
+                            <!-- Preço base vs total com embalagem -->
+                            <template x-if="item.diningOption !== 'local'">
+                                <div class="mt-1">
+                                    <small class="text-muted">
+                                        R$ <span x-text="(item.price * item.quantity).toFixed(2)"></span> item
+                                        + R$ <span x-text="(packagingCost(item) * item.quantity).toFixed(2)"></span> embalagem
+                                    </small>
+                                </div>
+                            </template>
                             <div x-show="item.notes" class="mt-1"><small class="text-muted"><i class="fas fa-sticky-note"></i> <span x-text="item.notes"></span></small></div>
                             <div class="mt-2" x-show="item.showNotes">
                                 <textarea class="form-control form-control-sm" placeholder="Observação (ex: sem cebola)" x-model="item.notes" @keyup.enter="item.showNotes = false"></textarea>
