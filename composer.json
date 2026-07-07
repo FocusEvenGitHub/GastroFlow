@@ -13,7 +13,8 @@
     "vlucas/phpdotenv": "^5.0",
     "vlucas/valitron": "^1.4",
     "monolog/monolog": "^3.0",
-    "firebase/php-jwt": "^7.0"
+    "firebase/php-jwt": "^7.0",
+    "mike42/escpos-php": "^2.2"
   },
   "autoload": {
     "psr-4": {

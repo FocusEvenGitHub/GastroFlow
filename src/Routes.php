@@ -6,6 +6,7 @@ use App\Controllers\MenuController;
 use App\Controllers\OrderController;
 use App\Controllers\AuthController;
 use App\Controllers\KitchenController;
+use App\Controllers\AdminController;
 use App\Middleware\JwtMiddleware;
 
 class Routes
@@ -37,6 +38,10 @@ class Routes
             $group->get('/items/{id}/components', [MenuController::class, 'getComponents']);
             $group->put('/items/{id}/components', [MenuController::class, 'updateComponents']);
             $group->delete('/items/{id}', [MenuController::class, 'delete']);
+            $group->get('/settings', [AdminController::class, 'getSettings']);
+            $group->put('/settings', [AdminController::class, 'updateSettings']);
+            $group->post('/settings/logo', [AdminController::class, 'uploadLogo']);
+            $group->post('/settings/test-print', [AdminController::class, 'testPrint']);
         })->add($jwt);
     }
 }

@@ -46,6 +46,9 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h2"><i class="fas fa-utensils me-2 text-primary"></i>Gerenciar Cardápio</h1>
             <div>
+                <a href="settings.php" class="btn btn-outline-primary btn-sm me-2">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
                 <span class="me-3">Olá, <strong x-text="username"></strong></span>
                 <button @click="logout" class="btn btn-outline-secondary btn-sm">Sair</button>
             </div>

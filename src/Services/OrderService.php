@@ -8,10 +8,12 @@ use App\Models\Order;
 class OrderService
 {
     private OrderRepository $orderRepo;
+    private PrintService $printService;
 
-    public function __construct(OrderRepository $orderRepo)
+    public function __construct(OrderRepository $orderRepo, PrintService $printService)
     {
         $this->orderRepo = $orderRepo;
+        $this->printService = $printService;
     }
 
     public function getOrders(string $status): array
@@ -21,8 +23,12 @@ class OrderService
 
     public function createOrder(array $data): Order
     {
-        // Additional business rules could go here (e.g., check item availability)
-        return $this->orderRepo->createOrder($data);
+        $order = $this->orderRepo->createOrder($data);
+
+        // Tenta imprimir o pedido (erro não quebra o fluxo)
+        $this->printService->printOrder($order);
+
+        return $order;
     }
 
     public function completeOrder(int $id): void
