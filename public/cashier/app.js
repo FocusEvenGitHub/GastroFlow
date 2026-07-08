@@ -1,6 +1,7 @@
 function cashierApp() {
     return {
         tableNumber: '',
+        customerName: '',
         menu: [],               // array vindo da API
         categories: [],         // nomes únicos das categorias
         currentCategory: 'all',
@@ -8,6 +9,7 @@ function cashierApp() {
         message: { text: '', type: 'info' },
         loading: true,
         submitting: false,
+        printTicket: true,
 
         async init() {
             try {
@@ -121,6 +123,8 @@ function cashierApp() {
             try {
                 const payload = {
                     table: this.tableNumber,
+                    customer_name: this.customerName || undefined,
+                    print_ticket: this.printTicket,
                     items: this.selectedItems.map(i => ({
                         id: i.id,
                         quantity: i.quantity,
@@ -139,6 +143,7 @@ function cashierApp() {
                 }
                 this.showMessage(`Pedido #${data.id} enviado com sucesso!`, 'success');
                 this.selectedItems = [];
+                this.customerName = '';
                 // Atualiza para o próximo número
                 try {
                     const nextRes = await fetch('/api/orders/next-number');

@@ -37,12 +37,13 @@ class OrderRepository
             })->all();
 
             return [
-                'id'           => $order->id,
-                'table_number' => $order->table_number,
-                'status'       => $order->status,
-                'created_at'   => $order->created_at->toDateTimeString(),
-                'updated_at'   => $order->updated_at->toDateTimeString(),
-                'items'        => $items,
+                'id'            => $order->id,
+                'table_number'  => $order->table_number,
+                'customer_name' => $order->customer_name,
+                'status'        => $order->status,
+                'created_at'    => $order->created_at->toDateTimeString(),
+                'updated_at'    => $order->updated_at->toDateTimeString(),
+                'items'         => $items,
             ];
         })->all();
     }
@@ -53,9 +54,18 @@ class OrderRepository
     public function createOrder(array $data): Order
     {
         return DB::transaction(function () use ($data) {
+            $customerName = null;
+            if (isset($data['customer_name']) && is_string($data['customer_name'])) {
+                $trimmed = trim($data['customer_name']);
+                if ($trimmed !== '') {
+                    $customerName = $trimmed;
+                }
+            }
+
             $order = Order::create([
-                'table_number' => $data['table'],
-                'status'       => Order::STATUS_PENDING,
+                'table_number'  => $data['table'],
+                'customer_name' => $customerName,
+                'status'        => Order::STATUS_PENDING,
             ]);
 
             foreach ($data['items'] as $item) {

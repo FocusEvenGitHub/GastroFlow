@@ -25,8 +25,11 @@ class OrderService
     {
         $order = $this->orderRepo->createOrder($data);
 
-        // Tenta imprimir o pedido (erro não quebra o fluxo)
-        $this->printService->printOrder($order);
+        // Imprime o pedido apenas se print_ticket for true (padrão: ligado)
+        $printTicket = isset($data['print_ticket']) ? (bool) $data['print_ticket'] : true;
+        if ($printTicket) {
+            $this->printService->printOrder($order);
+        }
 
         return $order;
     }

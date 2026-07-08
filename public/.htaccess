@@ -1,6 +1,9 @@
 RewriteEngine On
 
-# Se o arquivo ou diretório existir, sirva diretamente (CSS, JS, imagens)
+# MIME types
+AddType text/yaml .yaml
+
+# Se o arquivo ou diretório existir, sirva diretamente (CSS, JS, imagens, YAML)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 

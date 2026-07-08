@@ -8,7 +8,7 @@ class Order extends Model
 {
     protected $table = 'orders';
 
-    protected $fillable = ['table_number', 'status'];
+    protected $fillable = ['table_number', 'customer_name', 'status'];
 
     protected $casts = [
         'status' => 'string',

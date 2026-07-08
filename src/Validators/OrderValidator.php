@@ -16,6 +16,9 @@ class OrderValidator
         $this->v->rule('required', 'table');
         $this->v->rule('required', 'items');
         $this->v->rule('array', 'items');
+        // customer_name is optional; if present, must be a string
+        $this->v->rule('optional', 'customer_name');
+        $this->v->rule('lengthMax', 'customer_name', 100);
         // each item must have id, quantity
         $this->v->rule(function($field, $value, $params, $fields) {
             if (!is_array($value)) return false;

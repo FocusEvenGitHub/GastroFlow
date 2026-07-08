@@ -150,6 +150,9 @@ class PrintService
         $printer->text("Pedido #" . $order->id . "\n");
         $printer->setEmphasis(false);
         $printer->text("Senha: " . $order->table_number . "\n");
+        if (!empty($order->customer_name)) {
+            $printer->text("Cliente: " . $order->customer_name . "\n");
+        }
         $printer->text($order->created_at->format('d/m/Y H:i') . "\n");
         $printer->feed();
 

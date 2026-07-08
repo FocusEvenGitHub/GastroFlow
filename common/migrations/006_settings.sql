@@ -18,3 +18,6 @@ INSERT IGNORE INTO settings (`key`, `value`) VALUES
     ('printer_port', '9100');
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+ALTER TABLE orders
+    ADD COLUMN customer_name VARCHAR(100) DEFAULT NULL AFTER table_number;

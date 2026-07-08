@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GastroFlow — Documentação da API</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <style>
+    html { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: inherit; }
+    body { margin: 0; background: #fafafa; }
+
+    .topbar { display: none; }
+
+    .custom-header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 24px 40px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .custom-header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .custom-header h1 small {
+      font-weight: 400;
+      font-size: 0.875rem;
+      opacity: 0.7;
+      margin-left: 8px;
+    }
+    .custom-header a {
+      color: #80b5ff;
+      text-decoration: none;
+      font-size: 0.875rem;
+    }
+    .custom-header a:hover { text-decoration: underline; }
+
+    .swagger-ui .scheme-container { margin: 0 0 8px; }
+
+    @media (max-width: 640px) {
+      .custom-header { padding: 16px 20px; }
+      .custom-header h1 { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="custom-header">
+    <h1>
+      GastroFlow API
+      <small>v1.0.0</small>
+    </h1>
+    <div>
+      <a href="https://github.com/FocusEvenGitHub/GastroFlow" target="_blank" rel="noopener">
+        GitHub
+      </a>
+      &nbsp;•&nbsp;
+      <a href="/" target="_blank">Ir para o sistema</a>
+    </div>
+  </div>
+
+  <div id="swagger-ui"></div>
+
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    SwaggerUIBundle({
+      url: "./openapi.yaml",
+      dom_id: "#swagger-ui",
+      deepLinking: true,
+      presets: [
+        SwaggerUIBundle.presets.apis,
+        SwaggerUIBundle.SwaggerUIStandalonePreset,
+      ],
+      plugins: [
+        SwaggerUIBundle.plugins.DownloadUrl,
+      ],
+      layout: "BaseLayout",
+      defaultModelsExpandDepth: 1,
+      defaultModelExpandDepth: 1,
+      docExpansion: "list",
+      filter: true,
+      tryItOutEnabled: true,
+      syntaxHighlight: { activate: true, theme: "agate" },
+    });
+  </script>
+</body>
+</html>

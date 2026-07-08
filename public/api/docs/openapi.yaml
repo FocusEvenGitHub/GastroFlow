@@ -1,0 +1,855 @@
+openapi: 3.0.3
+info:
+  title: GastroFlow API
+  description: |
+    API RESTful do **GastroFlow** — sistema de gestão de restaurantes.
+
+    Permite gerenciar cardápio, pedidos, cozinha e configurações.
+  version: "1.0.0"
+  contact:
+    name: Henry Sampaio
+    url: https://focuseven.netlify.app
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:8080
+    description: Ambiente de desenvolvimento local
+
+paths:
+  /api/menu:
+    get:
+      summary: Cardápio completo
+      description: Retorna todos os itens do cardápio com seus ingredientes.
+      operationId: getMenu
+      tags:
+        - Cardápio
+      responses:
+        "200":
+          description: Lista de itens do cardápio
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MenuItem"
+
+  /api/orders:
+    get:
+      summary: Listar pedidos
+      description: Retorna pedidos filtrados por status (pending, completed, all).
+      operationId: listOrders
+      tags:
+        - Pedidos
+      parameters:
+        - name: status
+          in: query
+          description: "Filtrar por status: pending, completed, all"
+          required: false
+          schema:
+            type: string
+            default: pending
+            enum:
+              - pending
+              - completed
+              - all
+      responses:
+        "200":
+          description: Lista de pedidos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+
+    post:
+      summary: Criar pedido
+      description: Cria um novo pedido com itens.
+      operationId: createOrder
+      tags:
+        - Pedidos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderInput"
+      responses:
+        "201":
+          description: Pedido criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  id:
+                    type: integer
+                    example: 42
+                  message:
+                    type: string
+                    example: Order created
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/orders/next-number:
+    get:
+      summary: Próximo número de pedido
+      description: Retorna o próximo número sequencial disponível para um pedido.
+      operationId: getNextOrderNumber
+      tags:
+        - Pedidos
+      responses:
+        "200":
+          description: Próximo número disponível
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next:
+                    type: integer
+                    example: 47
+
+  /api/orders/{id}/complete:
+    post:
+      summary: Finalizar pedido
+      description: Marca um pedido como concluído.
+      operationId: completeOrder
+      tags:
+        - Pedidos
+      parameters:
+        - name: id
+          in: path
+          description: ID do pedido
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pedido finalizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Order completed
+        "500":
+          description: Erro ao finalizar pedido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Order not found
+
+  /api/orders/{id}/uncomplete:
+    post:
+      summary: Reabrir pedido
+      description: Reverte um pedido para o status "pending".
+      operationId: uncompleteOrder
+      tags:
+        - Pedidos
+      parameters:
+        - name: id
+          in: path
+          description: ID do pedido
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pedido reaberto
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Order reopened
+        "500":
+          description: Erro ao reabrir pedido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Order not found
+
+  /api/kitchen/food-summary:
+    get:
+      summary: Resumo da cozinha
+      description: Retorna um resumo dos pedidos pendentes agrupados por item para a cozinha.
+      operationId: getKitchenSummary
+      tags:
+        - Cozinha
+      responses:
+        "200":
+          description: Resumo dos itens pendentes na cozinha
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: Bife à Milanesa
+                        quantity:
+                          type: integer
+                          example: 3
+                        notes:
+                          type: array
+                          items:
+                            type: string
+                            example: "Sem cebola"
+
+  /api/login:
+    post:
+      summary: Autenticar usuário
+      description: |
+        Realiza login e retorna um token JWT para acessar as rotas administrativas.
+
+        Credenciais padrão: `admin` / `admin123`
+      operationId: login
+      tags:
+        - Autenticação
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  example: admin123
+      responses:
+        "200":
+          description: Login bem-sucedido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Credenciais inválidas.
+
+  /api/admin/menu:
+    get:
+      summary: Cardápio (admin)
+      description: Retorna o cardápio completo com detalhes administrativos.
+      operationId: getAdminMenu
+      tags:
+        - Admin - Cardápio
+      security:
+        - jwtAuth: []
+      responses:
+        "200":
+          description: Lista administrativa do cardápio
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminMenuItem"
+
+  /api/admin/items:
+    post:
+      summary: Adicionar item ao cardápio
+      description: Cria um novo item no cardápio.
+      operationId: createMenuItem
+      tags:
+        - Admin - Cardápio
+      security:
+        - jwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - price
+                - category_name
+              properties:
+                name:
+                  type: string
+                  example: Salada Caesar
+                price:
+                  type: number
+                  format: float
+                  example: 24.90
+                category_name:
+                  type: string
+                  example: Entradas
+                description:
+                  type: string
+                  example: Alface, croutons, parmesão e molho Caesar
+                available:
+                  type: boolean
+                  default: true
+      responses:
+        "201":
+          description: Item criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  id:
+                    type: integer
+                    example: 15
+                  message:
+                    type: string
+                    example: Item adicionado
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/admin/items/{id}:
+    patch:
+      summary: Atualizar item do cardápio
+      description: Altera parcialmente um item (preço, disponibilidade, nome, etc.).
+      operationId: updateMenuItem
+      tags:
+        - Admin - Cardápio
+      security:
+        - jwtAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID do item
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Salada Caesar Atualizada
+                price:
+                  type: number
+                  format: float
+                  example: 29.90
+                available:
+                  type: boolean
+                  example: true
+                description:
+                  type: string
+                  example: Descrição atualizada
+      responses:
+        "200":
+          description: Item atualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Item atualizado
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+    delete:
+      summary: Excluir item do cardápio
+      description: Remove um item do cardápio (se não estiver vinculado a pedidos).
+      operationId: deleteMenuItem
+      tags:
+        - Admin - Cardápio
+      security:
+        - jwtAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID do item
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Item excluído
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Item excluído com sucesso
+        "404":
+          description: Item não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Item não encontrado
+        "409":
+          description: Item vinculado a pedidos existentes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Não é possível excluir este item, pois ele está vinculado a pedidos existentes.
+
+  /api/admin/items/{id}/components:
+    get:
+      summary: Listar componentes de um item
+      description: Retorna os ingredientes/componentes de um prato.
+      operationId: getItemComponents
+      tags:
+        - Admin - Cardápio
+      security:
+        - jwtAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID do item
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de componentes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    quantity:
+                      type: number
+                      format: float
+                    unit:
+                      type: string
+
+    put:
+      summary: Atualizar componentes de um item
+      description: Substitui a lista de ingredientes de um prato.
+      operationId: updateItemComponents
+      tags:
+        - Admin - Cardápio
+      security:
+        - jwtAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID do item
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - components
+              properties:
+                components:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      ingredient_id:
+                        type: integer
+                        example: 3
+                      quantity:
+                        type: number
+                        format: float
+                        example: 200
+                  example:
+                    - ingredient_id: 3
+                      quantity: 200
+                    - ingredient_id: 7
+                      quantity: 50
+      responses:
+        "200":
+          description: Componentes atualizados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Componentes atualizados
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/admin/settings:
+    get:
+      summary: Obter configurações
+      description: Retorna todas as configurações do restaurante.
+      operationId: getSettings
+      tags:
+        - Admin - Configurações
+      security:
+        - jwtAuth: []
+      responses:
+        "200":
+          description: Configurações do sistema
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  settings:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    example:
+                      restaurant_name: GastroFlow
+                      restaurant_address: Rua Exemplo, 123
+                      restaurant_phone: "(11) 99999-8888"
+
+    put:
+      summary: Atualizar configurações
+      description: Atualiza uma ou mais configurações do restaurante.
+      operationId: updateSettings
+      tags:
+        - Admin - Configurações
+      security:
+        - jwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - settings
+              properties:
+                settings:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  example:
+                    restaurant_name: GastroFlow
+                    restaurant_phone: "(11) 98888-7777"
+      responses:
+        "200":
+          description: Configurações salvas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Configurações salvas com sucesso!
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/admin/settings/logo:
+    post:
+      summary: Upload da logo
+      description: Faz upload da imagem da logo do restaurante (PNG, JPG, WebP).
+      operationId: uploadLogo
+      tags:
+        - Admin - Configurações
+      security:
+        - jwtAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                logo:
+                  type: string
+                  format: binary
+                  description: Arquivo de imagem (PNG, JPG ou WebP)
+      responses:
+        "200":
+          description: Logo atualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Logo atualizada com sucesso!
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/admin/settings/test-print:
+    post:
+      summary: Testar impressão
+      description: Envia um cupom de teste para a impressora configurada.
+      operationId: testPrint
+      tags:
+        - Admin - Configurações
+      security:
+        - jwtAuth: []
+      responses:
+        "200":
+          description: Teste enviado para a impressora
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Teste enviado para a impressora.
+        "500":
+          description: Erro ao imprimir
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Impressora não configurada.
+
+components:
+  schemas:
+    MenuItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Bife à Milanesa
+        price:
+          type: number
+          format: float
+          example: 34.90
+        description:
+          type: string
+          example: Bife empanado servido com arroz e fritas
+        category_name:
+          type: string
+          example: Pratos Principais
+        available:
+          type: boolean
+          example: true
+        ingredients:
+          type: array
+          items:
+            $ref: "#/components/schemas/Ingredient"
+
+    AdminMenuItem:
+      allOf:
+        - $ref: "#/components/schemas/MenuItem"
+        - type: object
+          properties:
+            has_stock:
+              type: boolean
+              example: true
+
+    Ingredient:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Alface
+        quantity:
+          type: number
+          format: float
+          example: 200
+        unit:
+          type: string
+          example: g
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        table_number:
+          type: string
+          example: "5"
+        customer_name:
+          type: string
+          nullable: true
+          example: João Silva
+        status:
+          type: string
+          enum:
+            - pending
+            - completed
+          example: pending
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              quantity:
+                type: integer
+              notes:
+                type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CreateOrderInput:
+      type: object
+      required:
+        - table
+        - items
+      properties:
+        table:
+          type: string
+          description: Número ou identificação da mesa
+          example: "5"
+        customer_name:
+          type: string
+          description: Nome do cliente (opcional)
+          example: João Silva
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - id
+              - quantity
+            properties:
+              id:
+                type: integer
+                description: ID do item do cardápio
+                example: 1
+              quantity:
+                type: integer
+                minimum: 1
+                example: 2
+              notes:
+                type: string
+                description: Observações para o item
+                example: Sem cebola
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            username:
+              type: string
+              example: admin
+            role:
+              type: string
+              example: admin
+
+  responses:
+    ValidationError:
+      description: Erro de validação
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Campos obrigatórios: name, price, category_name"
+              messages:
+                type: array
+                items:
+                  type: string
+                example:
+                  - O campo "table" é obrigatório
+                  - A lista "items" deve conter ao menos 1 item
+
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtido via `POST /api/login`

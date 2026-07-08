@@ -114,6 +114,10 @@ docker compose up -d
 ```
 http://localhost:8080
 ```
+6. 📖 **Documentação interativa da API:**
+```
+http://localhost:8080/api/docs
+```
 ---
 
 ## 📦 Gerenciamento de Dependências (Composer)
@@ -154,20 +158,18 @@ After `docker compose up -d`:
 - All changes are persisted inside the MySQL container.
 - To use the API directly, refer to the cURL examples below.
 ---
-## 📍 Endpoints
-Important endpoints here when the backend is documented
-``` 
-| Method | Endpoint                     | Description                      | Auth   |
-|--------|------------------------------|----------------------------------|--------|
-| GET    | `/api/menu`                  | Full menu                        | Public |
-| POST   | `/api/orders`                | Create a new order               | Public |
-| GET    | `/api/orders?status=pending` | List orders by status            | Public |
-| POST   | `/api/orders/{id}/complete`  | Mark an order as done            | Public |
-| POST   | `/api/login`                 | Obtain a JWT token               | Public |
-| GET    | `/api/admin/menu`            | Menu (admin)                     | JWT    |
-| POST   | `/api/admin/items`           | Add a menu item                  | JWT    |
-| PATCH  | `/api/admin/items/{id}`      | Toggle item availability         | JWT    |
-```
+## 📖 Documentação Interativa da API
+
+Acesse a documentação completa e interativa da API em:
+
+👉 **[http://localhost:8080/api/docs](http://localhost:8080/api/docs)**
+
+Lá você encontra:
+
+-   Todos os endpoints organizados por categoria
+-   Schemas de requisição e resposta
+-   Botão **"Try it out"** para testar chamadas diretamente do navegador
+-   Autenticação JWT integrada (clique em **Authorize** e cole seu token)
 
 ## 🧪 Testing with cURL
 

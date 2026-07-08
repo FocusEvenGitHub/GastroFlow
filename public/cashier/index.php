@@ -15,13 +15,24 @@
         .selected-item:hover { background: #f8f9fa; }
         .quantity-btn { min-width: 2rem; }
         .category-tab.active { font-weight: bold; border-bottom: 2px solid #0d6efd; }
+        .print-switch { border-radius: 6px; transition: background 0.15s; }
+        .print-switch:hover { background: #f8f9fa; }
     </style>
 </head>
 <body>
 <div x-data="cashierApp()" class="container py-4">
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="h2"><i class="fas fa-cash-register me-2"></i>Novo Pedido</h1>
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h2 mb-0"><i class="fas fa-cash-register me-2"></i>Novo Pedido</h1>
+                <div class="form-check form-switch print-switch mb-0" title="Quando ligado, o pedido é enviado para a impressora térmica">
+                    <input class="form-check-input" type="checkbox" id="printToggle" x-model="printTicket" checked>
+                    <label class="form-check-label small" for="printToggle">
+                        <i class="fas fa-print text-secondary me-1"></i>Imprimir
+                        <i class="fas fa-info-circle text-muted ms-1" title="Desligue para não enviar o pedido à impressora"></i>
+                    </label>
+                </div>
+            </div>
             <hr>
         </div>
     </div>
@@ -37,11 +48,18 @@
     <div class="row">
         <!-- Lado esquerdo: mesa + cardápio -->
         <div class="col-md-8">
-            <!-- Senha -->
-            <div class="mb-4">
-                <label for="tableNumber" class="form-label fw-bold">Número da Senha *</label>
-                <input type="text" id="tableNumber" x-model="tableNumber"
-                       class="form-control form-control-lg" placeholder="Ex: 42">
+            <!-- Senha + Cliente -->
+            <div class="row mb-4 g-3">
+                <div class="col-md-6">
+                    <label for="tableNumber" class="form-label fw-bold">Número da Senha *</label>
+                    <input type="text" id="tableNumber" x-model="tableNumber"
+                           class="form-control form-control-lg" placeholder="Ex: 42">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Nome do Cliente</label>
+                    <input type="text" x-model="customerName"
+                           class="form-control form-control-lg" placeholder="Ex: João Silva (opcional)">
+                </div>
             </div>
 
             <!-- Categorias -->

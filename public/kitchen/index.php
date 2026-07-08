@@ -86,7 +86,7 @@
                                 <div class="card compact-card mb-0 h-100" :class="{ 'completing': completing === order.id }">
                                     <div class="card-header">
                                         <div class="d-flex align-items-center gap-2">
-                                            <strong class="small">Pedido #<span x-text="order.id"></span></strong>
+                                            <strong class="small" x-text="displayName(order)"></strong>
                                             <span class="badge bg-primary badge-table"><i class="fas fa-hashtag me-1"></i><span x-text="order.table_number"></span></span>
                                             <small class="text-muted" x-text="timeAgo(order.created_at)"></small>
                                         </div>
@@ -135,7 +135,7 @@
                                     <div class="card compact-card done mb-0 h-100">
                                         <div class="card-header">
                                             <div class="d-flex align-items-center gap-2">
-                                                <strong class="small">Pedido #<span x-text="order.id"></span></strong>
+                                                <strong class="small" x-text="displayName(order)"></strong>
                                                 <span class="badge bg-secondary badge-table"><i class="fas fa-hashtag me-1"></i><span x-text="order.table_number"></span></span>
                                                 <small class="text-muted" x-text="timeAgo(order.created_at)"></small>
                                             </div>

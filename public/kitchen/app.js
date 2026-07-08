@@ -119,6 +119,14 @@ function kitchenApp() {
             }
         },
 
+        // Retorna o nome do cliente (se houver) ou "Pedido #N" como fallback
+        displayName(order) {
+            if (order.customer_name && typeof order.customer_name === 'string' && order.customer_name.trim() !== '') {
+                return order.customer_name.trim();
+            }
+            return 'Pedido #' + order.id;
+        },
+
         timeAgo(dateStr) {
             if (!dateStr) return '';
             const date = new Date(dateStr.replace(' ', 'T') + 'Z');

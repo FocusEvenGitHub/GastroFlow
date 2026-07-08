@@ -2,6 +2,8 @@
 namespace App;
 
 use Slim\App;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Controllers\MenuController;
 use App\Controllers\OrderController;
 use App\Controllers\AuthController;
@@ -15,6 +17,10 @@ class Routes
     {
         $secret = $_ENV['JWT_SECRET'] ?? 'your-secret-key-change-me';
         $jwt = new JwtMiddleware($secret);
+
+        $app->get('/', function (Request $request, Response $response) {
+            return $response->withHeader('Location', '/cashier/')->withStatus(302);
+        });
 
         $app->group('/api', function ($group) {
             $group->get('/menu', [MenuController::class, 'index']);
