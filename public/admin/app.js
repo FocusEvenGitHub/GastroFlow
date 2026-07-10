@@ -12,7 +12,7 @@ function adminApp() {
         loading: true,
         newItem: { name: '', price: '', category_name: '', description: '' },
         saving: false,
-        message: { text: '', type: 'info' },
+        toasts: [],
         viewMode: localStorage.getItem('adminViewMode') || 'grid',
 
         editingItem: null,
@@ -21,7 +21,10 @@ function adminApp() {
         availableComponents: [],
         tomSelect: null,
 
+        darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
+
         init() {
+            this.applyTheme();
             if (this.token) {
                 this.loggedIn = true;
                 this.loadMenu();
@@ -71,7 +74,8 @@ function adminApp() {
                 if (res.status === 401) { this.logout(); return; }
                 if (!res.ok) throw new Error('Erro ao carregar cardápio');
                 this.menu = await res.json();
-                this.categories = [...new Set(this.menu.map(c => c.category_name))];
+                this.categories = this.sortPratoDoDiaFirst([...new Set(this.menu.map(c => c.category_name))]);
+                this.menu = this.sortMenuPratoDoDiaFirst(this.menu);
                 const adicionais = this.menu.find(c => c.category_name === 'Adicionais');
                 this.availableComponents = adicionais ? adicionais.items : [];
             } catch (err) {
@@ -273,13 +277,38 @@ function adminApp() {
         },
 
         showMessage(text, type = 'info') {
-            this.message = { text, type };
-            setTimeout(() => { this.message.text = ''; }, 4000);
+            const id = Date.now() + Math.random();
+            this.toasts.push({ id, text, type });
+            setTimeout(() => {
+                this.toasts = this.toasts.filter(t => t.id !== id);
+            }, 4000);
         },
 
         toggleView(mode) {
             this.viewMode = mode;
             localStorage.setItem('adminViewMode', mode);
+        },
+
+        applyTheme() {
+            document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
+        },
+
+        toggleDarkMode() {
+            this.darkMode = !this.darkMode;
+            localStorage.setItem('gastroflow_darkMode', this.darkMode);
+            this.applyTheme();
+        },
+
+        sortPratoDoDiaFirst(arr) {
+            const idx = arr.indexOf('Prato do Dia');
+            if (idx > 0) { const item = arr.splice(idx, 1)[0]; arr.unshift(item); }
+            return arr;
+        },
+
+        sortMenuPratoDoDiaFirst(menu) {
+            const prato = menu.find(c => c.category_name === 'Prato do Dia');
+            const others = menu.filter(c => c.category_name !== 'Prato do Dia');
+            return prato ? [prato, ...others] : menu;
         }
     };
 }

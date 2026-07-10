@@ -35,7 +35,7 @@ class JwtMiddleware implements MiddlewareInterface
             $request = $request->withAttribute('user', $decoded);
         } catch (ExpiredException $e) {
             return $this->unauthorizedResponse('Token expirado.');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return $this->unauthorizedResponse('Token inválido.');
         }
 

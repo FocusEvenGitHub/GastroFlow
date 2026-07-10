@@ -3,15 +3,17 @@ function kitchenApp() {
         orders: [],
         completedOrders: [],
         loading: true,
-        message: { text: '', type: 'info' },
+        toasts: [],
         completing: null,
         uncompleting: null,
         showDone: true,
         viewMode: localStorage.getItem('kitchenViewMode') || 'list',
+        darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
         eventSource: null,
         foodSummary: [],
 
         async init() {
+            this.applyTheme();
             await this.fetchAll();
             this.connectSSE();
         },
@@ -178,13 +180,26 @@ function kitchenApp() {
         },
 
         showMessage(text, type = 'info') {
-            this.message = { text, type };
-            setTimeout(() => { this.message.text = ''; }, 5000);
+            const id = Date.now() + Math.random();
+            this.toasts.push({ id, text, type });
+            setTimeout(() => {
+                this.toasts = this.toasts.filter(t => t.id !== id);
+            }, 5000);
         },
 
         toggleView(mode) {
             this.viewMode = mode;
             localStorage.setItem('kitchenViewMode', mode);
+        },
+
+        applyTheme() {
+            document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
+        },
+
+        toggleDarkMode() {
+            this.darkMode = !this.darkMode;
+            localStorage.setItem('gastroflow_darkMode', this.darkMode);
+            this.applyTheme();
         },
 
         destroy() {

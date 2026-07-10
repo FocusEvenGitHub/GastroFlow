@@ -6,13 +6,15 @@ function cashierApp() {
         categories: [],         // nomes únicos das categorias
         currentCategory: 'all',
         selectedItems: [],
-        message: { text: '', type: 'info' },
+        toasts: [],
         loading: true,
         submitting: false,
         printTicket: true,
         viewMode: localStorage.getItem('cashierViewMode') || 'grid',
+        darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
 
         async init() {
+            this.applyTheme();
             try {
                 const [menuRes, nextRes] = await Promise.all([
                     fetch('/api/menu'),
@@ -20,7 +22,8 @@ function cashierApp() {
                 ]);
                 if (!menuRes.ok) throw new Error('Erro ao carregar cardápio');
                 this.menu = await menuRes.json();
-                this.categories = [...new Set(this.menu.map(c => c.category_name))];
+                this.categories = this.sortPratoDoDiaFirst([...new Set(this.menu.map(c => c.category_name))]);
+                this.menu = this.sortMenuPratoDoDiaFirst(this.menu);
                 if (nextRes.ok) {
                     const data = await nextRes.json();
                     this.tableNumber = String(data.next);
@@ -108,10 +111,13 @@ function cashierApp() {
             }, 0);
         },
 
-        // Exibe mensagens
+        // Exibe mensagens (toast)
         showMessage(text, type = 'info') {
-            this.message = { text, type };
-            setTimeout(() => { this.message.text = ''; }, 5000);
+            const id = Date.now() + Math.random();
+            this.toasts.push({ id, text, type });
+            setTimeout(() => {
+                this.toasts = this.toasts.filter(t => t.id !== id);
+            }, 5000);
         },
 
         // Envia o pedido para a API
@@ -163,6 +169,29 @@ function cashierApp() {
         toggleView(mode) {
             this.viewMode = mode;
             localStorage.setItem('cashierViewMode', mode);
+        },
+
+        applyTheme() {
+            document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
+        },
+
+        toggleDarkMode() {
+            this.darkMode = !this.darkMode;
+            localStorage.setItem('gastroflow_darkMode', this.darkMode);
+            this.applyTheme();
+        },
+
+        // Move "Prato do Dia" para o início do array
+        sortPratoDoDiaFirst(arr) {
+            const idx = arr.indexOf('Prato do Dia');
+            if (idx > 0) { const item = arr.splice(idx, 1)[0]; arr.unshift(item); }
+            return arr;
+        },
+
+        sortMenuPratoDoDiaFirst(menu) {
+            const prato = menu.find(c => c.category_name === 'Prato do Dia');
+            const others = menu.filter(c => c.category_name !== 'Prato do Dia');
+            return prato ? [prato, ...others] : menu;
         }
     };
 }

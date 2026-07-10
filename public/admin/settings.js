@@ -15,9 +15,11 @@ function settingsApp() {
         logoUrl: '/assets/img/logo.png?' + Date.now(),
         saving: false,
         testing: false,
-        message: { text: '', type: 'info' },
+        toasts: [],
+        darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
 
         init() {
+            this.applyTheme();
             if (this.token) {
                 this.loggedIn = true;
                 this.loadSettings();
@@ -173,8 +175,21 @@ function settingsApp() {
 
         // --- Helpers ---
         showMessage(text, type = 'info') {
-            this.message = { text, type };
-            setTimeout(() => { this.message.text = ''; }, 5000);
+            const id = Date.now() + Math.random();
+            this.toasts.push({ id, text, type });
+            setTimeout(() => {
+                this.toasts = this.toasts.filter(t => t.id !== id);
+            }, 5000);
+        },
+
+        applyTheme() {
+            document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
+        },
+
+        toggleDarkMode() {
+            this.darkMode = !this.darkMode;
+            localStorage.setItem('gastroflow_darkMode', this.darkMode);
+            this.applyTheme();
         }
     };
 }

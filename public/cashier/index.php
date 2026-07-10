@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
     <style>
         .menu-item-card { cursor: pointer; transition: all 0.2s; }
         .menu-item-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
@@ -25,44 +26,65 @@
         .view-list .menu-item-card .card-body .item-desc { display: none; }
         .view-list .menu-item-card .card-body .item-footer { margin-left: auto; }
     </style>
+    <script>
+        if (localStorage.getItem('gastroflow_darkMode') === 'true') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
 </head>
 <body>
-<div x-data="cashierApp()" class="container py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h2 mb-0"><i class="fas fa-cash-register me-2"></i>Novo Pedido</h1>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="view-toggle btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
-                                @click="toggleView('grid')" title="Visualização em grade">
-                            <i class="fas fa-th-large"></i>
-                        </button>
-                        <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'list' }"
-                                @click="toggleView('list')" title="Visualização em lista">
-                            <i class="fas fa-list"></i>
-                        </button>
-                    </div>
-                    <div class="form-check form-switch print-switch mb-0" title="Quando ligado, o pedido é enviado para a impressora térmica">
-                        <input class="form-check-input" type="checkbox" id="printToggle" x-model="printTicket" checked>
-                        <label class="form-check-label small" for="printToggle">
-                            <i class="fas fa-print text-secondary me-1"></i>Imprimir
-                            <i class="fas fa-info-circle text-muted ms-1" title="Desligue para não enviar o pedido à impressora"></i>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <hr>
+<div x-data="cashierApp()">
+    <!-- Navbar -->
+    <nav class="gastro-nav">
+        <a href="/cashier/" class="gastro-nav-brand">
+            <i class="fas fa-utensils"></i>
+            <span>GastroFlow</span>
+        </a>
+        <div class="gastro-nav-links">
+            <a href="/cashier/" class="active"><i class="fas fa-cash-register"></i>Caixa</a>
+            <a href="/kitchen/"><i class="fas fa-fire"></i>Cozinha</a>
+            <a href="/admin/"><i class="fas fa-cog"></i>Admin</a>
         </div>
+        <button class="dark-toggle" @click="toggleDarkMode()" title="Alternar tema">
+            <i class="fas" :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
+        </button>
+    </nav>
+
+    <!-- Toast container -->
+    <div class="toast-container" x-show="toasts.length">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div class="gastro-toast" :class="toast.type">
+                <i class="fas gastro-toast-icon"
+                   :class="toast.type === 'success' ? 'fa-check-circle' : toast.type === 'danger' ? 'fa-exclamation-circle' : toast.type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'"></i>
+                <span class="gastro-toast-text" x-text="toast.text"></span>
+                <button class="gastro-toast-close" @click="toasts = toasts.filter(t => t.id !== toast.id)">&times;</button>
+            </div>
+        </template>
     </div>
 
-    <!-- Mensagens -->
-    <div x-show="message.text" x-transition>
-        <div :class="'alert alert-'+message.type+' alert-dismissible fade show'" role="alert">
-            <span x-text="message.text"></span>
-            <button type="button" class="btn-close" @click="message.text=''"></button>
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Novo Pedido</h1>
+            <div class="d-flex align-items-center gap-2">
+                <div class="view-toggle btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
+                            @click="toggleView('grid')" title="Visualização em grade">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'list' }"
+                            @click="toggleView('list')" title="Visualização em lista">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+                <div class="form-check form-switch print-switch mb-0" title="Quando ligado, o pedido é enviado para a impressora térmica">
+                    <input class="form-check-input" type="checkbox" id="printToggle" x-model="printTicket" checked>
+                    <label class="form-check-label small" for="printToggle">
+                        <i class="fas fa-print text-secondary me-1"></i>Imprimir
+                        <i class="fas fa-info-circle text-muted ms-1" title="Desligue para não enviar o pedido à impressora"></i>
+                    </label>
+                </div>
+            </div>
         </div>
-    </div>
 
     <div class="row">
         <!-- Lado esquerdo: mesa + cardápio -->
@@ -216,8 +238,8 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
+    </div> <!-- /container -->
+</div> <!-- /x-data -->
 
 <!-- Alpine.js -->
 <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>

@@ -6,13 +6,14 @@
     <title>Cozinha – Pedidos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
     <style>
-        body { background: #f5f6fa; font-size: 1.2rem; }
+        body { background: var(--bg); font-size: 1.2rem; }
         /* ── Cards de pedido ── */
         .compact-card { border-left: 6px solid #ffc107; transition: all 0.15s; border-radius: 0.75rem; }
         .compact-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
-        .compact-card.completing { border-left-color: #28a745; opacity: 0.7; }
-        .compact-card.done { border-left-color: #28a745; opacity: 0.8; }
+        .compact-card.completing { border-left-color: var(--success); opacity: 0.7; }
+        .compact-card.done { border-left-color: var(--success); opacity: 0.8; }
         .compact-card .card-header {
             padding: 1rem 1.5rem;
             background: transparent;
@@ -23,7 +24,7 @@
         }
         .compact-card .card-body { padding: 0.75rem 1.5rem 1rem; }
         .item-row { font-size: 1.6rem; line-height: 1.4; }
-        .item-note { font-size: 1rem; color: #6c757d; font-style: italic; }
+        .item-note { font-size: 1rem; color: var(--text-muted); font-style: italic; }
         .btn-sm-icon { padding: 0.5rem 1rem; font-size: 1.4rem; border-radius: 0.5rem; }
         /* ── Resumo de ingredientes ── */
         .summary-card .cat-protein { border-left: 6px solid #dc3545; }
@@ -32,47 +33,73 @@
         .summary-card .cat-sauce { border-left: 6px solid #17a2b8; }
         .summary-card .cat-side { border-left: 6px solid #6f42c1; }
         .badge-table { font-size: 1.1rem; padding: 0.3rem 0.6rem; }
-        .section-header { font-size: 1.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #495057; }
+        .section-header { font-size: 1.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text); }
         .done-toggle { cursor: pointer; user-select: none; }
-        .done-toggle:hover { color: #212529; }
+        .done-toggle:hover { color: var(--text); }
         /* ── Alternância grade / lista ── */
         .view-toggle .btn { border-radius: 4px; padding: 0.4rem 0.7rem; font-size: 1rem; }
         .view-list .col { width: 100%; flex: 0 0 100%; max-width: 100%; }
         .view-list .compact-card .card-body { padding: 0.5rem 1.5rem 0.75rem; }
         .view-list .item-row { font-size: 1.5rem; }
     </style>
+    <script>
+        if (localStorage.getItem('gastroflow_darkMode') === 'true') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
 </head>
 <body>
-<div x-data="kitchenApp()" class="container-fluid py-4">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h1 class="h2 mb-0"><i class="fas fa-utensils me-2 text-primary"></i>Cozinha</h1>
-        <div class="d-flex align-items-center gap-2">
-            <div class="view-toggle btn-group btn-group-sm me-2">
-                <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
-                        @click="toggleView('grid')" title="Visualização em grade">
-                    <i class="fas fa-th-large"></i>
-                </button>
-                <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'list' }"
-                        @click="toggleView('list')" title="Visualização em lista">
-                    <i class="fas fa-list"></i>
-                </button>
-            </div>
-            <button @click="refresh" class="btn btn-outline-primary btn-sm" title="Atualizar">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-            <span class="badge bg-secondary align-middle" x-text="orders.length + ' pendente(s)'"></span>
-            <span class="badge bg-success align-middle ms-1" x-text="completedOrders.length + ' finalizado(s)'"></span>
+<div x-data="kitchenApp()">
+    <!-- Navbar -->
+    <nav class="gastro-nav">
+        <a href="/cashier/" class="gastro-nav-brand">
+            <i class="fas fa-utensils"></i>
+            <span>GastroFlow</span>
+        </a>
+        <div class="gastro-nav-links">
+            <a href="/cashier/"><i class="fas fa-cash-register"></i>Caixa</a>
+            <a href="/kitchen/" class="active"><i class="fas fa-fire"></i>Cozinha</a>
+            <a href="/admin/"><i class="fas fa-cog"></i>Admin</a>
         </div>
+        <button class="dark-toggle" @click="toggleDarkMode()" title="Alternar tema">
+            <i class="fas" :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
+        </button>
+    </nav>
+
+    <!-- Toast container -->
+    <div class="toast-container" x-show="toasts.length">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div class="gastro-toast" :class="toast.type">
+                <i class="fas gastro-toast-icon"
+                   :class="toast.type === 'success' ? 'fa-check-circle' : toast.type === 'danger' ? 'fa-exclamation-circle' : toast.type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'"></i>
+                <span class="gastro-toast-text" x-text="toast.text"></span>
+                <button class="gastro-toast-close" @click="toasts = toasts.filter(t => t.id !== toast.id)">&times;</button>
+            </div>
+        </template>
     </div>
 
-    <!-- Alert -->
-    <div x-show="message.text" x-transition class="mb-2">
-        <div :class="'alert alert-'+message.type+' alert-dismissible fade show py-2 mb-0 small'" role="alert">
-            <span x-text="message.text"></span>
-            <button type="button" class="btn-close py-2" @click="message.text=''"></button>
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h3 mb-0">Cozinha</h1>
+            <div class="d-flex align-items-center gap-2">
+                <div class="view-toggle btn-group btn-group-sm me-2">
+                    <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
+                            @click="toggleView('grid')" title="Visualização em grade">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'list' }"
+                            @click="toggleView('list')" title="Visualização em lista">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+                <button @click="refresh" class="btn btn-outline-primary btn-sm" title="Atualizar">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <span class="badge bg-secondary align-middle" x-text="orders.length + ' pendente(s)'"></span>
+                <span class="badge bg-success align-middle ms-1" x-text="completedOrders.length + ' finalizado(s)'"></span>
+            </div>
         </div>
-    </div>
 
     <!-- Loading -->
     <div x-show="loading" class="text-center py-4">

@@ -28,7 +28,7 @@ class AdminController
         try {
             $this->printService->printTestPage();
             $payload = ['success' => true, 'message' => 'Teste enviado para a impressora.'];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $payload = ['error' => $e->getMessage()];
             $response->getBody()->write(json_encode($payload));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');

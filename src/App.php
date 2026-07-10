@@ -7,6 +7,8 @@ use Slim\Psr7\Factory\ResponseFactory;
 use Psr\Log\LoggerInterface;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
+use Psr\Http\Message\ServerRequestInterface;
+use Throwable;
 
 class App
 {
@@ -46,7 +48,33 @@ class App
         // Middleware
         $app->add(new Middleware\JsonBodyParserMiddleware());
         $app->add(new Middleware\CorsMiddleware());
-        $app->addErrorMiddleware(true, true, true);
+
+        // Error middleware — always return JSON for API routes
+        $errorMiddleware = $app->addErrorMiddleware(true, true, true);
+        $errorMiddleware->setDefaultErrorHandler(function (
+            ServerRequestInterface $request,
+            Throwable $exception,
+            bool $displayErrorDetails
+        ) use ($app) {
+            $statusCode = 500;
+            if ($exception instanceof \Slim\Exception\HttpSpecializedException) {
+                $statusCode = $exception->getCode();
+            }
+
+            $response = $app->getResponseFactory()->createResponse($statusCode);
+            $payload = [
+                'error' => $displayErrorDetails
+                    ? $exception->getMessage()
+                    : 'Erro interno do servidor.',
+            ];
+            if ($displayErrorDetails) {
+                $payload['file']  = $exception->getFile();
+                $payload['line']  = $exception->getLine();
+                $payload['trace'] = explode("\n", $exception->getTraceAsString());
+            }
+            $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+            return $response->withHeader('Content-Type', 'application/json');
+        });
 
         // Routes
         (new Routes())->register($app);

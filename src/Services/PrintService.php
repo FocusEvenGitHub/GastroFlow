@@ -53,7 +53,7 @@ class PrintService
 
             $printer->close();
             $this->logger->info('Pedido #' . $order->id . ' impresso em ' . $config['ip'] . ':' . $config['port']);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->logger->error('Falha ao imprimir pedido #' . $order->id . ': ' . $e->getMessage());
         }
     }
@@ -86,8 +86,8 @@ class PrintService
                 $logo = EscposImage::load($logoPath);
                 $printer->bitImage($logo);
                 $printer->feed();
-            } catch (\Exception $e) {
-                // ignora
+            } catch (\Throwable $e) {
+                $this->logger->warning('Logo não pôde ser carregada na página de teste: ' . $e->getMessage());
             }
         }
 
@@ -140,7 +140,7 @@ class PrintService
                 $logo = EscposImage::load($logoPath);
                 $printer->bitImage($logo);
                 $printer->feed();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $this->logger->warning('Logo não pôde ser carregada: ' . $e->getMessage());
             }
         }

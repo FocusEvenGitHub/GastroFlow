@@ -43,7 +43,7 @@ class OrderController
             $payload = ['success' => true, 'id' => $order->id, 'message' => 'Order created'];
             $response->getBody()->write(json_encode($payload));
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
@@ -62,7 +62,7 @@ class OrderController
         try {
             $this->orderService->completeOrder($id);
             $payload = ['success' => true, 'message' => 'Order completed'];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $payload = ['error' => $e->getMessage()];
             $status = 500;
         }
@@ -76,7 +76,7 @@ class OrderController
         try {
             $this->orderService->uncompleteOrder($id);
             $payload = ['success' => true, 'message' => 'Order reopened'];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $payload = ['error' => $e->getMessage()];
             $status = 500;
         }

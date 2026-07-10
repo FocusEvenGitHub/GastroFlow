@@ -4,12 +4,14 @@ function ingredientsApp() {
         newIngredient: { name: '', unit: '', category: '' },
         saving: false,
         loading: true,
-        message: { text: '', type: 'info' },
+        toasts: [],
+        darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
         token: localStorage.getItem('admin_token') || '',
         editMode: false,
         editIngredientData: { id: null, name: '', unit: '', category: '' },
 
         async init() {
+            this.applyTheme();
             if (!this.token) {
                 window.location.href = '/admin/'; // need login
                 return;
@@ -98,8 +100,21 @@ function ingredientsApp() {
         },
 
         showMessage(text, type = 'info') {
-            this.message = { text, type };
-            setTimeout(() => { this.message.text = ''; }, 4000);
+            const id = Date.now() + Math.random();
+            this.toasts.push({ id, text, type });
+            setTimeout(() => {
+                this.toasts = this.toasts.filter(t => t.id !== id);
+            }, 4000);
+        },
+
+        applyTheme() {
+            document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
+        },
+
+        toggleDarkMode() {
+            this.darkMode = !this.darkMode;
+            localStorage.setItem('gastroflow_darkMode', this.darkMode);
+            this.applyTheme();
         }
     };
 }

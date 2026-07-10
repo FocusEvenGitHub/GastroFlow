@@ -6,11 +6,12 @@
     <title>Admin – Gestão</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
     <style>
         .menu-item-card { transition: all 0.2s; }
         .menu-item-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .price { font-size: 1.25rem; color: #198754; }
+        .price { font-size: 1.25rem; color: var(--success); }
         /* Alternância grade / lista */
         .view-toggle .btn { border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.85rem; }
         .view-list .menu-item-col { width: 100%; flex: 0 0 100%; max-width: 100%; }
@@ -19,64 +20,91 @@
         .view-list .menu-item-card .card-body .item-desc { display: none; }
         .view-list .menu-item-card .card-body .item-actions { white-space: nowrap; }
     </style>
+    <script>
+        if (localStorage.getItem('gastroflow_darkMode') === 'true') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
 </head>
 <body>
-<div x-data="adminApp()" class="container py-4">
-    <!-- Login -->
-    <div x-show="!loggedIn" class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="card shadow">
-                <div class="card-body">
-                    <h3 class="card-title mb-4">Login Administrativo</h3>
-                    <div x-show="loginError" class="alert alert-danger" x-text="loginError"></div>
-                    <form @submit.prevent="doLogin">
-                        <div class="mb-3">
-                            <label class="form-label">Usuário</label>
-                            <input type="text" x-model="loginForm.username" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Senha</label>
-                            <input type="password" x-model="loginForm.password" class="form-control" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100" :disabled="logging">
-                            <span x-show="!logging">Entrar</span>
-                            <span x-show="logging"><span class="spinner-border spinner-border-sm me-1"></span> Entrando...</span>
-                        </button>
-                    </form>
-                </div>
-            </div>
+<div x-data="adminApp()">
+    <!-- Navbar -->
+    <nav class="gastro-nav">
+        <a href="/cashier/" class="gastro-nav-brand">
+            <i class="fas fa-utensils"></i>
+            <span>GastroFlow</span>
+        </a>
+        <div class="gastro-nav-links">
+            <a href="/cashier/"><i class="fas fa-cash-register"></i>Caixa</a>
+            <a href="/kitchen/"><i class="fas fa-fire"></i>Cozinha</a>
+            <a href="/admin/" class="active"><i class="fas fa-cog"></i>Admin</a>
         </div>
+        <button class="dark-toggle" @click="toggleDarkMode()" title="Alternar tema">
+            <i class="fas" :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
+        </button>
+    </nav>
+
+    <!-- Toast container -->
+    <div class="toast-container" x-show="toasts.length">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div class="gastro-toast" :class="toast.type">
+                <i class="fas gastro-toast-icon"
+                   :class="toast.type === 'success' ? 'fa-check-circle' : toast.type === 'danger' ? 'fa-exclamation-circle' : toast.type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'"></i>
+                <span class="gastro-toast-text" x-text="toast.text"></span>
+                <button class="gastro-toast-close" @click="toasts = toasts.filter(t => t.id !== toast.id)">&times;</button>
+            </div>
+        </template>
     </div>
 
-    <!-- Admin -->
-    <div x-show="loggedIn" x-transition>
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h2"><i class="fas fa-utensils me-2 text-primary"></i>Gerenciar Cardápio</h1>
-            <div class="d-flex align-items-center gap-2">
-                <div class="view-toggle btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
-                            @click="toggleView('grid')" title="Visualização em grade">
-                        <i class="fas fa-th-large"></i>
-                    </button>
-                    <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'list' }"
-                            @click="toggleView('list')" title="Visualização em lista">
-                        <i class="fas fa-list"></i>
-                    </button>
+    <div class="container py-4">
+        <!-- Login -->
+        <div x-show="!loggedIn" class="row justify-content-center pt-4">
+            <div class="col-md-5">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h3 class="card-title mb-4">Login Administrativo</h3>
+                        <div x-show="loginError" class="alert alert-danger" x-text="loginError"></div>
+                        <form @submit.prevent="doLogin">
+                            <div class="mb-3">
+                                <label class="form-label">Usuário</label>
+                                <input type="text" x-model="loginForm.username" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Senha</label>
+                                <input type="password" x-model="loginForm.password" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100" :disabled="logging">
+                                <span x-show="!logging">Entrar</span>
+                                <span x-show="logging"><span class="spinner-border spinner-border-sm me-1"></span> Entrando...</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                <a href="settings.php" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-cog"></i> Configurações
-                </a>
-                <span class="me-3">Olá, <strong x-text="username"></strong></span>
-                <button @click="logout" class="btn btn-outline-secondary btn-sm">Sair</button>
             </div>
         </div>
 
-        <div x-show="message.text" x-transition>
-            <div :class="'alert alert-'+message.type+' alert-dismissible fade show'" role="alert">
-                <span x-text="message.text"></span>
-                <button type="button" class="btn-close" @click="message.text=''"></button>
+        <!-- Admin -->
+        <div x-show="loggedIn" x-transition>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Gerenciar Cardápio</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="view-toggle btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
+                                @click="toggleView('grid')" title="Visualização em grade">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'list' }"
+                                @click="toggleView('list')" title="Visualização em lista">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                    <a href="settings.php" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-cog"></i> Configurações
+                    </a>
+                    <span class="me-2">Olá, <strong x-text="username"></strong></span>
+                    <button @click="logout" class="btn btn-outline-secondary btn-sm">Sair</button>
+                </div>
             </div>
-        </div>
 
         <!-- Adicionar Item -->
         <div class="card shadow-sm mb-4">
@@ -254,8 +282,9 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
+    </div> <!-- /loggedIn -->
+    </div> <!-- /container -->
+</div> <!-- /x-data -->
 
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2/dist/js/tom-select.complete.min.js"></script>
 <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>

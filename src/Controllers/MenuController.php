@@ -41,7 +41,7 @@ class MenuController
             $payload = ['success' => true, 'id' => $item->id, 'message' => 'Item adicionado'];
             $response->getBody()->write(json_encode($payload));
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
@@ -63,7 +63,7 @@ class MenuController
             $payload = ['success' => true, 'message' => 'Item atualizado'];
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
@@ -77,7 +77,7 @@ class MenuController
             $components = $this->menuService->getDishComponents($id);
             $response->getBody()->write(json_encode($components));
             return $response->withHeader('Content-Type', 'application/json');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
@@ -99,7 +99,7 @@ class MenuController
             $payload = ['success' => true, 'message' => 'Componentes atualizados'];
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
@@ -124,7 +124,7 @@ class MenuController
                 'error' => 'Não é possível excluir este item, pois ele está vinculado a pedidos existentes.'
             ]));
             return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
