@@ -10,6 +10,7 @@ function cashierApp() {
         loading: true,
         submitting: false,
         printTicket: true,
+        viewMode: localStorage.getItem('cashierViewMode') || 'grid',
 
         async init() {
             try {
@@ -157,6 +158,11 @@ function cashierApp() {
             } finally {
                 this.submitting = false;
             }
+        },
+
+        toggleView(mode) {
+            this.viewMode = mode;
+            localStorage.setItem('cashierViewMode', mode);
         }
     };
 }

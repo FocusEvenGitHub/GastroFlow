@@ -17,6 +17,13 @@
         .category-tab.active { font-weight: bold; border-bottom: 2px solid #0d6efd; }
         .print-switch { border-radius: 6px; transition: background 0.15s; }
         .print-switch:hover { background: #f8f9fa; }
+        /* Alternância grade / lista */
+        .view-toggle .btn { border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+        .view-list .menu-item-col { width: 100%; flex: 0 0 100%; max-width: 100%; }
+        .view-list .menu-item-card { flex-direction: row; align-items: center; }
+        .view-list .menu-item-card .card-body { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; }
+        .view-list .menu-item-card .card-body .item-desc { display: none; }
+        .view-list .menu-item-card .card-body .item-footer { margin-left: auto; }
     </style>
 </head>
 <body>
@@ -25,12 +32,24 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <h1 class="h2 mb-0"><i class="fas fa-cash-register me-2"></i>Novo Pedido</h1>
-                <div class="form-check form-switch print-switch mb-0" title="Quando ligado, o pedido é enviado para a impressora térmica">
-                    <input class="form-check-input" type="checkbox" id="printToggle" x-model="printTicket" checked>
-                    <label class="form-check-label small" for="printToggle">
-                        <i class="fas fa-print text-secondary me-1"></i>Imprimir
-                        <i class="fas fa-info-circle text-muted ms-1" title="Desligue para não enviar o pedido à impressora"></i>
-                    </label>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="view-toggle btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
+                                @click="toggleView('grid')" title="Visualização em grade">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'list' }"
+                                @click="toggleView('list')" title="Visualização em lista">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                    <div class="form-check form-switch print-switch mb-0" title="Quando ligado, o pedido é enviado para a impressora térmica">
+                        <input class="form-check-input" type="checkbox" id="printToggle" x-model="printTicket" checked>
+                        <label class="form-check-label small" for="printToggle">
+                            <i class="fas fa-print text-secondary me-1"></i>Imprimir
+                            <i class="fas fa-info-circle text-muted ms-1" title="Desligue para não enviar o pedido à impressora"></i>
+                        </label>
+                    </div>
                 </div>
             </div>
             <hr>
@@ -81,22 +100,22 @@
                 <template x-for="category in filteredMenu" :key="category.category_name">
                     <div class="col-12 mb-4">
                         <h5 class="text-primary"><i class="fas" :class="category.type === 'food' ? 'fa-utensils' : 'fa-glass-cheers'"></i> <span x-text="category.category_name"></span></h5>
-                        <div class="row">
+                        <div class="row" :class="viewMode === 'list' ? 'view-list' : ''">
                             <template x-for="item in category.items" :key="item.id">
-                                <div class="col-md-4 col-sm-6 mb-3">
+                                <div class="menu-item-col col-md-4 col-sm-6 mb-3">
                                     <div class="card menu-item-card h-100" @click="addItem(item)">
                                         <div class="card-body">
                                             <h6 class="card-title" x-text="item.name"></h6>
                                             <template x-if="category.category_name !== 'Pratos Principais'">
-                                                <p class="card-text text-muted small" x-text="item.description || 'Sem descrição'"></p>
+                                                <p class="card-text text-muted small item-desc" x-text="item.description || 'Sem descrição'"></p>
                                             </template>
                                             <template x-if="category.category_name === 'Pratos Principais'">
-                                                <p class="card-text text-muted small">
+                                                <p class="card-text text-muted small item-desc">
                                                     <i class="fas fa-layer-group me-1 text-primary"></i>
                                                     <span x-text="(item.components || []).map(c => c.name + ' x' + c.quantity).join(', ')"></span>
                                                 </p>
                                             </template>
-                                            <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex justify-content-between align-items-center item-footer">
                                                 <span class="h5 text-success mb-0">R$ <span x-text="item.price.toFixed(2)"></span></span>
                                                 <button class="btn btn-sm btn-outline-primary" @click.stop="addItem(item)">
                                                     <i class="fas fa-plus"></i> Adicionar

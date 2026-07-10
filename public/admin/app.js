@@ -13,6 +13,7 @@ function adminApp() {
         newItem: { name: '', price: '', category_name: '', description: '' },
         saving: false,
         message: { text: '', type: 'info' },
+        viewMode: localStorage.getItem('adminViewMode') || 'grid',
 
         editingItem: null,
         editForm: { name: '', price: '', category_name: '', description: '' },
@@ -274,6 +275,11 @@ function adminApp() {
         showMessage(text, type = 'info') {
             this.message = { text, type };
             setTimeout(() => { this.message.text = ''; }, 4000);
+        },
+
+        toggleView(mode) {
+            this.viewMode = mode;
+            localStorage.setItem('adminViewMode', mode);
         }
     };
 }

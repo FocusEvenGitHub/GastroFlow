@@ -7,6 +7,7 @@ function kitchenApp() {
         completing: null,
         uncompleting: null,
         showDone: true,
+        viewMode: localStorage.getItem('kitchenViewMode') || 'grid',
         eventSource: null,
         foodSummary: [],
 
@@ -179,6 +180,11 @@ function kitchenApp() {
         showMessage(text, type = 'info') {
             this.message = { text, type };
             setTimeout(() => { this.message.text = ''; }, 5000);
+        },
+
+        toggleView(mode) {
+            this.viewMode = mode;
+            localStorage.setItem('kitchenViewMode', mode);
         },
 
         destroy() {

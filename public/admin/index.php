@@ -11,6 +11,13 @@
         .menu-item-card { transition: all 0.2s; }
         .menu-item-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .price { font-size: 1.25rem; color: #198754; }
+        /* Alternância grade / lista */
+        .view-toggle .btn { border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+        .view-list .menu-item-col { width: 100%; flex: 0 0 100%; max-width: 100%; }
+        .view-list .menu-item-card { flex-direction: row; align-items: center; }
+        .view-list .menu-item-card .card-body { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; }
+        .view-list .menu-item-card .card-body .item-desc { display: none; }
+        .view-list .menu-item-card .card-body .item-actions { white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -45,8 +52,18 @@
     <div x-show="loggedIn" x-transition>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h2"><i class="fas fa-utensils me-2 text-primary"></i>Gerenciar Cardápio</h1>
-            <div>
-                <a href="settings.php" class="btn btn-outline-primary btn-sm me-2">
+            <div class="d-flex align-items-center gap-2">
+                <div class="view-toggle btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
+                            @click="toggleView('grid')" title="Visualização em grade">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'list' }"
+                            @click="toggleView('list')" title="Visualização em lista">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+                <a href="settings.php" class="btn btn-outline-primary btn-sm">
                     <i class="fas fa-cog"></i> Configurações
                 </a>
                 <span class="me-3">Olá, <strong x-text="username"></strong></span>
@@ -113,24 +130,24 @@
                         <h4 class="mb-0"><i class="fas" :class="category.type === 'food' ? 'fa-utensils' : 'fa-glass-cheers'"></i> <span x-text="category.category_name"></span></h4>
                     </div>
                     <div class="card-body">
-                        <div class="row">
+                        <div class="row" :class="viewMode === 'list' ? 'view-list' : ''">
                             <template x-for="item in category.items" :key="item.id">
-                                <div class="col-md-4 col-sm-6 mb-3">
+                                <div class="menu-item-col col-md-4 col-sm-6 mb-3">
                                     <div class="card h-100 menu-item-card">
                                         <div class="card-body">
                                             <h5 class="card-title mb-1" x-text="item.name"></h5>
                                             <template x-if="category.category_name !== 'Pratos Principais'">
-                                                <p class="card-text text-muted small" x-text="item.description || ''"></p>
+                                                <p class="card-text text-muted small item-desc" x-text="item.description || ''"></p>
                                             </template>
                                             <template x-if="category.category_name === 'Pratos Principais'">
-                                                <p class="card-text text-muted small">
+                                                <p class="card-text text-muted small item-desc">
                                                     <i class="fas fa-layer-group me-1 text-primary"></i>
                                                     <span x-text="(item.components || []).map(c => c.name + ' x' + c.quantity).join(', ')"></span>
                                                 </p>
                                             </template>
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <span class="price">R$ <span x-text="parseFloat(item.price).toFixed(2)"></span></span>
-                                                <div class="btn-group">
+                                                <div class="btn-group item-actions">
                                                     <button class="btn btn-sm btn-outline-primary" @click="startEdit(item)">
                                                         <i class="fas fa-edit"></i>
                                                     </button>

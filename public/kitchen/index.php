@@ -32,6 +32,11 @@
         .section-header { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; }
         .done-toggle { cursor: pointer; user-select: none; }
         .done-toggle:hover { color: #212529; }
+        /* Alternância grade / lista */
+        .view-toggle .btn { border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+        .view-list .col { width: 100%; flex: 0 0 100%; max-width: 100%; }
+        .view-list .compact-card .card-body { padding: 0.25rem 0.75rem; }
+        .view-list .item-row { font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -39,8 +44,18 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h1 class="h5 mb-0"><i class="fas fa-utensils me-2 text-primary"></i>Cozinha</h1>
-        <div>
-            <button @click="refresh" class="btn btn-outline-primary btn-sm me-2" title="Atualizar">
+        <div class="d-flex align-items-center gap-2">
+            <div class="view-toggle btn-group btn-group-sm me-2">
+                <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
+                        @click="toggleView('grid')" title="Visualização em grade">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'list' }"
+                        @click="toggleView('list')" title="Visualização em lista">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+            <button @click="refresh" class="btn btn-outline-primary btn-sm" title="Atualizar">
                 <i class="fas fa-sync-alt"></i>
             </button>
             <span class="badge bg-secondary align-middle" x-text="orders.length + ' pendente(s)'"></span>
@@ -80,7 +95,7 @@
                         <i class="fas fa-clock me-1 text-warning"></i> Pendentes
                         <span class="badge bg-warning text-dark badge-table ms-1" x-text="orders.length"></span>
                     </div>
-                    <div class="row row-cols-1 row-cols-xl-2 g-2">
+                    <div class="row row-cols-1 row-cols-xl-2 g-2" :class="viewMode === 'list' ? 'view-list' : ''">
                         <template x-for="order in orders" :key="order.id">
                             <div class="col">
                                 <div class="card compact-card mb-0 h-100" :class="{ 'completing': completing === order.id }">
@@ -129,7 +144,7 @@
                         <span class="badge bg-success badge-table ms-1" x-text="completedOrders.length"></span>
                     </div>
                     <div x-show="showDone">
-                        <div class="row row-cols-1 row-cols-xl-2 g-2">
+                        <div class="row row-cols-1 row-cols-xl-2 g-2" :class="viewMode === 'list' ? 'view-list' : ''">
                             <template x-for="order in completedOrders" :key="order.id">
                                 <div class="col">
                                     <div class="card compact-card done mb-0 h-100">
