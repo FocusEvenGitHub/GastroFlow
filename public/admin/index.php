@@ -101,6 +101,9 @@
                     <a href="settings.php" class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-cog"></i> Configurações
                     </a>
+                    <a href="logs.php" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-list"></i> Logs
+                    </a>
                     <span class="me-2">Olá, <strong x-text="username"></strong></span>
                     <button @click="logout" class="btn btn-outline-secondary btn-sm">Sair</button>
                 </div>

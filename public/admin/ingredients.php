@@ -46,7 +46,10 @@
     <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0">Gerenciar Ingredientes</h1>
-            <a href="/admin/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Cardápio</a>
+            <div class="d-flex gap-2">
+                <a href="/admin/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Cardápio</a>
+                <a href="logs.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-list"></i> Logs</a>
+            </div>
         </div>
 
     <!-- Formulário de novo ingrediente -->

@@ -47,6 +47,7 @@ class Routes
             $group->get('/settings', [AdminController::class, 'getSettings']);
             $group->put('/settings', [AdminController::class, 'updateSettings']);
             $group->post('/settings/logo', [AdminController::class, 'uploadLogo']);
+            $group->get('/logs', [AdminController::class, 'getLogs']);
             $group->post('/settings/test-print', [AdminController::class, 'testPrint']);
         })->add($jwt);
     }

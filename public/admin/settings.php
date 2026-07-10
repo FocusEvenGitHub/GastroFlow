@@ -82,6 +82,9 @@
                     <a href="index.php" class="btn btn-outline-secondary btn-sm">
                         <i class="fas fa-arrow-left"></i> Cardápio
                     </a>
+                    <a href="logs.php" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-list"></i> Logs
+                    </a>
                     <span>Olá, <strong x-text="username"></strong></span>
                     <button @click="logout" class="btn btn-outline-secondary btn-sm">Sair</button>
                 </div>

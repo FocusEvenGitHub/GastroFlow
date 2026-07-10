@@ -358,7 +358,7 @@ a:hover { color: var(--primary-dark); }
 [data-theme="dark"] .form-control:focus,
 [data-theme="dark"] .form-select:focus { border-color: var(--primary); }
 [data-theme="dark"] .form-control::placeholder { color: var(--text-muted); }
-[data-theme="dark"] .form-select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238b949e' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e"); }
+[data-theme="dark"] .form-select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238b949e' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 16px 12px; }
 
 /* ── List group ── */
 [data-theme="dark"] .list-group-item { background: var(--surface); border-color: var(--border); color: var(--text); }

@@ -79,6 +79,49 @@ class AdminController
     }
 
     /**
+     * GET /api/admin/logs
+     * Retorna as últimas N linhas do arquivo de log.
+     */
+    public function getLogs(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $lines = min(max((int)($params['lines'] ?? 200), 10), 5000);
+
+        $logFile = __DIR__ . '/../../logs/app.log';
+
+        if (!file_exists($logFile)) {
+            $payload = ['success' => true, 'lines' => [], 'file' => 'app.log'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        $content = file_get_contents($logFile);
+        if ($content === false || $content === '') {
+            $payload = ['success' => true, 'lines' => [], 'file' => 'app.log'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        $allLines = explode("\n", $content);
+        // Remove trailing empty line
+        if (end($allLines) === '') {
+            array_pop($allLines);
+        }
+        $lastLines = array_slice($allLines, -$lines);
+        // Reverse so newest appears first
+        $lastLines = array_reverse($lastLines);
+
+        $payload = [
+            'success' => true,
+            'lines'   => $lastLines,
+            'total'   => count($allLines),
+            'file'    => 'app.log',
+        ];
+        $response->getBody()->write(json_encode($payload));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
      * POST /api/admin/settings/logo
      * Faz upload da logo do restaurante (PNG/JPG).
      * Body: multipart/form-data com campo "logo"

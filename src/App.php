@@ -55,10 +55,26 @@ class App
             ServerRequestInterface $request,
             Throwable $exception,
             bool $displayErrorDetails
-        ) use ($app) {
+        ) use ($app, $container) {
             $statusCode = 500;
             if ($exception instanceof \Slim\Exception\HttpSpecializedException) {
                 $statusCode = $exception->getCode();
+            }
+
+            // Log the error
+            try {
+                $logger = $container->get(LoggerInterface::class);
+                $context = [
+                    'method'  => $request->getMethod(),
+                    'path'    => (string)$request->getUri(),
+                    'status'  => $statusCode,
+                ];
+                if ($displayErrorDetails) {
+                    $context['trace'] = $exception->getTraceAsString();
+                }
+                $logger->error($exception->getMessage(), $context);
+            } catch (\Throwable $logErr) {
+                // Silently ignore logger failures
             }
 
             $response = $app->getResponseFactory()->createResponse($statusCode);
