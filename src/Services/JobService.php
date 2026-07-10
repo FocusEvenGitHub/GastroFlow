@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Job;
+use Carbon\Carbon;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class JobService
@@ -27,7 +28,7 @@ class JobService
             ]),
             'attempts'     => 0,
             'max_attempts' => 3,
-            'available_at' => now()->addSeconds($delay),
+            'available_at' => Carbon::now()->addSeconds($delay),
         ]);
     }
 
@@ -41,7 +42,7 @@ class JobService
         $job = DB::transaction(function () use ($queue) {
             $job = Job::where('queue', $queue)
                 ->whereNull('reserved_at')
-                ->where('available_at', '<=', now())
+                ->where('available_at', '<=', Carbon::now())
                 ->where('attempts', '<', DB::raw('max_attempts'))
                 ->orderBy('id')
                 ->lockForUpdate()
@@ -52,7 +53,7 @@ class JobService
             }
 
             $job->update([
-                'reserved_at' => now(),
+                'reserved_at' => Carbon::now(),
                 'attempts'    => $job->attempts + 1,
             ]);
 
@@ -86,7 +87,7 @@ class JobService
                 $backoff = pow(2, $job->attempts);
                 $job->update([
                     'reserved_at'  => null,
-                    'available_at' => now()->addSeconds($backoff),
+                    'available_at' => Carbon::now()->addSeconds($backoff),
                 ]);
             }
         }
