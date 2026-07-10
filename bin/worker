@@ -1,0 +1,87 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * GastroFlow Queue Worker
+ *
+ * Processa jobs da fila de forma contínua.
+ * Uso:
+ *   php bin/worker [queue] [--once]
+ *
+ * Exemplos:
+ *   php bin/worker                     # processa fila 'default' em loop
+ *   php bin/worker print               # processa fila 'print' em loop
+ *   php bin/worker print --once        # processa UM job da fila 'print' e sai
+ */
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use App\Services\JobService;
+use App\Settings;
+use App\Database as DB;
+
+// Carregar .env
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
+
+// Inicializar Eloquent
+$settings = new Settings();
+DB::boot($settings);
+
+// Parse args
+$queue = 'default';
+$once = false;
+
+for ($i = 1; $i < $argc; $i++) {
+    if ($argv[$i] === '--once') {
+        $once = true;
+    } elseif ($argv[$i][0] !== '-') {
+        $queue = $argv[$i];
+    }
+}
+
+$jobService = new JobService();
+$startedAt = date('Y-m-d H:i:s');
+
+echo "=== GastroFlow Worker ===\n";
+echo "Queue: {$queue}\n";
+echo "Started at: {$startedAt}\n";
+echo "Mode: " . ($once ? 'single job' : 'continuous') . "\n";
+echo str_repeat('-', 40) . "\n";
+
+if ($once) {
+    $processed = $jobService->processNext($queue);
+    echo $processed ? "✓ Job processed.\n" : "— No pending jobs.\n";
+    exit(0);
+}
+
+// Loop contínuo
+declare(ticks=1);
+pcntl_signal(SIGINT, function () use (&$running) {
+    echo "\n⏹ Worker stopped.\n";
+    $running = false;
+});
+pcntl_signal(SIGTERM, function () use (&$running) {
+    echo "\n⏹ Worker stopped.\n";
+    $running = false;
+});
+
+$running = true;
+$processed = 0;
+
+while ($running) {
+    $count = $jobService->processAll($queue, 10);
+    $processed += $count;
+
+    if ($count > 0) {
+        echo date('H:i:s') . " — Processed {$count} job(s) [total: {$processed}]\n";
+    }
+
+    // Sleep 2 seconds before checking again
+    for ($i = 0; $i < 20; $i++) {
+        if (!$running) break 2;
+        usleep(100000); // 100ms
+    }
+}

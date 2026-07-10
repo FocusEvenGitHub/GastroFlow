@@ -7,12 +7,48 @@ function kitchenApp() {
         completing: null,
         uncompleting: null,
         showDone: true,
-        refreshInterval: null,
+        eventSource: null,
         foodSummary: [],
 
         async init() {
             await this.fetchAll();
-            this.refreshInterval = setInterval(() => this.fetchAll(), 5000);
+            this.connectSSE();
+        },
+
+        // Conecta ao stream SSE para atualizações em tempo real
+        connectSSE() {
+            if (this.eventSource) {
+                this.eventSource.close();
+            }
+
+            this.eventSource = new EventSource('/api/events/stream.php');
+
+            this.eventSource.addEventListener('connected', () => {
+                console.log('SSE conectado');
+            });
+
+            this.eventSource.addEventListener('order.created', () => {
+                this.fetchAll();
+            });
+
+            this.eventSource.addEventListener('order.completed', () => {
+                this.fetchAll();
+            });
+
+            this.eventSource.addEventListener('order.uncompleted', () => {
+                this.fetchAll();
+            });
+
+            this.eventSource.onerror = () => {
+                // EventSource reconecta automaticamente, mas se ficar muito tempo
+                // sem conexão, recarregue manualmente após 30s
+                setTimeout(() => {
+                    if (this.eventSource && this.eventSource.readyState === EventSource.CLOSED) {
+                        console.log('SSE: tentando reconectar…');
+                        this.connectSSE();
+                    }
+                }, 30000);
+            };
         },
 
         async fetchAll() {
@@ -146,7 +182,10 @@ function kitchenApp() {
         },
 
         destroy() {
-            clearInterval(this.refreshInterval);
+            if (this.eventSource) {
+                this.eventSource.close();
+                this.eventSource = null;
+            }
         }
     };
 }
