@@ -7,43 +7,46 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background: #f5f6fa; }
-        .compact-card { border-left: 4px solid #ffc107; transition: all 0.15s; }
-        .compact-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .compact-card.completing { border-left-color: #28a745; opacity: 0.6; }
-        .compact-card.done { border-left-color: #28a745; opacity: 0.75; }
+        body { background: #f5f6fa; font-size: 1.2rem; }
+        /* ── Cards de pedido ── */
+        .compact-card { border-left: 6px solid #ffc107; transition: all 0.15s; border-radius: 0.75rem; }
+        .compact-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+        .compact-card.completing { border-left-color: #28a745; opacity: 0.7; }
+        .compact-card.done { border-left-color: #28a745; opacity: 0.8; }
         .compact-card .card-header {
-            padding: 0.4rem 0.75rem;
+            padding: 1rem 1.5rem;
             background: transparent;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(0,0,0,0.06);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-        .compact-card .card-body { padding: 0.4rem 0.75rem; }
-        .item-row { font-size: 0.85rem; line-height: 1.3; }
-        .item-note { font-size: 0.75em; color: #6c757d; font-style: italic; }
-        .btn-sm-icon { padding: 0.15rem 0.4rem; font-size: 0.75rem; }
-        .summary-card .cat-protein { border-left: 4px solid #dc3545; }
-        .summary-card .cat-grain { border-left: 4px solid #ffc107; }
-        .summary-card .cat-vegetable { border-left: 4px solid #28a745; }
-        .summary-card .cat-sauce { border-left: 4px solid #17a2b8; }
-        .badge-table { font-size: 0.7rem; }
-        .section-header { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; }
+        .compact-card .card-body { padding: 0.75rem 1.5rem 1rem; }
+        .item-row { font-size: 1.6rem; line-height: 1.4; }
+        .item-note { font-size: 1rem; color: #6c757d; font-style: italic; }
+        .btn-sm-icon { padding: 0.5rem 1rem; font-size: 1.4rem; border-radius: 0.5rem; }
+        /* ── Resumo de ingredientes ── */
+        .summary-card .cat-protein { border-left: 6px solid #dc3545; }
+        .summary-card .cat-grain { border-left: 6px solid #ffc107; }
+        .summary-card .cat-vegetable { border-left: 6px solid #28a745; }
+        .summary-card .cat-sauce { border-left: 6px solid #17a2b8; }
+        .summary-card .cat-side { border-left: 6px solid #6f42c1; }
+        .badge-table { font-size: 1.1rem; padding: 0.3rem 0.6rem; }
+        .section-header { font-size: 1.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #495057; }
         .done-toggle { cursor: pointer; user-select: none; }
         .done-toggle:hover { color: #212529; }
-        /* Alternância grade / lista */
-        .view-toggle .btn { border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+        /* ── Alternância grade / lista ── */
+        .view-toggle .btn { border-radius: 4px; padding: 0.4rem 0.7rem; font-size: 1rem; }
         .view-list .col { width: 100%; flex: 0 0 100%; max-width: 100%; }
-        .view-list .compact-card .card-body { padding: 0.25rem 0.75rem; }
-        .view-list .item-row { font-size: 0.8rem; }
+        .view-list .compact-card .card-body { padding: 0.5rem 1.5rem 0.75rem; }
+        .view-list .item-row { font-size: 1.5rem; }
     </style>
 </head>
 <body>
-<div x-data="kitchenApp()" class="container-fluid py-3">
+<div x-data="kitchenApp()" class="container-fluid py-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <h1 class="h5 mb-0"><i class="fas fa-utensils me-2 text-primary"></i>Cozinha</h1>
+        <h1 class="h2 mb-0"><i class="fas fa-utensils me-2 text-primary"></i>Cozinha</h1>
         <div class="d-flex align-items-center gap-2">
             <div class="view-toggle btn-group btn-group-sm me-2">
                 <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
@@ -95,7 +98,7 @@
                         <i class="fas fa-clock me-1 text-warning"></i> Pendentes
                         <span class="badge bg-warning text-dark badge-table ms-1" x-text="orders.length"></span>
                     </div>
-                    <div class="row row-cols-1 row-cols-xl-2 g-2" :class="viewMode === 'list' ? 'view-list' : ''">
+                    <div class="row row-cols-1 row-cols-xl-2 g-3" :class="viewMode === 'list' ? 'view-list' : ''">
                         <template x-for="order in orders" :key="order.id">
                             <div class="col">
                                 <div class="card compact-card mb-0 h-100" :class="{ 'completing': completing === order.id }">
@@ -117,10 +120,10 @@
                                                     <span>
                                                         <strong x-text="item.quantity + 'x'"></strong>
                                                         <template x-if="item.dining_option === 'viagem_simples'">
-                                                            <span class="badge bg-warning text-dark me-1" style="font-size:0.6rem;">Simples</span>
+                                                            <span class="badge bg-warning text-dark me-1">Simples</span>
                                                         </template>
                                                         <template x-if="item.dining_option === 'viagem_vip'">
-                                                            <span class="badge bg-danger me-1" style="font-size:0.6rem;">VIP</span>
+                                                            <span class="badge bg-danger me-1">VIP</span>
                                                         </template>
                                                         <span x-text="item.name"></span>
                                                     </span>
@@ -144,7 +147,7 @@
                         <span class="badge bg-success badge-table ms-1" x-text="completedOrders.length"></span>
                     </div>
                     <div x-show="showDone">
-                        <div class="row row-cols-1 row-cols-xl-2 g-2" :class="viewMode === 'list' ? 'view-list' : ''">
+                        <div class="row row-cols-1 row-cols-xl-2 g-3" :class="viewMode === 'list' ? 'view-list' : ''">
                             <template x-for="order in completedOrders" :key="order.id">
                                 <div class="col">
                                     <div class="card compact-card done mb-0 h-100">
@@ -166,10 +169,10 @@
                                                         <span>
                                                         <strong x-text="item.quantity + 'x'"></strong>
                                                         <template x-if="item.dining_option === 'viagem_simples'">
-                                                            <span class="badge bg-warning text-dark me-1" style="font-size:0.6rem;">Simples</span>
+                                                            <span class="badge bg-warning text-dark me-1">Simples</span>
                                                         </template>
                                                         <template x-if="item.dining_option === 'viagem_vip'">
-                                                            <span class="badge bg-danger me-1" style="font-size:0.6rem;">VIP</span>
+                                                            <span class="badge bg-danger me-1">VIP</span>
                                                         </template>
                                                         <span x-text="item.name"></span>
                                                     </span>
@@ -190,31 +193,31 @@
         <!-- Right: Food Summary -->
         <div class="col-lg-4">
             <div class="card shadow-sm summary-card sticky-lg-top" style="top:1rem;">
-                <div class="card-header bg-white py-2">
-                    <h6 class="mb-0 small"><i class="fas fa-chart-bar me-1 text-primary"></i>Resumo de Ingredientes</h6>
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-1 text-primary"></i>Resumo de Ingredientes</h6>
                 </div>
-                <div class="card-body py-2 px-3">
-                    <div x-show="Object.keys(groupedSummary()).length === 0" class="text-center text-muted py-2">
-                        <small>Nenhum ingrediente necessário no momento.</small>
+                <div class="card-body py-3 px-4">
+                    <div x-show="Object.keys(groupedSummary()).length === 0" class="text-center text-muted py-3">
+                        Nenhum ingrediente necessário no momento.
                     </div>
 
                     <template x-for="(items, category) in groupedSummary()" :key="category">
-                        <div class="mb-1">
-                            <small class="fw-bold text-muted d-block border-bottom pb-1 mb-1"
+                        <div class="mb-2">
+                            <div class="fw-bold text-muted d-block border-bottom pb-2 mb-2"
                                    x-text="category === 'protein' ? 'Proteínas' :
                                           category === 'grain' ? 'Grãos' :
                                           category === 'vegetable' ? 'Vegetais' :
                                           category === 'sauce' ? 'Molhos' :
                                           category === 'side' ? 'Acompanhamentos' :
                                           'Outros'">
-                            </small>
-                            <div class="row row-cols-1 g-1">
+                            </div>
+                            <div class="row row-cols-1 g-2">
                                 <template x-for="item in items" :key="item.id">
                                     <div class="col">
-                                        <div class="d-flex justify-content-between align-items-center px-2 py-1 rounded"
+                                        <div class="d-flex justify-content-between align-items-center px-3 py-2 rounded"
                                              :class="'cat-' + item.food_category"
                                              style="background:#f8f9fa;">
-                                            <small class="text-truncate" x-text="item.name" style="max-width:70%"></small>
+                                            <span x-text="item.name" style="max-width:70%"></span>
                                             <span class="badge badge-table" :class="item.food_category === 'protein' ? 'bg-danger' : 'bg-secondary'"
                                                   x-text="item.total_quantity"></span>
                                         </div>

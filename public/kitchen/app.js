@@ -7,7 +7,7 @@ function kitchenApp() {
         completing: null,
         uncompleting: null,
         showDone: true,
-        viewMode: localStorage.getItem('kitchenViewMode') || 'grid',
+        viewMode: localStorage.getItem('kitchenViewMode') || 'list',
         eventSource: null,
         foodSummary: [],
 
