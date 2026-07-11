@@ -122,10 +122,98 @@ Ou com o código do emoji:
 git commit -m ":sparkles: feat(orders): add status history"
 ````
 
+---
+
+## 🏷️ Release & Changelog Workflow
+
+This section describes the process of cutting a new release, updating the changelog, and publishing a tag.
+
+### 📐 Semantic Versioning
+
+This project follows [Semantic Versioning](https://semver.org/):
+
+| Version bump | When                                                                 |
+|--------------|----------------------------------------------------------------------|
+| **MAJOR**    | Breaking changes (`BREAKING CHANGE` in commit footer)               |
+| **MINOR**    | New features (`feat` commits)                                        |
+| **PATCH**    | Bug fixes, refactors, docs, chores (`fix`, `refactor`, `docs`, etc.) |
+
+### 📝 Changelog Rules
+
+1. **`CHANGELOG.md`** lives at the project root and is manually curated.
+2. Every release adds a new entry at the **top** of the file (newest first).
+3. Each entry follows this format:
+
+```markdown
+## vX.Y.Z (YYYY-MM-DD)
+
+### Novidades
+- Descrição concisa com link para issue/PR quando aplicável
+
+### Correções
+- Descrição do bug corrigido
+
+### Breaking Changes
+- Descreva o que mudou e como migrar (raro, apenas em MAJOR)
+```
+
+4. Group changes under these headings:
+   - **Novidades** — from `feat`, `ui`, `api`, `database`, `security` commits
+   - **Correções** — from `fix`, `revert`, `perf` commits
+   - **Breaking Changes** — from commits with `BREAKING CHANGE` footer
+
+### 🚀 Release Steps
+
+```bash
+# 1. Ensure you are on main and up to date
+git checkout main
+git pull origin main
+
+# 2. Decide the next version based on commits since the last tag
+#    (see SemVer table above)
+
+# 3. Update CHANGELOG.md — add the new version entry at the top
+#    (manual edit)
+
+# 4. Commit the changelog update
+git add CHANGELOG.md
+git commit -m "📝 docs: add changelog for vX.Y.Z"
+
+# 5. Create an annotated tag
+git tag -a vX.Y.Z -m "vX.Y.Z — breve descrição do release"
+
+# 6. Push the commit and the tag
+git push origin main
+git push origin vX.Y.Z
+```
+
+> 💡 Use `git log --oneline v<last-tag>..HEAD` to review all commits since the last release and help draft the changelog entry.
+
+### ✅ Checklist de Release
+
+- [ ] All commits since last tag follow the commit convention
+- [ ] `CHANGELOG.md` updated with accurate date and version
+- [ ] Changelog commit pushed
+- [ ] Tag created and pushed (`git push origin vX.Y.Z`)
+- [ ] (Opcional) GitHub Release criado a partir da tag
+
+### 🔗 Automated tools (future)
+
+For larger teams, consider automating with:
+- [**standard-version**](https://github.com/conventional-changelog/standard-version) — auto-bumps version and generates changelog from commits
+- [**semantic-release**](https://semantic-release.gitbook.io/) — fully automated release pipeline
+- **GitHub Actions** — create a workflow that runs `standard-version` on merge to main
+
+---
+
 ## 📚 Referências
 
-- Conventional Commits
-- Gitmoji
-- Angular Commit Guidelines
+- [Conventional Commits](https://www.conventionalcommits.org/)
+- [Semantic Versioning](https://semver.org/)
+- [Gitmoji](https://gitmoji.dev/)
+- [Angular Commit Guidelines](https://github.com/angular/angular/blob/main/CONTRIBUTING.md#commit)
+- [Keep a Changelog](https://keepachangelog.com/)
 
-Mantenha este documento vivo. Se surgir um novo padrão ou tipo de commit, adicione-o aqui e compartilhe com o time.
+---
+
+Mantenha este documento vivo. Se surgir um novo padrão, tipo de commit, ou fluxo de release, adicione-o aqui e compartilhe com o time.

@@ -1,77 +1,121 @@
-# Welcome to GastroFlow 👋
-> A complete web application for restaurants to register and take orders for customers, built with PHP, Alphine, and Docker...
+<p align="center">
+  <img src="public/assets/img/logo.png" alt="GastroFlow Logo" width="200"/>
+</p>
 
-![Tela do Caixa](public/assets/img/tela1.png)
-![Tela da Cozinha](public/assets/img/tela2.png)
-## Author
-👤 **Henry Sampaio**
+<h1 align="center">🍽️ GastroFlow</h1>
 
-* Website: https://focuseven.netlify.app
-* Github: [@FocusEvenGitHub](https://github.com/FocusEvenGitHub)
-* LinkedIn: [@Henry Sampaio](https://linkedin.com/in/Henry-Sampaio)
+<p align="center">
+  <b>A complete restaurant order management system</b><br>
+  Built with PHP, Slim 4, Alpine.js, and Docker
+</p>
 
-## Show your support
+<p align="center">
+  <a href="https://github.com/FocusEvenGitHub/GastroFlow">
+    <img src="https://img.shields.io/badge/PHP-^8.1-777BB4?style=flat-square&logo=php" alt="PHP 8.1+"/>
+  </a>
+  <a href="https://github.com/FocusEvenGitHub/GastroFlow">
+    <img src="https://img.shields.io/badge/Slim-4-8A2BE2?style=flat-square" alt="Slim 4"/>
+  </a>
+  <a href="https://www.docker.com/">
+    <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker" alt="Docker Ready"/>
+  </a>
+  <a href="https://github.com/FocusEvenGitHub/GastroFlow">
+    <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=flat-square" alt="PRs Welcome"/>
+  </a>
+  <a href="https://github.com/FocusEvenGitHub/GastroFlow/stargazers">
+    <img src="https://img.shields.io/github/stars/FocusEvenGitHub/GastroFlow?style=flat-square" alt="GitHub Stars"/>
+  </a>
+</p>
 
-Give a ⭐️ if this project helped you!
+---
 
-***
+## 📸 Screenshots
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <img src="public/assets/img/tela_cashier.png" alt="Cashier Interface" width="100%"/>
+        <br><sub>🧾 <b>Cashier</b> — Place orders, select items, add notes & send to kitchen</sub>
+      </td>
+      <td align="center" width="50%">
+        <img src="public/assets/img/tela_kitchen.png" alt="Kitchen Interface" width="100%"/>
+        <br><sub>👨‍🍳 <b>Kitchen</b> — Real-time view of pending orders & mark as done</sub>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" width="50%">
+        <img src="public/assets/img/tela_admin.png" alt="Admin Interface" width="100%"/>
+        <br><sub>🛠️ <b>Admin</b> — Complete menu management (add, edit, enable/disable items)</sub>
+      </td>
+      <td align="center" width="50%">
+        <img src="public/assets/img/tela_relatorio.png" alt="Reports Dashboard" width="100%"/>
+        <br><sub>📊 <b>Reports</b> — Dashboard with sales data and analytics</sub>
+      </td>
+    </tr>
+  </table>
+</div>
+
+---
 
 ## 🧠 About
 
-**GastroFlow** is a restaurant management platform that allows:
-
-- 📋 Each restaurant to register its account
-- 🍽️ To receive online customer orders
-- 🛠️ To run in a Docker environment
-- 🚀 To be easily customized and expanded
-
-This README provides complete instructions for starting, developing, and contributing to the project.
+**GastroFlow** is a web application designed for restaurants to register accounts, receive online customer orders, and manage their entire operation — from the cashier to the kitchen. It runs in a Docker environment for fast, standardized setup and is easy to customize and expand.
 
 ---
 
 ## 🚀 Features
 
-- 🧾 **Cashier** – interface for placing orders, selecting items, adding notes, and sending them to the kitchen.
-- 👨‍🍳 **Kitchen** – real-time view of pending orders, with the option to finalize them.
-- 🛠️ **Admin** – complete menu management: add, edit, and activate/deactivate items.
-- 🔌 **RESTful API** – endpoints ready for integration with other systems.
-- 🐳 **Docker Environment** – fast and standardized execution.
+- **🧾 Cashier** — Intuitive interface for placing orders by table number, selecting menu items, adding special notes, and sending them straight to the kitchen.
+- **👨‍🍳 Kitchen** — Real-time display of pending orders with auto-refresh; mark orders as completed with one click.
+- **🛠️ Admin** — Full menu CRUD: add new items, edit prices/descriptions, toggle availability, and manage categories.
+- **📊 Reports** — Visual dashboard with sales summaries, order history, and performance metrics.
+- **🔌 RESTful API** — Well-documented endpoints ready for integration with external systems, POS devices, or mobile apps.
+- **🐳 Docker Environment** — Pre-configured Docker Compose setup with PHP, Nginx, and MySQL containers.
+- **🧾 Thermal Printing** — Integrated with ESC/POS printers for automatic receipt printing at the cashier.
 
 ---
 
-## 📦 Technologies Used
+## 📦 Tech Stack
 
-- 🐘 PHP 8.2 + Slim 4 (micro-framework)
-- 🎲 Eloquent ORM (Illuminate Database)
-- 🎨 Bootstrap 5 + Font Awesome
-- ⚡ Alpine.js
-- 🐬 MySQL
-- 🔐 JWT (JSON Web Tokens)
-- 🐳 Docker & Docker Compose
+| Technology | Purpose |
+|---|---|
+| 🐘 **PHP 8.2+** | Backend language |
+| ⚡ **Slim 4** | Micro-framework (routing, middleware) |
+| 🎲 **Eloquent ORM** | Database interaction (Illuminate Database) |
+| 🎨 **Bootstrap 5 + Font Awesome** | Frontend UI & icons |
+| ⚡ **Alpine.js** | Lightweight JavaScript interactivity |
+| 🐬 **MySQL** | Database |
+| 🔐 **JWT** | JSON Web Token authentication |
+| 🐳 **Docker & Docker Compose** | Containerized development & deployment |
+| 🧾 **ESC/POS** | Thermal printer support (mike42/escpos-php) |
 
 ---
 
 ## 🧱 Project Structure
+
 ```
 📦 GastroFlow
-├── public/               # DocumentRoot (Slim Entry)
-│   ├── index.php
-│   ├── .htaccess
-│   └── assets/
-├── src/                  # Application code (PSR‑4)
-│   ├── Controllers/
-│   ├── Middleware/
-│   ├── Models/
-│   ├── Repositories/
-│   ├── Services/
-│   └── Validators/
-├── legacy/               # Old Code (backup)
-│   └── api, cashier, kitchen, admin
-├── common/               # SQL schema
-├── composer.json
-├── Dockerfile
-├── docker-compose.yml
-├── .env.example
+├── public/                  # DocumentRoot (Slim entry point)
+│   ├── index.php            # Front controller
+│   ├── .htaccess            # URL rewriting
+│   ├── assets/              # Static assets (CSS, JS, images)
+│   ├── admin/               # Admin panel views
+│   ├── cashier/             # Cashier interface views
+│   └── kitchen/             # Kitchen display views
+├── src/                     # Application code (PSR-4)
+│   ├── Controllers/         # Request handlers
+│   ├── Middleware/           # Auth, CORS, etc.
+│   ├── Models/              # Eloquent models
+│   ├── Repositories/        # Data access layer
+│   ├── Services/            # Business logic
+│   └── Validators/          # Input validation
+├── common/                  # SQL schema & migrations
+├── bin/                     # CLI scripts
+├── Dockerfile               # PHP container definition
+├── docker-compose.yml       # Multi-container setup
+├── .env.example             # Environment template
+├── composer.json            # PHP dependencies
 └── README.md
 ```
 
@@ -79,72 +123,81 @@ This README provides complete instructions for starting, developing, and contrib
 
 ## 🛠️ Prerequisites
 
-Before starting, make sure you have installed:
+Before you begin, make sure you have installed:
 
-- 🐳 **Docker**
-- 📦 **Docker Compose**
-- 🧠 Code editor (VS Code, PHPStorm, etc.)
+- 🐳 **Docker** (v20.10+)
+- 📦 **Docker Compose** (v2.0+)
+- 🧠 A code editor (VS Code, PHPStorm, etc.)
 
 ---
 
 ## 🔧 Installation
 
-1. Clone the repository:
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/FocusEvenGitHub/GastroFlow.git
 ```
-2. Access the folder:
 
-```
+### 2. Enter the project directory
+
+```bash
 cd GastroFlow
 ```
-3. Copy .env.example to .env and fill in the environment variables:
 
-```
+### 3. Configure environment variables
+
+```bash
 cp .env.example .env
-openssl rand -base64 48    # gerar JWT_SECRET
 ```
-- Paste the string generated in `.env` as `JWT_SECRET`
-4. Start the containers:
+
+Generate a secure JWT secret:
+
+```bash
+openssl rand -base64 48
 ```
+
+Paste the generated string into `.env` as `JWT_SECRET`.
+
+### 4. Start the containers
+
+```bash
 docker compose up -d
-``` 
-5. Access in your browser:
 ```
-http://localhost:8080
-```
-6. 📖 **Documentação interativa da API:**
-```
-http://localhost:8080/api/docs
-```
+
+### 5. Open in your browser
+
+**Application:** [http://localhost:8080](http://localhost:8080)
+
+**Interactive API docs:** [http://localhost:8080/api/docs](http://localhost:8080/api/docs)
+
 ---
 
-## 📦 Gerenciamento de Dependências (Composer)
+## 📦 Composer Dependency Management
 
-Após subir os containers com `docker compose up -d`, você pode executar comandos do Composer diretamente de dentro do container:
+Once the containers are running with `docker compose up -d`, you can run Composer commands from inside the container:
 
 ```bash
-# Instalar as dependências atuais (baseado no composer.lock)
+# Install current dependencies (based on composer.lock)
 docker compose exec web composer install
 
-# Atualizar as dependências (modifica o composer.lock)
+# Update dependencies (modifies composer.lock)
 docker compose exec web composer update
 
-# Adicionar uma nova dependência
-docker compose exec web composer require nome-do-pacote
+# Add a new dependency
+docker compose exec web composer require package-name
 
-# Remover uma dependência
-docker compose exec web composer remove nome-do-pacote
+# Remove a dependency
+docker compose exec web composer remove package-name
 ```
 
-Alternativa usando `docker exec` com o nome do container:
+Alternatively, using `docker exec` directly:
 
 ```bash
-docker exec -it restaurant_web composer update
+docker exec -it gastroflow_web composer update
 ```
 
-> ⚠️ Lembre-se de que o `composer.json` e `composer.lock` do host estão montados como volumes no container, então as alterações feitas dentro do container são refletidas automaticamente no seu projeto local.
+> ⚠️ The `composer.json` and `composer.lock` files on your host are mounted as volumes in the container, so changes made inside the container are automatically reflected in your local project.
 
 ---
 
@@ -152,24 +205,28 @@ docker exec -it restaurant_web composer update
 
 After `docker compose up -d`:
 
-- Access **Cashier** – create orders by table number, items and notes.
-- Access **Kitchen** – see pending orders appear in real time, mark them as completed.
-- Access **Admin** – login with the default user (`admin` / `admin123`), then manage the menu (add / enable / disable items).
-- All changes are persisted inside the MySQL container.
-- To use the API directly, refer to the cURL examples below.
----
-## 📖 Documentação Interativa da API
+- **Cashier** → Create orders by table number, select items, add special notes, and send them to the kitchen.
+- **Kitchen** → See pending orders appear in real time; click to mark them as completed.
+- **Admin** → Login with the default credentials (`admin` / `admin123`), then manage menu items (add, edit, enable/disable).
+- **Reports** → View sales summaries and order statistics.
+- All data is persisted in the MySQL container.
 
-Acesse a documentação completa e interativa da API em:
+---
+
+## 📖 Interactive API Documentation
+
+Access the complete, interactive API documentation at:
 
 👉 **[http://localhost:8080/api/docs](http://localhost:8080/api/docs)**
 
-Lá você encontra:
+There you'll find:
 
--   Todos os endpoints organizados por categoria
--   Schemas de requisição e resposta
--   Botão **"Try it out"** para testar chamadas diretamente do navegador
--   Autenticação JWT integrada (clique em **Authorize** e cole seu token)
+- All endpoints organized by category
+- Request and response schemas
+- **"Try it out"** button to test calls directly from the browser
+- Integrated JWT authentication (click **Authorize** and paste your token)
+
+---
 
 ## 🧪 Testing with cURL
 
@@ -188,10 +245,10 @@ curl -s -X POST http://localhost:8080/api/orders \
 # 3. List pending orders
 curl -s http://localhost:8080/api/orders?status=pending | python -m json.tool
 
-# 4. Complete an order (replace {id} with real order id)
+# 4. Complete an order (replace {id} with the real order id)
 curl -s -X POST http://localhost:8080/api/orders/1/complete | python -m json.tool
 
-# 5. Login as admin (default credentials: admin/admin123)
+# 5. Login as admin (default: admin / admin123)
 curl -s -X POST http://localhost:8080/api/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}' | python -m json.tool
@@ -206,44 +263,74 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/menu |
 curl -s -X POST http://localhost:8080/api/admin/items \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"name":"Caesar Salad","price":14.90,"category_name":"Pratos Principais","description":"Fresh salad"}' | python -m json.tool
+  -d '{"name":"Caesar Salad","price":14.90,"category_name":"Main Courses","description":"Fresh salad with croutons"}' | python -m json.tool
 
 # 6c. Toggle item availability (1 = available, 0 = unavailable)
 curl -s -X PATCH http://localhost:8080/api/admin/items/1 \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"available":false}' | python -m json.tool
-  ```
+```
 
 ---
 
 ## 📐 Commit Convention
 
 This project follows [Conventional Commits](https://www.conventionalcommits.org/) with emojis.  
-For a complete guide, check [COMMIT_CONVENTION.md](COMMIT_CONVENTION.md).
+For a complete guide — including types, scopes, and real examples — check [COMMIT_CONVENTION.md](COMMIT_CONVENTION.md).
+
+### 🏷️ Releases & Changelog
+
+- The [CHANGELOG.md](CHANGELOG.md) is manually curated and updated before each release.
+- A new annotated tag is created for every version (`vX.Y.Z`) and pushed to GitHub.
+- See the **Release & Changelog Workflow** section in [COMMIT_CONVENTION.md](COMMIT_CONVENTION.md) for the full step-by-step process.
+
+---
 
 ## 🧩 Contributing
 
-If you want to contribute:
+Contributions are always welcome! Here's how to get started:
 
-1. Fork the repository ✌️
-2. Create a branch:
-``` 
-git checkout -b feature/feature-name
-```
-3. Commit your changes
-``` 
-git commit -m "feat: description"
-``` 
-4. Push to the repository:
-``` 
-git push origin feature/feature-name
-```
+1. **Fork** the repository ✌️
+2. **Create a branch:**
 
-5. Open a Pull Request 📨
+   ```bash
+   git checkout -b feature/feature-name
+   ```
+3. **Commit your changes:**
+
+   ```bash
+   git commit -m "feat: description"
+   ```
+4. **Push to the branch:**
+
+   ```bash
+   git push origin feature/feature-name
+   ```
+5. **Open a Pull Request** 📨
+
+### Issues
+
+If you'd like to discuss improvements, report a bug, or ask technical questions, please [open an issue](https://github.com/FocusEvenGitHub/GastroFlow/issues) on GitHub.
+
 ---
-### Issue
 
-If you want to discuss improvements or have technical questions, open an issue on GitHub or contact the maintainers.
+## 👤 Author
 
-Thank you for contributing to and using GastroFlow! ✨
+**Henry Sampaio**
+
+- 🌐 Website: [https://focuseven.netlify.app](https://focuseven.netlify.app)
+- 🐙 GitHub: [@FocusEvenGitHub](https://github.com/FocusEvenGitHub)
+- 💼 LinkedIn: [Henry Sampaio](https://linkedin.com/in/Henry-Sampaio)
+
+---
+
+## ⭐ Show your support
+
+If GastroFlow helped you or your business, please give it a ⭐️ on GitHub — it motivates further development!
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/FocusEvenGitHub">Henry Sampaio</a>
+</p>
