@@ -345,8 +345,15 @@ a:hover { color: var(--primary-dark); }
 
 /* ── Tables ── */
 [data-theme="dark"] .table { color: var(--text); --bs-table-bg: transparent; }
+[data-theme="dark"] .table > :not(caption) > * > * { color: var(--text); }
 [data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * { background: rgba(255,255,255,0.03); }
 [data-theme="dark"] .table-hover > tbody > tr:hover > * { background: rgba(255,255,255,0.06); }
+[data-theme="dark"] .table-light {
+  --bs-table-bg: rgba(255,255,255,0.06);
+  --bs-table-color: var(--text);
+  --bs-table-striped-bg: transparent;
+  --bs-table-hover-bg: transparent;
+}
 
 /* ── Forms ── */
 [data-theme="dark"] .form-control,

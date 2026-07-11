@@ -98,12 +98,18 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-body d-flex align-items-end gap-3 flex-wrap">
                     <div>
-                        <label class="form-label small mb-1">Data inicial</label>
-                        <input type="date" x-model="dateFrom" class="form-control form-control-sm" style="width:160px">
+                        <label class="d-flex align-items-center gap-1 mb-0" style="cursor:pointer"
+                               @click="$refs.dateFromInput.showPicker()">
+                            <span class="form-label small mb-0 text-nowrap">Data inicial</span>
+                            <input type="date" x-ref="dateFromInput" x-model="dateFrom" class="form-control form-control-sm" style="width:160px">
+                        </label>
                     </div>
                     <div>
-                        <label class="form-label small mb-1">Data final</label>
-                        <input type="date" x-model="dateTo" class="form-control form-control-sm" style="width:160px">
+                        <label class="d-flex align-items-center gap-1 mb-0" style="cursor:pointer"
+                               @click="$refs.dateToInput.showPicker()">
+                            <span class="form-label small mb-0 text-nowrap">Data final</span>
+                            <input type="date" x-ref="dateToInput" x-model="dateTo" class="form-control form-control-sm" style="width:160px">
+                        </label>
                     </div>
                     <button class="btn btn-primary btn-sm" @click="loadData" :disabled="loading">
                         <i class="fas fa-filter me-1"></i> Filtrar
