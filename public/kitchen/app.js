@@ -11,11 +11,20 @@ function kitchenApp() {
         darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
         eventSource: null,
         foodSummary: [],
+        selectedDate: new Date().toISOString().split('T')[0],
+
+        _today() {
+            return new Date().toISOString().split('T')[0];
+        },
 
         async init() {
             this.applyTheme();
             await this.fetchAll();
             this.connectSSE();
+        },
+
+        onDateChange() {
+            this.fetchAll();
         },
 
         // Conecta ao stream SSE para atualizações em tempo real
@@ -31,15 +40,15 @@ function kitchenApp() {
             });
 
             this.eventSource.addEventListener('order.created', () => {
-                this.fetchAll();
+                if (this.selectedDate === this._today()) this.fetchAll();
             });
 
             this.eventSource.addEventListener('order.completed', () => {
-                this.fetchAll();
+                if (this.selectedDate === this._today()) this.fetchAll();
             });
 
             this.eventSource.addEventListener('order.uncompleted', () => {
-                this.fetchAll();
+                if (this.selectedDate === this._today()) this.fetchAll();
             });
 
             this.eventSource.onerror = () => {
@@ -65,7 +74,7 @@ function kitchenApp() {
 
         async fetchOrders() {
             try {
-                const res = await fetch('/api/orders?status=pending');
+                const res = await fetch('/api/orders?status=pending&date=' + this.selectedDate);
                 if (!res.ok) throw new Error('Erro ao buscar pedidos');
                 this.orders = await res.json();
             } catch (err) {
@@ -75,7 +84,7 @@ function kitchenApp() {
 
         async fetchCompletedOrders() {
             try {
-                const res = await fetch('/api/orders?status=done');
+                const res = await fetch('/api/orders?status=done&date=' + this.selectedDate);
                 if (!res.ok) throw new Error('Erro ao buscar finalizados');
                 this.completedOrders = await res.json();
             } catch (err) {
@@ -90,7 +99,7 @@ function kitchenApp() {
 
         async loadFoodSummary() {
             try {
-                const res = await fetch('/api/kitchen/food-summary');
+                const res = await fetch('/api/kitchen/food-summary?date=' + this.selectedDate);
                 if (!res.ok) throw new Error('Erro ao buscar resumo');
                 const data = await res.json();
                 this.foodSummary = data.items || [];

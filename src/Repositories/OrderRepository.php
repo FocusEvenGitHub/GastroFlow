@@ -11,12 +11,12 @@ class OrderRepository
 {
     /**
      * Return orders with their items (name, description from menu).
-     * Only orders from the current day.
+     * If $date is provided, filter by that date; otherwise use current day.
      */
-    public function getOrdersByStatus(string $status): array
+    public function getOrdersByStatus(string $status, ?string $date = null): array
     {
-        $today = date('Y-m-d');
-        $query = Order::with(['items.menuItem'])->whereDate('created_at', $today);
+        $date = $date ?? date('Y-m-d');
+        $query = Order::with(['items.menuItem'])->whereDate('created_at', $date);
         if ($status === 'all') {
             $query->orderBy('created_at', 'desc');
         } else {

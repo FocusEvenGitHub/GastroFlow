@@ -18,7 +18,9 @@ class KitchenController
 
     public function foodCategorySummary(Request $request, Response $response): Response
     {
-        $data = $this->kitchenService->getFoodCategorySummary();
+        $params = $request->getQueryParams();
+        $date = $params['date'] ?? null;
+        $data = $this->kitchenService->getFoodCategorySummary($date);
         $response->getBody()->write(json_encode(['items' => $data]));
         return $response->withHeader('Content-Type', 'application/json');
     }

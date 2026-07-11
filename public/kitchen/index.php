@@ -83,6 +83,15 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h1 class="h3 mb-0">Cozinha</h1>
             <div class="d-flex align-items-center gap-2">
+                <label class="d-flex align-items-center gap-1 mb-0" style="cursor:pointer"
+                       @click="$refs.dateInput.showPicker()">
+                    <span class="form-label mb-0 small text-nowrap">Data:</span>
+                    <input type="date" x-ref="dateInput"
+                           class="form-control form-control-sm"
+                           style="width:140px"
+                           x-model="selectedDate"
+                           @change="onDateChange()">
+                </label>
                 <div class="view-toggle btn-group btn-group-sm me-2">
                     <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
                             @click="toggleView('grid')" title="Visualização em grade">

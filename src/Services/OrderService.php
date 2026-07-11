@@ -18,9 +18,9 @@ class OrderService
         $this->jobService = $jobService;
     }
 
-    public function getOrders(string $status): array
+    public function getOrders(string $status, ?string $date = null): array
     {
-        return $this->orderRepo->getOrdersByStatus($status);
+        return $this->orderRepo->getOrdersByStatus($status, $date);
     }
 
     public function createOrder(array $data): Order

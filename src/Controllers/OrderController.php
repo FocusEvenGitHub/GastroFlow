@@ -22,7 +22,8 @@ class OrderController
     {
         $params = $request->getQueryParams();
         $status = $params['status'] ?? 'pending';
-        $orders = $this->orderService->getOrders($status);
+        $date = $params['date'] ?? null;
+        $orders = $this->orderService->getOrders($status, $date);
 
         $response->getBody()->write(json_encode($orders));
         return $response->withHeader('Content-Type', 'application/json');

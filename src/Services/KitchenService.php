@@ -8,11 +8,11 @@ use App\Models\MenuItem;
 
 class KitchenService
 {
-    public function getFoodCategorySummary(): array
+    public function getFoodCategorySummary(?string $date = null): array
     {
-        $today = date('Y-m-d');
+        $date = $date ?? date('Y-m-d');
         $pendingOrders = Order::where('status', 'pending')
-            ->whereDate('created_at', $today)
+            ->whereDate('created_at', $date)
             ->with(['items.menuItem.components'])
             ->get();
 
