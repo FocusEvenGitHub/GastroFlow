@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.5.5 (2026-07-11)
+
+### Novidades
+- **Relatórios**: gráfico de **horário de pico** (pedidos por hora do dia)
+- **Relatórios**: **tempo médio de preparo** (média geral + por dia, em minutos)
+- **Relatórios**: **comparativo mensal** com o período anterior (cards + tabela de variação percentual)
+- **Relatórios**: dark mode compatível com todos os novos gráficos
+- **API**: novas rotas `GET /api/admin/reports/peak-hours`, `/prep-time` e `/month-comparison`
+
 ## v1.5.4 (2026-07-11)
 
 ### Novidades
