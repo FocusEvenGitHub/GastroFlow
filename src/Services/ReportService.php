@@ -100,6 +100,140 @@ class ReportService
     }
 
     /**
+     * Orders grouped by hour of day within a date range.
+     * Returns array of { hour, orders }.
+     */
+    public function getOrdersByHour(string $dateFrom, string $dateTo): array
+    {
+        $rows = Order::selectRaw(
+            "HOUR(orders.created_at) as hour,
+             COUNT(*) as orders"
+        )
+            ->whereDate('orders.created_at', '>=', $dateFrom)
+            ->whereDate('orders.created_at', '<=', $dateTo)
+            ->groupBy(DB::raw('HOUR(orders.created_at)'))
+            ->orderBy('hour')
+            ->get()
+            ->toArray();
+
+        // Fill missing hours with 0
+        $byHour = [];
+        foreach ($rows as $r) {
+            $byHour[(int) $r['hour']] = (int) $r['orders'];
+        }
+        $result = [];
+        for ($h = 0; $h <= 23; $h++) {
+            $result[] = [
+                'hour'   => $h,
+                'orders' => $byHour[$h] ?? 0,
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * Average preparation time (in minutes) grouped by day.
+     * Uses updated_at - created_at for completed (done) orders.
+     * Returns { avg_minutes: float, by_day: array }.
+     */
+    public function getAvgPrepTime(string $dateFrom, string $dateTo): array
+    {
+        // Overall average for the period
+        $avg = Order::selectRaw(
+            "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)), 0) as avg_minutes"
+        )
+            ->where('status', Order::STATUS_DONE)
+            ->whereDate('created_at', '>=', $dateFrom)
+            ->whereDate('created_at', '<=', $dateTo)
+            ->first()
+            ->toArray();
+
+        $overallAvg = round((float) ($avg['avg_minutes'] ?? 0), 1);
+
+        // By day within the period
+        $byDay = Order::selectRaw(
+            "DATE(created_at) as date,
+             COALESCE(AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)), 0) as avg_minutes,
+             COUNT(*) as orders"
+        )
+            ->where('status', Order::STATUS_DONE)
+            ->whereDate('created_at', '>=', $dateFrom)
+            ->whereDate('created_at', '<=', $dateTo)
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy('date')
+            ->get()
+            ->toArray();
+
+        return [
+            'avg_minutes' => $overallAvg,
+            'by_day'      => array_map(fn($r) => [
+                'date'        => $r['date'],
+                'avg_minutes' => round((float) $r['avg_minutes'], 1),
+                'orders'      => (int) $r['orders'],
+            ], $byDay),
+        ];
+    }
+
+    /**
+     * Compare current period with the previous period of same length.
+     * Returns { current, previous, change }.
+     */
+    public function getMonthlyComparison(string $dateFrom, string $dateTo): array
+    {
+        $daysDiff = (new \DateTime($dateFrom))->diff(new \DateTime($dateTo))->days + 1;
+        $prevTo   = (new \DateTime($dateFrom))->modify('-1 day')->format('Y-m-d');
+        $prevFrom = (new \DateTime($prevTo))->modify("-{$daysDiff} days")->modify('+1 day')->format('Y-m-d');
+
+        $periods = [
+            'current'  => [$dateFrom, $dateTo],
+            'previous' => [$prevFrom, $prevTo],
+        ];
+
+        $result = [];
+        foreach ($periods as $key => [$from, $to]) {
+            $data = Order::selectRaw(
+                "COUNT(DISTINCT orders.id) as orders,
+                 COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost), 0) as revenue,
+                 COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost) / NULLIF(COUNT(DISTINCT orders.id), 0), 0) as avg_ticket,
+                 COALESCE(SUM(order_items.quantity), 0) as items_sold"
+            )
+                ->join('order_items', 'order_items.order_id', '=', 'orders.id')
+                ->where('orders.status', Order::STATUS_DONE)
+                ->whereDate('orders.created_at', '>=', $from)
+                ->whereDate('orders.created_at', '<=', $to)
+                ->first()
+                ->toArray();
+
+            $result[$key] = [
+                'date_from'  => $from,
+                'date_to'    => $to,
+                'orders'     => (int) ($data['orders'] ?? 0),
+                'revenue'    => (float) ($data['revenue'] ?? 0),
+                'avg_ticket' => round((float) ($data['avg_ticket'] ?? 0), 2),
+                'items_sold' => (int) ($data['items_sold'] ?? 0),
+            ];
+        }
+
+        // Calculate changes
+        $result['change'] = [
+            'orders'     => $result['previous']['orders'] > 0
+                ? round(($result['current']['orders'] - $result['previous']['orders']) / $result['previous']['orders'] * 100, 1)
+                : 0,
+            'revenue'    => $result['previous']['revenue'] > 0
+                ? round(($result['current']['revenue'] - $result['previous']['revenue']) / $result['previous']['revenue'] * 100, 1)
+                : 0,
+            'avg_ticket' => $result['previous']['avg_ticket'] > 0
+                ? round(($result['current']['avg_ticket'] - $result['previous']['avg_ticket']) / $result['previous']['avg_ticket'] * 100, 1)
+                : 0,
+            'items_sold' => $result['previous']['items_sold'] > 0
+                ? round(($result['current']['items_sold'] - $result['previous']['items_sold']) / $result['previous']['items_sold'] * 100, 1)
+                : 0,
+        ];
+
+        return $result;
+    }
+
+    /**
      * Quick summary for a single date (default: today).
      * Returns { date, orders, revenue, avg_ticket, items_sold }.
      */

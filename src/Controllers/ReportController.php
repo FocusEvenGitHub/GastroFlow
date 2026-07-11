@@ -45,6 +45,36 @@ class ReportController
         return $this->json($response, ['success' => true, 'data' => $data]);
     }
 
+    public function peakHours(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $dateFrom = $params['date_from'] ?? date('Y-m-d');
+        $dateTo   = $params['date_to'] ?? date('Y-m-d');
+
+        $data = $this->reportService->getOrdersByHour($dateFrom, $dateTo);
+        return $this->json($response, ['success' => true, 'data' => $data]);
+    }
+
+    public function prepTime(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $dateFrom = $params['date_from'] ?? date('Y-m-d');
+        $dateTo   = $params['date_to'] ?? date('Y-m-d');
+
+        $data = $this->reportService->getAvgPrepTime($dateFrom, $dateTo);
+        return $this->json($response, ['success' => true, 'data' => $data]);
+    }
+
+    public function monthlyComparison(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $dateFrom = $params['date_from'] ?? date('Y-m-d');
+        $dateTo   = $params['date_to'] ?? date('Y-m-d');
+
+        $data = $this->reportService->getMonthlyComparison($dateFrom, $dateTo);
+        return $this->json($response, ['success' => true, 'data' => $data]);
+    }
+
     public function summary(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();

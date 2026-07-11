@@ -54,6 +54,9 @@ class Routes
             $group->get('/reports/top-items',      [ReportController::class, 'topItems']);
             $group->get('/reports/dining-options', [ReportController::class, 'diningOptions']);
             $group->get('/reports/summary',        [ReportController::class, 'summary']);
+            $group->get('/reports/peak-hours',     [ReportController::class, 'peakHours']);
+            $group->get('/reports/prep-time',      [ReportController::class, 'prepTime']);
+            $group->get('/reports/month-comparison', [ReportController::class, 'monthlyComparison']);
         })->add($jwt);
     }
 }

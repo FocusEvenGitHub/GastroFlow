@@ -259,6 +259,139 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- ════════════════════════════════════ -->
+                <!-- Horário de Pico + Comparativo Mensal -->
+                <!-- ════════════════════════════════════ -->
+                <div class="row g-4 mt-2">
+                    <!-- Horário de Pico -->
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Horário de Pico</h5>
+                            </div>
+                            <div class="card-body">
+                                <div x-show="peakHours.length === 0" class="text-center text-muted py-4">
+                                    Nenhum pedido no período.
+                                </div>
+                                <div x-show="peakHours.length > 0" class="chart-container" style="height:250px">
+                                    <canvas x-ref="peakHoursChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comparativo Mensal -->
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-calendar-compare me-2"></i>Comparativo</h5>
+                            </div>
+                            <div class="card-body">
+                                <div x-show="!monthlyComp.current" class="text-center text-muted py-4">
+                                    Selecione um período para comparar.
+                                </div>
+                                <div x-show="monthlyComp.current">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <div class="p-3 rounded text-center" style="background:rgba(13,110,253,0.08)">
+                                                <div class="small text-muted">Período anterior</div>
+                                                <div class="small text-muted" x-text="monthlyComp.previous.date_from + ' a ' + monthlyComp.previous.date_to"></div>
+                                                <div class="fw-bold fs-5 mt-1" x-text="'R$ ' + (monthlyComp.previous.revenue || 0).toFixed(2)"></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="p-3 rounded text-center" style="background:rgba(25,135,84,0.08)">
+                                                <div class="small text-muted">Período atual</div>
+                                                <div class="small text-muted" x-text="monthlyComp.current.date_from + ' a ' + monthlyComp.current.date_to"></div>
+                                                <div class="fw-bold fs-5 mt-1" x-text="'R$ ' + (monthlyComp.current.revenue || 0).toFixed(2)"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Métrica</th>
+                                                <th class="text-end">Anterior</th>
+                                                <th class="text-end">Atual</th>
+                                                <th class="text-end">Variação</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Pedidos</td>
+                                                <td class="text-end" x-text="monthlyComp.previous.orders || 0"></td>
+                                                <td class="text-end" x-text="monthlyComp.current.orders || 0"></td>
+                                                <td class="text-end" x-text="(monthlyComp.change.orders || 0) + '%'"
+                                                    :class="(monthlyComp.change.orders || 0) >= 0 ? 'text-success' : 'text-danger'"></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Faturamento</td>
+                                                <td class="text-end" x-text="'R$ ' + (monthlyComp.previous.revenue || 0).toFixed(2)"></td>
+                                                <td class="text-end" x-text="'R$ ' + (monthlyComp.current.revenue || 0).toFixed(2)"></td>
+                                                <td class="text-end" x-text="(monthlyComp.change.revenue || 0) + '%'"
+                                                    :class="(monthlyComp.change.revenue || 0) >= 0 ? 'text-success' : 'text-danger'"></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Ticket médio</td>
+                                                <td class="text-end" x-text="'R$ ' + (monthlyComp.previous.avg_ticket || 0).toFixed(2)"></td>
+                                                <td class="text-end" x-text="'R$ ' + (monthlyComp.current.avg_ticket || 0).toFixed(2)"></td>
+                                                <td class="text-end" x-text="(monthlyComp.change.avg_ticket || 0) + '%'"
+                                                    :class="(monthlyComp.change.avg_ticket || 0) >= 0 ? 'text-success' : 'text-danger'"></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Itens vendidos</td>
+                                                <td class="text-end" x-text="monthlyComp.previous.items_sold || 0"></td>
+                                                <td class="text-end" x-text="monthlyComp.current.items_sold || 0"></td>
+                                                <td class="text-end" x-text="(monthlyComp.change.items_sold || 0) + '%'"
+                                                    :class="(monthlyComp.change.items_sold || 0) >= 0 ? 'text-success' : 'text-danger'"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ════════════════════════════════════ -->
+                <!-- Tempo Médio de Preparo -->
+                <!-- ════════════════════════════════════ -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-stopwatch me-2"></i>Tempo Médio de Preparo</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row align-items-center mb-3">
+                                    <div class="col-auto">
+                                        <div class="d-flex align-items-center gap-2 p-3 rounded"
+                                             style="background:rgba(111,66,193,0.08)">
+                                            <i class="fas fa-hourglass-half fa-2x" style="color:#6f42c1;"></i>
+                                            <div>
+                                                <div class="small text-muted">Média do período</div>
+                                                <div class="fw-bold fs-3" x-text="prepTime.avg_minutes + ' min'"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col text-muted small">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Tempo entre a criação e a finalização dos pedidos concluídos.
+                                    </div>
+                                </div>
+                                <div x-show="prepTime.by_day.length === 0" class="text-center text-muted py-3">
+                                    Nenhum pedido finalizado no período.
+                                </div>
+                                <div x-show="prepTime.by_day.length > 0" class="chart-container" style="height:250px">
+                                    <canvas x-ref="prepTimeChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div> <!-- /loggedIn -->
     </div> <!-- /container -->
