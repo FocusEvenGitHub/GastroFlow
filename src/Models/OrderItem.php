@@ -8,7 +8,12 @@ class OrderItem extends Model
 {
     protected $table = 'order_items';
 
-    protected $fillable = ['order_id', 'menu_item_id', 'quantity', 'notes', 'dining_option'];
+    protected $fillable = ['order_id', 'menu_item_id', 'quantity', 'notes', 'dining_option', 'unit_price', 'packaging_cost'];
+
+    protected $casts = [
+        'unit_price'     => 'float',
+        'packaging_cost' => 'float',
+    ];
 
     public $timestamps = false;
 

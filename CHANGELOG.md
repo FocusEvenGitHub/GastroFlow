@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.5.4 (2026-07-11)
+
+### Novidades
+- **Relatórios de vendas**: nova página `/admin/reports.php` com:
+  - Filtro por período (data inicial / final)
+  - Cards de resumo: pedidos, faturamento, ticket médio, itens vendidos
+  - Gráfico Chart.js (barras + linha) de vendas por dia
+  - Tabela de itens mais vendidos
+  - Tabela de distribuição por opção de refeição (Local / Viagem Simples / Viagem VIP)
+- **API**: novas rotas `GET /api/admin/reports/*` para consulta de relatórios (protegidas por JWT)
+- **Price snapshot**: `order_items` agora salva `unit_price` e `packaging_cost` no momento da venda, garantindo precisão histórica
+  - Migration `008_order_items_price.sql` com backfill de dados existentes
+  - Impressão térmica agora usa o preço salvo no pedido
+
 ## v1.5.3 (2026-07-11)
 
 ### Novidades

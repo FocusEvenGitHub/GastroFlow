@@ -9,6 +9,7 @@ use App\Controllers\OrderController;
 use App\Controllers\AuthController;
 use App\Controllers\KitchenController;
 use App\Controllers\AdminController;
+use App\Controllers\ReportController;
 use App\Middleware\JwtMiddleware;
 
 class Routes
@@ -49,6 +50,10 @@ class Routes
             $group->post('/settings/logo', [AdminController::class, 'uploadLogo']);
             $group->get('/logs', [AdminController::class, 'getLogs']);
             $group->post('/settings/test-print', [AdminController::class, 'testPrint']);
+            $group->get('/reports/sales',          [ReportController::class, 'sales']);
+            $group->get('/reports/top-items',      [ReportController::class, 'topItems']);
+            $group->get('/reports/dining-options', [ReportController::class, 'diningOptions']);
+            $group->get('/reports/summary',        [ReportController::class, 'summary']);
         })->add($jwt);
     }
 }

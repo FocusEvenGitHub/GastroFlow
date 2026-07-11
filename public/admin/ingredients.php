@@ -48,6 +48,7 @@
             <h1 class="h3 mb-0">Gerenciar Ingredientes</h1>
             <div class="d-flex gap-2">
                 <a href="/admin/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Cardápio</a>
+                <a href="reports.php" class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-bar"></i> Relatórios</a>
                 <a href="logs.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-list"></i> Logs</a>
             </div>
         </div>

@@ -172,25 +172,19 @@ class PrintService
 
             $name = $menuItem->name;
             $qty = (int) $orderItem->quantity;
-            $price = (float) $menuItem->price;
+            $price = (float) $orderItem->unit_price;
             $diningOption = $orderItem->dining_option ?? 'local';
             $notes = $orderItem->notes ?? '';
+            $packagingCost = (float) $orderItem->packaging_cost;
 
             // Calculate item total with packaging
-            $itemTotal = $price * $qty;
-            $packagingCost = 0.0;
-            $packagingLabel = '';
-
-            if ($diningOption === 'viagem_simples') {
-                $packagingCost = 1.0 * $qty;
-                $packagingLabel = ' [Simples]';
-            } elseif ($diningOption === 'viagem_vip') {
-                $packagingCost = 2.0 * $qty;
-                $packagingLabel = ' [VIP]';
-            }
-
-            $itemTotal += $packagingCost;
+            $itemTotal = ($price * $qty) + $packagingCost;
             $total += $itemTotal;
+            $packagingLabel = match ($diningOption) {
+                'viagem_simples' => ' [Simples]',
+                'viagem_vip'     => ' [VIP]',
+                default          => '',
+            };
 
             // Line: "2x Prato do Dia           40,00"
             $line = $qty . "x " . $name;

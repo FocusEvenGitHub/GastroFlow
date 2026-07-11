@@ -61,6 +61,9 @@
                 <a href="/admin/" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-arrow-left"></i> Cardápio
                 </a>
+                <a href="reports.php" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-chart-bar"></i> Relatórios
+                </a>
                 <button class="btn btn-outline-primary btn-sm" @click="refresh" :disabled="loading">
                     <i class="fas fa-sync-alt" :class="{ 'fa-spin': loading }"></i> Atualizar
                 </button>

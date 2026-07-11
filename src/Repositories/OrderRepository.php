@@ -28,11 +28,13 @@ class OrderRepository
         return $orders->map(function ($order) {
             $items = $order->items->map(function ($item) {
                 return [
-                    'name'          => $item->menuItem->name ?? 'Unknown',
-                    'description'   => $item->menuItem->description ?? '',
-                    'quantity'      => (int)$item->quantity,
-                    'notes'         => $item->notes ?? '',
-                    'dining_option' => $item->dining_option ?? 'local',
+                    'name'           => $item->menuItem->name ?? 'Unknown',
+                    'description'    => $item->menuItem->description ?? '',
+                    'quantity'       => (int)$item->quantity,
+                    'notes'          => $item->notes ?? '',
+                    'dining_option'  => $item->dining_option ?? 'local',
+                    'unit_price'     => (float) $item->unit_price,
+                    'packaging_cost' => (float) $item->packaging_cost,
                 ];
             })->all();
 
@@ -69,12 +71,23 @@ class OrderRepository
             ]);
 
             foreach ($data['items'] as $item) {
+                $menuItem = MenuItem::find($item['id']);
+                $unitPrice = $menuItem ? (float) $menuItem->price : 0.0;
+                $diningOption = $item['dining_option'] ?? 'local';
+                $packagingCost = match ($diningOption) {
+                    'viagem_simples' => 1.0 * (int) $item['quantity'],
+                    'viagem_vip'     => 2.0 * (int) $item['quantity'],
+                    default          => 0.0,
+                };
+
                 OrderItem::create([
-                    'order_id'      => $order->id,
-                    'menu_item_id'  => $item['id'],
-                    'quantity'      => $item['quantity'],
-                    'notes'         => $item['notes'] ?? '',
-                    'dining_option' => $item['dining_option'] ?? 'local',
+                    'order_id'       => $order->id,
+                    'menu_item_id'   => $item['id'],
+                    'quantity'       => $item['quantity'],
+                    'notes'          => $item['notes'] ?? '',
+                    'dining_option'  => $diningOption,
+                    'unit_price'     => $unitPrice,
+                    'packaging_cost' => $packagingCost,
                 ]);
             }
 
