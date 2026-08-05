@@ -287,6 +287,18 @@ For a complete guide — including types, scopes, and real examples — check [C
 
 ---
 
+## Spec-driven development
+
+New features, fixes, and improvements are planned before they're implemented:
+
+- **`specs/`** holds one file per change (`specs/NNN-short-feature-name.md`), from proposal through implementation and validation. `specs/000-project-baseline.md` is a code-verified snapshot of the system as a starting point, and `specs/_template.md`/`specs/README.md` document the full workflow and lifecycle.
+- **`CLAUDE.md`** at the repo root holds persistent, project-specific instructions (real architecture, available commands, conventions, security rules) for AI-assisted work in this repo.
+- **`/spec-plan <description>`** turns a plain-language request into a new spec file under `specs/`, based on an investigation of the real code — it never touches application code or the database.
+- **`/spec-implement specs/NNN-feature-name.md`** implements an existing spec step by step, keeping its checklist, implementation log, and validation evidence in sync with the actual work done.
+- Specs are versioned in Git right alongside the code they describe, so history and review work the same way for "what we built" as for "why we built it."
+
+---
+
 ## 🧩 Contributing
 
 Contributions are always welcome! Here's how to get started:
