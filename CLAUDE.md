@@ -58,4 +58,4 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - An approved spec is the source of truth for the requested behavior.
 - Existing tests and code must still be considered for backward compatibility.
 - When code and spec conflict, report the conflict instead of silently choosing one.
-- See `specs/README.md` for the full lifecycle, naming convention, and the `/spec-plan` / `/spec-implement` skills.
+- See `specs/README.md` for the full lifecycle, naming convention, and the `/spec-plan` / `/spec-implement` / `/spec-review` skills.

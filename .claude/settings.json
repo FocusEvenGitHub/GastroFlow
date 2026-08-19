@@ -1,0 +1,60 @@
+{
+  "permissions": {
+    "defaultMode": "default",
+    "disableAutoMode": "disable",
+    "disableBypassPermissionsMode": "disable",
+
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+
+      "Bash(git reset --hard *)",
+      "Bash(git clean -fd *)",
+      "Bash(git clean -fdx *)",
+      "Bash(rm -rf *)"
+    ],
+
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(bin/migrate *)",
+      "Bash(composer update *)",
+      "Bash(composer require *)",
+      "Bash(composer remove *)",
+      "Bash(docker compose down -v *)"
+    ]
+  },
+
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "autoAllowBashIfSandboxed": false,
+
+    "filesystem": {
+      "denyRead": [
+        "./.env",
+        "./.env.*",
+        "~/.ssh",
+        "~/.aws"
+      ]
+    }
+  },
+
+  "disableClaudeAiConnectors": true,
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/security-guard.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
