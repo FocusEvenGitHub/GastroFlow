@@ -51,6 +51,10 @@ In practice, use the `/spec-plan` skill to do steps 1–4 for you from a plain-l
 
 Use the `/spec-implement` skill, passing the spec's path (e.g. `/spec-implement specs/001-order-percentage-discount.md`). It reads the spec, checks for blocking open questions, moves the status to `In Progress`, implements one step at a time following the repository's real architecture, and keeps the spec updated as it goes.
 
+## Reviewing a spec
+
+Use the `/spec-review` skill, passing the spec's path (e.g. `/spec-review specs/001-order-percentage-discount.md`) and, optionally, a diff target. It is **read-only** — it never edits the spec, code, or the database. It checks the chain `Spec ↔ diff ↔ architecture ↔ acceptance criteria ↔ validation evidence` and reports mismatches: work described as done but missing from the diff, diff hunks outside the spec's stated scope, architecture claims that don't match the real code, acceptance criteria that aren't objectively checkable, and validation evidence that doesn't actually back up its criterion. Use it before trusting a spec's `Status`, especially `Verified`.
+
 ## Updating a spec during implementation
 
 - If reality diverges from the plan (a different approach is needed, a requirement turns out to be wrong), update the relevant sections of the spec itself — do not silently implement something different from what's written.
