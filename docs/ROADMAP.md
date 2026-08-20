@@ -69,57 +69,15 @@ Not all PHP files declare `strict_types=1`. To avoid coercion bugs, add it to ev
 
 ---
 
-#### #8 — Make CORS configurable via environment variable
-
-**Labels:** `type: security` `size: M` `priority: high`
-
-**Description:**
-Today CORS allows any origin (`*`). Create a `CORS_ALLOWED_ORIGIN` env var to configure the allowed origin. Fall back to `*` if it isn't set.
-
-**Files involved:**
-- `src/Middleware/CorsMiddleware.php`
-- `.env.example`
-
-**Acceptance Criteria:**
-- [ ] `CORS_ALLOWED_ORIGIN` defined in `.env.example`
-- [ ] `CorsMiddleware` reads the variable and sets the header dynamically
-- [ ] OPTIONS preflight respects the same origin
-- [ ] Fallback `*` preserves backward compatibility
+#### #8 — Make CORS configurable via environment variable — ✅ Concluído
 
 ---
 
-#### #9 — JWT without a hardcoded fallback
-
-**Labels:** `type: security` `size: S` `priority: high`
-
-**Description:**
-`Routes.php` has `$_ENV['JWT_SECRET'] ?? 'your-secret-key-change-me'`. This public fallback is a security risk. It should throw an exception if the env var isn't set.
-
-**Files involved:**
-- `src/Routes.php`
-
-**Acceptance Criteria:**
-- [ ] Fallback removed
-- [ ] `RuntimeException` thrown if `JWT_SECRET` isn't set
+#### #9 — JWT without a hardcoded fallback — ✅ Concluído
 
 ---
 
-#### #10 — Absolute paths via Settings (DI)
-
-**Labels:** `type: refactor` `size: M` `priority: high`
-
-**Description:**
-Several files use a hardcoded `__DIR__ . '/../../'`. Define the paths on the `Settings` object and inject them via DI.
-
-**Files involved:**
-- `src/Settings.php` (add methods)
-- `src/App.php`
-- `src/Controllers/AdminController.php`
-
-**Acceptance Criteria:**
-- [ ] `Settings` has `getLogDir(): string`, `getPublicDir(): string`, etc.
-- [ ] `AdminController` receives `Settings` via its constructor and uses the methods
-- [ ] Every occurrence of `__DIR__ . '/../..'` in the code is replaced
+#### #10 — Absolute paths via Settings (DI) — ✅ Concluído
 
 ---
 

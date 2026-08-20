@@ -31,7 +31,7 @@ class App
             Settings::class => $this->settings,
             LoggerInterface::class => function () {
                 $logger = new Logger('app');
-                $logger->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG));
+                $logger->pushHandler(new StreamHandler($this->settings->getLogFile(), Logger::DEBUG));
                 return $logger;
             },
         ]);
