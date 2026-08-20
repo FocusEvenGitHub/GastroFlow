@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented (two real runs so far, both failed — DB_HOST/$_ENV bug now fixed and locally re-verified against the real bin/migrate; a 006_settings.sql migration bug was also found and fixed independently; awaiting a green GitHub Actions run before `Verified`)
+- Status: Verified
 - Created: 2026-08-19
 - Updated: 2026-08-20
 - Owner: Henry (via Claude Code)
@@ -127,7 +127,7 @@ Additive change on branch `013`. Rollback is a plain revert of `.github/workflow
   2. Leave it as-is and accept that CI will keep failing until it's fixed some other way.
   3. Something else the user prefers.
   **Resolved**: user chose option 1 (fix now). `common/migrations/006_settings.sql` was patched to guard the `ALTER TABLE` with the same `information_schema.COLUMNS` existence check `002_food_category_and_components.sql` already uses. Re-verified locally (via a bypass script, not the real `bin/migrate` — see Validation evidence's correction note) — all 7 migrations apply cleanly end-to-end against that reproduction.
-- **This did not actually fix run #2** — run #2 (commit `cda0d36`, the 006 fix) failed again, at the same "Run migrations" step, with a *different* error this time (`getaddrinfo for db failed`), which the user surfaced by pasting the real log after a WebFetch attempt was declined. This revealed the actual root cause: `bin/migrate` never populates `$_ENV['DB_HOST']` from the workflow's real environment variable (see Validation evidence for the full explanation) — a separate, unrelated bug from the 006 one, coincidentally hit first. Fixed in `bin/migrate` (same `getenv()` bridge `tests/bootstrap.php` already had) and re-verified locally against the *real* `bin/migrate` script this time. Not yet confirmed on an actual GitHub Actions run; this spec moves to `Verified` only once that's observed.
+- **This did not actually fix run #2** — run #2 (commit `cda0d36`, the 006 fix) failed again, at the same "Run migrations" step, with a *different* error this time (`getaddrinfo for db failed`), which the user surfaced by pasting the real log after a WebFetch attempt was declined. This revealed the actual root cause: `bin/migrate` never populates `$_ENV['DB_HOST']` from the workflow's real environment variable (see Validation evidence for the full explanation) — a separate, unrelated bug from the 006 one, coincidentally hit first. Fixed in `bin/migrate` (same `getenv()` bridge `tests/bootstrap.php` already had), pushed as commit `494e003`, and re-verified locally against the *real* `bin/migrate` script beforehand. **Run #3 (commit `494e003`) succeeded** — confirmed directly by the user in the GitHub Actions UI. Spec moved to `Verified`.
 
 ## Task checklist
 
@@ -135,7 +135,7 @@ Additive change on branch `013`. Rollback is a plain revert of `.github/workflow
 - [x] `README.md` badge swapped for a live CI badge
 - [x] `common/migrations/006_settings.sql` fixed (independently-found bug, not the actual CI blocker) and re-verified locally end-to-end
 - [x] `bin/migrate` fixed (actual root cause of both run #1 and run #2's failures: `$_ENV['DB_HOST']` never populated) and re-verified locally against the real script
-- [ ] Workflow observed to run green at least once — two runs so far, both failed; a follow-up push/run is needed to confirm green on GitHub Actions itself
+- [x] Workflow observed to run green at least once — run #3 (commit `494e003`) succeeded, confirmed by the user directly in the GitHub Actions UI
 
 ## Implementation log
 
@@ -178,7 +178,7 @@ Additive change on branch `013`. Rollback is a plain revert of `.github/workflow
     ✓ Concluído.
     ```
     Container torn down afterward. `docker compose exec web php -l bin/migrate` → "No syntax errors detected".
-  - This is now believed to be the actual, complete fix for both run #1 and run #2's failures — but per this section's own correction above, that belief is only confirmed once a real GitHub Actions run is green; it is not asserted as fact until then.
+  - **Confirmed the actual, complete fix**: run #3 (commit `494e003`) succeeded on real GitHub Actions, confirmed by the user directly in the Actions UI (2026-08-20). AC 3, 4, and 5 are now met.
 
 ### Independently-found bug (real, but not the CI blocker): `common/migrations/006_settings.sql`
 
@@ -205,5 +205,5 @@ Reproduced locally (a *different* throwaway, isolated `mysql:8.0` container, usi
     MIGRATE_OK
     ```
     Container torn down afterward (`docker rm -f`). `docker compose exec web php -l common/migrations/006_settings.sql` also ran clean (a weak check for a `.sql` file, but confirms no stray PHP-incompatible characters).
-- AC 6 (README badge): `git diff README.md` (pre-merge) showed the static badge replaced with a live workflow-status badge, now on `master`. The badge will show the real (currently failing) status once GitHub finishes indexing this run.
-- Diff scope reviewed: `.github/workflows/ci.yml` (new) and the `README.md` badge line, both now merged into `master` via commit `8129928` and merge commit `34875b9`.
+- AC 6 (README badge): `git diff README.md` (pre-merge) showed the static badge replaced with a live workflow-status badge, now on `master`. Reflects the real status of the workflow, currently passing (run #3).
+- Diff scope reviewed: `.github/workflows/ci.yml` and the `README.md` badge line (commit `8129928`, merged via `34875b9`); the two follow-up fixes, `common/migrations/006_settings.sql` (commit `cda0d36`) and `bin/migrate` (commit `494e003`), both pushed directly to `master`.

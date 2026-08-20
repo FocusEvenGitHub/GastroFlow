@@ -77,17 +77,9 @@ See `specs/004-phpunit-smoke-tests.md` (Status: Verified).
 
 ---
 
-#### #15 — GitHub Actions CI/CD — ⚠️ Implemented, pending a live run
+#### #15 — GitHub Actions CI/CD — ✅ Concluído
 
-**Labels:** `type: infra` `size: M` `priority: high`
-
-See `specs/005-github-actions-ci.md` (Status: Implemented). Workflow file and README badge are in place; not yet marked done because no GitHub Actions run has actually executed the workflow (needs a push/PR, not yet authorized).
-
-**Acceptance Criteria:**
-- [x] Workflow runs on `push` (`master` — this repo's real default branch, not `main` as originally written here) and `pull_request`
-- [x] Setup PHP 8.2
-- [ ] `vendor/bin/phpunit` passes in CI — not yet observed in a real run
-- [x] Status badge in `README.md`
+See `specs/005-github-actions-ci.md` (Status: Verified). Two real runs failed (a pre-existing migration bug in `006_settings.sql`, then a `$_ENV`/`getenv()` gap in `bin/migrate` — both fixed, see the spec's Implementation log/Validation evidence); run #3 succeeded.
 
 ---
 
