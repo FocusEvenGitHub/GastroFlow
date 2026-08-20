@@ -2,9 +2,9 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Implemented (workflow ran for real; currently **failing** — see Validation evidence for root cause, which is outside this spec's scope)
 - Created: 2026-08-19
-- Updated: 2026-08-19
+- Updated: 2026-08-20
 - Owner: Henry (via Claude Code)
 - Related issue: #15
 - Related branch: 013
@@ -78,7 +78,8 @@ Not applicable — no new migration files. The workflow *applies* the existing `
 
 - `.github/workflows/ci.yml` — new file.
 - `README.md` — badge row (lines 12-17) edited to replace the "tests: not yet" badge with a live CI badge.
-- No `src/`, `public/`, `common/`, or `composer.json` changes beyond what spec 004 already introduces.
+- `common/migrations/006_settings.sql` — **added during implementation**, not part of the original plan: fixed a pre-existing bug this workflow's first real run exposed (see Validation evidence). Editing an already-shipped migration file's SQL is normally sensitive; justified here because `MigrationRunner` tracks applied migrations by filename only (not content hash), so this only changes behavior for fresh installs, never for a database where `006_settings.sql` is already recorded as applied.
+- No other `src/`, `public/`, or `composer.json` changes beyond what spec 004 already introduces.
 
 ## Security considerations
 
@@ -119,13 +120,19 @@ Additive change on branch `013`. Rollback is a plain revert of `.github/workflow
 
 ## Open questions
 
-- **Not blocking implementation, blocking `Verified` status**: whether pushing a branch / opening a PR to actually trigger and observe a live workflow run is authorized — **asked, not yet granted as of this update**. Per `CLAUDE.md` ("Never commit or push without an explicit request"), this was left undone; the spec stays `Implemented` until an actual run is observed and its logs recorded here.
+- ~~Whether pushing to trigger a live run is authorized~~ — resolved: the user explicitly requested the merge-and-push, which triggered run #1. See below for what it found.
+- **Blocking `Verified` status, needs a user decision**: run #1 failed at the migration step due to a pre-existing bug in `common/migrations/006_settings.sql` (unconditional `ALTER TABLE orders ADD COLUMN customer_name ...`, which collides with `common/sql/001_schema.sql:39` already declaring that column) — see Validation evidence for the full root-cause analysis and local reproduction. This is a real defect independent of this spec's own scope (the workflow YAML itself is correctly configured per AC 1/2/3/6). Options for the user to choose between:
+  1. Fix `006_settings.sql` to guard the `ALTER TABLE` the same way `002_food_category_and_components.sql` already does (`information_schema.COLUMNS` existence check) — safe for already-migrated databases, since `MigrationRunner` tracks applied migrations by filename only, not content hash.
+  2. Leave it as-is and accept that CI will keep failing until it's fixed some other way.
+  3. Something else the user prefers.
+  **Resolved**: user chose option 1 (fix now). `common/migrations/006_settings.sql` was patched to guard the `ALTER TABLE` with the same `information_schema.COLUMNS` existence check `002_food_category_and_components.sql` already uses. Re-verified locally against a second fresh throwaway database (see Validation evidence) — all 7 migrations now apply cleanly end-to-end. Not yet confirmed on a real GitHub Actions run; this spec moves to `Verified` once that's observed.
 
 ## Task checklist
 
 - [x] `.github/workflows/ci.yml` created
 - [x] `README.md` badge swapped for a live CI badge
-- [ ] Workflow observed to run green at least once (push/PR, pending user authorization — see Open questions)
+- [x] `common/migrations/006_settings.sql` fixed (unplanned, discovered via run #1's failure) and re-verified locally end-to-end
+- [ ] Workflow observed to run green at least once — run #1 failed (migration bug, now fixed and locally re-verified); a follow-up push/run is needed to confirm green on GitHub Actions itself
 
 ## Implementation log
 
@@ -136,11 +143,43 @@ Additive change on branch `013`. Rollback is a plain revert of `.github/workflow
 
 ## Validation evidence
 
-- AC 1 (trigger config — `push` to `master`, `pull_request`): confirmed by reading the committed `.github/workflows/ci.yml` — `on.push.branches: [master]`, `on.pull_request:` (no branch filter, so it matches every PR). `git remote -v` / `git branch -a` (run during spec planning) confirmed `master` is this repo's real default branch (`remotes/origin/HEAD -> origin/master`), so the trigger branch is correct for this repo (not the roadmap's literal, incorrect "main" wording).
+- AC 1 (trigger config — `push` to `master`, `pull_request`): confirmed by reading the committed `.github/workflows/ci.yml` — `on.push.branches: [master]`, `on.pull_request:` (no branch filter, so it matches every PR). `git remote -v` / `git branch -a` confirmed `master` is this repo's real default branch, so the trigger branch is correct for this repo.
 - AC 2 (PHP 8.2): confirmed by reading the file — `shivammathur/setup-php@v2` step has `php-version: '8.2'`.
 - YAML validity: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml')); print('YAML OK')"` → `YAML OK`.
-- AC 3, 4, 5 (composer install / schema+migrate / phpunit all succeeding in a real run): **not verified**. No GitHub Actions run has executed this workflow yet — that requires pushing this branch or opening a PR, which was not done (see Open questions; not authorized as of this update). What *was* checked, short of a live run:
-  - Each step's command was traced against real, current project files: `composer install` matches `composer.json`'s existing usage elsewhere in this repo; the schema-load step's target file (`common/sql/001_schema.sql`) and its self-contained `CREATE DATABASE`/`CREATE USER` statements were read directly (see Implementation log); `php bin/migrate` was read in full (`bin/migrate:1-36`) and confirmed to only need `.env` to exist and a reachable DB matching `Settings`'s expected keys, both of which the workflow's preceding steps provide; `vendor/bin/phpunit` matches spec 004's now-`Verified` local run (`docker compose exec web vendor/bin/phpunit` → `OK (7 tests, 17 assertions)`), which exercises the identical `phpunit.xml`/`tests/bootstrap.php`/test files this workflow will run.
-  - A full local reproduction of the schema-load + `bin/migrate` steps against a scratch database was deliberately not attempted, since `bin/migrate` can only read the real `.env` (no override), and modifying `.env` — even temporarily — is against this repo's explicit rules. This is a genuine gap between "looks correct on paper" and "observed to work," acknowledged rather than hidden.
-- AC 6 (README badge): `git diff README.md` shows the static badge replaced with `<a href="https://github.com/FocusEvenGitHub/GastroFlow/actions/workflows/ci.yml"><img src="https://github.com/FocusEvenGitHub/GastroFlow/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>`. The badge URL itself will only render a real status once the workflow has run at least once on GitHub — before that, GitHub serves a generic "no status" badge image, which is expected and not a defect.
-- Diff scope reviewed (`git status --short`, `git diff README.md`): confirmed exactly `.github/workflows/ci.yml` (new) and `README.md` (badge line) changed for this spec — no `src/`, `composer.json`, or other files touched here (those belong to spec 004's diff, already validated separately).
+- **A real workflow run happened** (branches 012/013 were merged into `master` and pushed, per the user's explicit request, which triggered this workflow for the first time): run #1 (id `32324769737`, commit `34875b9`). Steps, per the GitHub Actions Jobs API:
+  1. Set up job — success
+  2. Initialize containers (the `mysql:8.0` service) — success
+  3. `actions/checkout@v4` — success
+  4. Set up PHP 8.2 — success
+  5. `composer install` — success (AC 3 met)
+  6. Wait for MySQL and load base schema — success
+  7. Write `.env` for `bin/migrate` — success
+  8. **Run migrations — failure**
+  9. Run PHPUnit — **skipped** (never reached; AC 5 not met)
+  10. Stop containers / complete job — success
+  - **Overall run conclusion: failure.** AC 4 (schema+migrate) and AC 5 (phpunit passing in CI) are **not met**.
+- **Root cause identified** (reproduced locally, without touching `.env` or CI): a throwaway, isolated `mysql:8.0` container (`docker run --network gastroflow_default ...`, torn down afterward — never touched the real dev `db`/`restaurant` data) was loaded with `common/sql/001_schema.sql`, then migrations were run against it via a one-off script that sets `$_ENV` directly in-process and calls `Database::boot()` + `MigrationRunner::run()` (bypassing `bin/migrate`'s `.env` requirement entirely — this is what made the local dry-run possible without violating the "never modify `.env`" rule). Result:
+  ```
+  ▶ Executando 001_ingredients.sql ... [OK]
+  ▶ Executando 002_food_category_and_components.sql ... [OK]
+  ▶ Executando 003_dish_components_data.sql ... [OK]
+  ▶ Executando 005_dining_option.sql ... [OK]
+  ▶ Executando 006_settings.sql ... [ERRO] SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name 'customer_name'
+  ```
+  **This is a pre-existing bug in `common/migrations/006_settings.sql`, not a defect in this spec's CI workflow.** `006_settings.sql` unconditionally runs `ALTER TABLE orders ADD COLUMN customer_name VARCHAR(100) DEFAULT NULL AFTER table_number;` — but `common/sql/001_schema.sql:39` already declares `customer_name VARCHAR(100) DEFAULT NULL` directly on the `orders` table. On a genuinely fresh install (schema + all migrations from zero, exactly what CI does and what no environment before this had ever actually exercised), the column already exists by the time migration 006 runs, and the unconditional `ALTER TABLE` fails. `common/migrations/002_food_category_and_components.sql` already has the correct defensive pattern for this exact situation (an `information_schema.COLUMNS` existence check before the `ALTER TABLE`, via `PREPARE`/`EXECUTE`) — `006_settings.sql` never got the same treatment. This latent bug was invisible until now because every existing database (the long-running local dev DB included) had `006_settings.sql` recorded as already-applied from before `001_schema.sql` was updated to include `customer_name` directly, so it was never re-run against a fresh schema until this CI workflow did exactly that.
+  - `MigrationRunner`'s `getPendingFiles()` only checks by filename, not by content hash, to decide whether to (re-)run a migration — so fixing `006_settings.sql`'s content would not cause it to re-run against any database (including the real dev one) where it's already recorded as applied; it would only change behavior for genuinely fresh installs (i.e. CI, and any future fresh deployment).
+  - Reported to the user rather than patched unilaterally, since spec 005's own `Non-goals` originally said this workflow wouldn't touch migration files. The user then explicitly chose to fix it (see Open questions) — the fix itself uses the sanctioned mechanism (`CLAUDE.md`: schema changes go through `common/migrations/`), and is safe for already-migrated databases since `MigrationRunner` tracks by filename, not content hash.
+  - **Fix verified locally**: a second isolated throwaway `mysql:8.0` container was loaded with the base schema and all 7 migrations re-run end-to-end via the same in-process technique (no `.env` touched):
+    ```
+    ▶ Executando 001_ingredients.sql ... [OK]
+    ▶ Executando 002_food_category_and_components.sql ... [OK]
+    ▶ Executando 003_dish_components_data.sql ... [OK]
+    ▶ Executando 005_dining_option.sql ... [OK]
+    ▶ Executando 006_settings.sql ... [OK]
+    ▶ Executando 007_jobs.sql ... [OK]
+    ▶ Executando 008_order_items_price.sql ... [OK]
+    MIGRATE_OK
+    ```
+    Container torn down afterward (`docker rm -f`). `docker compose exec web php -l common/migrations/006_settings.sql` also ran clean (a weak check for a `.sql` file, but confirms no stray PHP-incompatible characters).
+- AC 6 (README badge): `git diff README.md` (pre-merge) showed the static badge replaced with a live workflow-status badge, now on `master`. The badge will show the real (currently failing) status once GitHub finishes indexing this run.
+- Diff scope reviewed: `.github/workflows/ci.yml` (new) and the `README.md` badge line, both now merged into `master` via commit `8129928` and merge commit `34875b9`.

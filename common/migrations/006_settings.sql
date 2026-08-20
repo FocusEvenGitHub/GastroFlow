@@ -19,5 +19,16 @@ INSERT IGNORE INTO settings (`key`, `value`) VALUES
 
 SET FOREIGN_KEY_CHECKS = 1;
 
-ALTER TABLE orders
-    ADD COLUMN customer_name VARCHAR(100) DEFAULT NULL AFTER table_number;
+-- customer_name may already exist on fresh installs (common/sql/001_schema.sql
+-- declares it directly on the orders table) — guard like migration 002 does.
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'orders'
+    AND COLUMN_NAME = 'customer_name';
+SET @alter_sql = IF(@col_exists = 0,
+    'ALTER TABLE orders ADD COLUMN customer_name VARCHAR(100) DEFAULT NULL AFTER table_number',
+    'SELECT 1 AS dummy'
+);
+PREPARE stmt FROM @alter_sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
