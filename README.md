@@ -132,7 +132,7 @@ flowchart LR
     G --> H["Commit + release"]
 ```
 
-No automated CI gate and no formal multi-person review sit in this flow today — a single-maintainer project, currently. `Verified` status and its evidence requirement are what stand in for that.
+GitHub Actions now runs `composer install` + `vendor/bin/phpunit` on every push to `master` and every pull request (`.github/workflows/ci.yml`, added alongside `specs/004-phpunit-smoke-tests.md`/`specs/005-github-actions-ci.md`). No formal multi-person review sits in this flow yet — a single-maintainer project, currently. `Verified` status and its evidence requirement are what stand in for that.
 
 ---
 
@@ -151,7 +151,7 @@ What that means in practice:
 
 - The human sets the objective; ambiguous or architectural decisions require explicit approval before implementation starts (`Draft → Approved`) — a blocking open question stops the work.
 - A spec is the contract for what gets built: implementation is checked against it, and any conflict between the two is reported, not silently resolved either way.
-- Validation requires evidence, not a self-report — `php -l`, real `curl` calls, reading the diff, today; automated tests once `ROADMAP.md` #1 lands.
+- Validation requires evidence, not a self-report — `php -l`, real `curl` calls, reading the diff, and now `vendor/bin/phpunit` (locally and in CI) since `ROADMAP.md` #1/#15 landed.
 - AI speeds up execution. The approval gate, the scope limits, and the evidence requirement are what make that execution trustworthy — and they're enforced by the rules above, not by taking a model's word for it.
 
 ---
@@ -194,19 +194,19 @@ Five picks that best represent how this project trades things off — full table
 - Thermal receipt printing (ESC/POS) dispatched through an async job queue (`bin/worker`)
 - Sales reporting: summary, top items, dining-option breakdown, peak hours, average prep time, month-over-month comparison (`v1.0.0` → `v1.5.5`)
 - Spec-driven development workflow adopted: `specs/`, `CLAUDE.md`, `/spec-plan`, `/spec-implement` (August 2026)
+- Foundation cleanup (`ROADMAP.md` v2.0): `declare(strict_types=1)` everywhere, configurable CORS origin, hardcoded JWT fallback removed, filesystem paths centralized in `Settings`
+- Automated tests + CI (`ROADMAP.md` v2.1): PHPUnit smoke test + unit tests for `OrderService`/`OrderValidator`, GitHub Actions running the suite on every push/PR
 
 **In progress**
 
 - Nothing right now — the working tree is clean. What follows is queued next, not started.
 
-**Next up** (`ROADMAP.md` v2.0–v2.1)
-
-- Foundation cleanup: `declare(strict_types=1)` everywhere, configurable CORS origin, remove the hardcoded JWT fallback, centralize filesystem paths in `Settings`
-- Automated tests: PHPUnit smoke tests + unit tests for `OrderService`/`OrderValidator`, then a GitHub Actions CI pipeline
-
-**Future ideas** (`ROADMAP.md` v2.2–v2.3)
+**Next up** (`ROADMAP.md` v2.2 — Architecture)
 
 - Controller/service refactors: split `AdminController`, move `Dish`/`Ingredient` behind a Service+Repository, standardized error-response format, paginated order listing
+
+**Future ideas** (`ROADMAP.md` v2.3 — Frontend & Infra)
+
 - Frontend modularization: shared `common.js` (toasts, theme, fetch wrapper), a real build step (Vite) instead of CDN-loaded dependencies
 - Replace the signal-file SSE mechanism with Redis pub/sub or a MySQL-backed `events` table
 
