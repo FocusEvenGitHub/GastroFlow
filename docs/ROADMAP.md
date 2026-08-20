@@ -54,19 +54,7 @@
 
 ### v2.0 — Foundation
 
-#### #12 — Add `declare(strict_types=1)` to all PHP files
-
-**Labels:** `type: refactor` `size: S` `priority: high`
-
-**Description:**
-Not all PHP files declare `strict_types=1`. To avoid coercion bugs, add it to every file in `src/` and `public/` (except pages that mix HTML/PHP).
-
-**Files involved:** All `.php` files in `src/` and `public/`.
-
-**Acceptance Criteria:**
-- [ ] Every PHP file in `src/` has `declare(strict_types=1)` right after `<?php`
-- [ ] Every PHP file in `public/` (non-HTML) has the declaration
-
+#### #12 — Add `declare(strict_types=1)` to all PHP files — ✅ Concluído 
 ---
 
 #### #8 — Make CORS configurable via environment variable
