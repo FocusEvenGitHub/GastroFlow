@@ -10,14 +10,14 @@ use Mike42\Escpos\Printer;
 use Mike42\Escpos\EscposImage;
 use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 use Psr\Log\LoggerInterface;
+use App\Settings;
 
 class PrintService
 {
-    private LoggerInterface $logger;
-
-    public function __construct(LoggerInterface $logger)
-    {
-        $this->logger = $logger;
+    public function __construct(
+        private readonly LoggerInterface $logger,
+        private readonly Settings $settings,
+    ) {
     }
 
     /**
@@ -80,7 +80,7 @@ class PrintService
         $printer->feed();
 
         // Logo
-        $logoPath = __DIR__ . '/../../public/assets/img/logo.png';
+        $logoPath = $this->settings->getLogoPath();
         if (file_exists($logoPath)) {
             try {
                 $logo = EscposImage::load($logoPath);
@@ -134,7 +134,7 @@ class PrintService
         $printer->feed();
 
         // Logo (if exists)
-        $logoPath = __DIR__ . '/../../public/assets/img/logo.png';
+        $logoPath = $this->settings->getLogoPath();
         if (file_exists($logoPath)) {
             try {
                 $logo = EscposImage::load($logoPath);

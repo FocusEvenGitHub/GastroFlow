@@ -34,7 +34,7 @@ class App
             Settings::class => $this->settings,
             LoggerInterface::class => function () {
                 $logger = new Logger('app');
-                $logger->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG));
+                $logger->pushHandler(new StreamHandler($this->settings->getLogFile(), Logger::DEBUG));
                 return $logger;
             },
         ]);
@@ -50,7 +50,7 @@ class App
 
         // Middleware
         $app->add(new Middleware\JsonBodyParserMiddleware());
-        $app->add(new Middleware\CorsMiddleware());
+        $app->add(new Middleware\CorsMiddleware($this->settings->get('CORS_ALLOWED_ORIGIN', '*')));
 
         // Error middleware — always return JSON for API routes
         $errorMiddleware = $app->addErrorMiddleware(true, true, true);

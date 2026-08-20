@@ -9,14 +9,14 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\PrintService;
+use App\Settings;
 
 class AdminController
 {
-    private PrintService $printService;
-
-    public function __construct(PrintService $printService)
-    {
-        $this->printService = $printService;
+    public function __construct(
+        private readonly PrintService $printService,
+        private readonly Settings $settings,
+    ) {
     }
 
     /**
@@ -87,7 +87,7 @@ class AdminController
         $params = $request->getQueryParams();
         $lines = min(max((int)($params['lines'] ?? 200), 10), 5000);
 
-        $logFile = __DIR__ . '/../../logs/app.log';
+        $logFile = $this->settings->getLogFile();
 
         if (!file_exists($logFile)) {
             $payload = ['success' => true, 'lines' => [], 'file' => 'app.log'];
@@ -148,7 +148,7 @@ class AdminController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        $destDir = __DIR__ . '/../../public/assets/img';
+        $destDir = $this->settings->getPublicAssetsImgDir();
         if (!is_dir($destDir)) {
             mkdir($destDir, 0755, true);
         }

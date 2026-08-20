@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Models\Order;
 use App\Services\PrintService;
+use App\Settings;
 use Monolog\Logger;
 use Monolog\Handler\ErrorLogHandler;
 
@@ -29,7 +30,8 @@ class PrintOrderJob
         $logger = new Logger('job');
         $logger->pushHandler(new ErrorLogHandler());
 
-        $printService = new PrintService($logger);
+        $settings = new Settings();
+        $printService = new PrintService($logger, $settings);
         $printService->printOrder($order);
     }
 }

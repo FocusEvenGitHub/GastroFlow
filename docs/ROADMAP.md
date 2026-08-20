@@ -57,104 +57,37 @@
 #### #12 — Add `declare(strict_types=1)` to all PHP files — ✅ Concluído 
 ---
 
-#### #8 — Make CORS configurable via environment variable
-
-**Labels:** `type: security` `size: M` `priority: high`
-
-**Description:**
-Today CORS allows any origin (`*`). Create a `CORS_ALLOWED_ORIGIN` env var to configure the allowed origin. Fall back to `*` if it isn't set.
-
-**Files involved:**
-- `src/Middleware/CorsMiddleware.php`
-- `.env.example`
-
-**Acceptance Criteria:**
-- [ ] `CORS_ALLOWED_ORIGIN` defined in `.env.example`
-- [ ] `CorsMiddleware` reads the variable and sets the header dynamically
-- [ ] OPTIONS preflight respects the same origin
-- [ ] Fallback `*` preserves backward compatibility
+#### #8 — Make CORS configurable via environment variable — ✅ Concluído
 
 ---
 
-#### #9 — JWT without a hardcoded fallback
-
-**Labels:** `type: security` `size: S` `priority: high`
-
-**Description:**
-`Routes.php` has `$_ENV['JWT_SECRET'] ?? 'your-secret-key-change-me'`. This public fallback is a security risk. It should throw an exception if the env var isn't set.
-
-**Files involved:**
-- `src/Routes.php`
-
-**Acceptance Criteria:**
-- [ ] Fallback removed
-- [ ] `RuntimeException` thrown if `JWT_SECRET` isn't set
+#### #9 — JWT without a hardcoded fallback — ✅ Concluído
 
 ---
 
-#### #10 — Absolute paths via Settings (DI)
-
-**Labels:** `type: refactor` `size: M` `priority: high`
-
-**Description:**
-Several files use a hardcoded `__DIR__ . '/../../'`. Define the paths on the `Settings` object and inject them via DI.
-
-**Files involved:**
-- `src/Settings.php` (add methods)
-- `src/App.php`
-- `src/Controllers/AdminController.php`
-
-**Acceptance Criteria:**
-- [ ] `Settings` has `getLogDir(): string`, `getPublicDir(): string`, etc.
-- [ ] `AdminController` receives `Settings` via its constructor and uses the methods
-- [ ] Every occurrence of `__DIR__ . '/../..'` in the code is replaced
+#### #10 — Absolute paths via Settings (DI) — ✅ Concluído
 
 ---
 
 ### v2.1 — Tests & Quality
 
-#### #1 — Implement PHPUnit with smoke tests
+#### #1 — Implement PHPUnit with smoke tests — ✅ Concluído
 
-**Labels:** `type: test` `size: L` `priority: high`
-
-**Description:**
-Zero tests in the project. Implement PHPUnit with:
-1. Smoke tests on public endpoints
-2. Unit test for `OrderService`
-3. Unit test for `OrderValidator`
-
-**Files involved:**
-- `composer.json` (add `phpunit/phpunit`)
-- `phpunit.xml` (create)
-- `tests/` (create directory)
-
-**Acceptance Criteria:**
-- [ ] `composer require --dev phpunit/phpunit ^11`
-- [ ] `phpunit.xml` configured
-- [ ] `tests/Smoke/ApiTest.php` → GET `/api/menu` returns 200
-- [ ] `tests/Unit/OrderServiceTest.php` → valid `createOrder`
-- [ ] `tests/Unit/OrderValidatorTest.php` → validation rejects invalid input
-- [ ] `vendor/bin/phpunit` passes green
+See `specs/004-phpunit-smoke-tests.md` (Status: Verified).
 
 ---
 
-#### #15 — GitHub Actions CI/CD
+#### #15 — GitHub Actions CI/CD — ⚠️ Implemented, pending a live run
 
 **Labels:** `type: infra` `size: M` `priority: high`
 
-**Description:**
-Minimal pipeline: `composer install` → `phpunit`.
-
-**Files involved:**
-- `.github/workflows/ci.yml` (create)
-
-**Dependencies:** [#1](#1--implement-phpunit-with-smoke-tests)
+See `specs/005-github-actions-ci.md` (Status: Implemented). Workflow file and README badge are in place; not yet marked done because no GitHub Actions run has actually executed the workflow (needs a push/PR, not yet authorized).
 
 **Acceptance Criteria:**
-- [ ] Workflow runs on `push` (main) and `pull_request`
-- [ ] Setup PHP 8.2
-- [ ] `vendor/bin/phpunit` passes in CI
-- [ ] Status badge in `README.md`
+- [x] Workflow runs on `push` (`master` — this repo's real default branch, not `main` as originally written here) and `pull_request`
+- [x] Setup PHP 8.2
+- [ ] `vendor/bin/phpunit` passes in CI — not yet observed in a real run
+- [x] Status badge in `README.md`
 
 ---
 

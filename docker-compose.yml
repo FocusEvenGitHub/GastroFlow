@@ -21,8 +21,10 @@ services:
       - ./common:/var/www/html/common
       - ./legacy:/var/www/html/legacy
       - ./bin:/var/www/html/bin
+      - ./tests:/var/www/html/tests
       - ./composer.json:/var/www/html/composer.json
       - ./composer.lock:/var/www/html/composer.lock
+      - ./phpunit.xml:/var/www/html/phpunit.xml
       - ./.env:/var/www/html/.env
     depends_on:
       - db

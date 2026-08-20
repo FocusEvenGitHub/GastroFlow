@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: restaurant
+          MYSQL_USER: restuser
+          MYSQL_PASSWORD: restpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_HOST: 127.0.0.1
+      MYSQL_DATABASE: restaurant
+      MYSQL_USER: restuser
+      MYSQL_PASSWORD: restpass
+      JWT_SECRET: ci-placeholder-secret-not-for-production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo, pdo_mysql, mbstring, xml, zip
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Wait for MySQL and load base schema
+        run: |
+          for i in $(seq 1 30); do
+            mysqladmin ping -h127.0.0.1 -uroot -proot --silent && break
+            sleep 2
+          done
+          mysql -h127.0.0.1 -uroot -proot "$MYSQL_DATABASE" < common/sql/001_schema.sql
+
+      - name: Write .env for bin/migrate
+        run: |
+          cat > .env <<EOF
+          DB_HOST=$DB_HOST
+          MYSQL_DATABASE=$MYSQL_DATABASE
+          MYSQL_USER=$MYSQL_USER
+          MYSQL_PASSWORD=$MYSQL_PASSWORD
+          JWT_SECRET=$JWT_SECRET
+          EOF
+
+      - name: Run migrations
+        run: php bin/migrate
+
+      - name: Run PHPUnit
+        run: vendor/bin/phpunit

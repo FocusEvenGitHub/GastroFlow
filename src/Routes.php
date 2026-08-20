@@ -19,7 +19,7 @@ class Routes
 {
     public function register(App $app): void
     {
-        $secret = $_ENV['JWT_SECRET'] ?? 'your-secret-key-change-me';
+        $secret = $_ENV['JWT_SECRET'] ?? throw new \RuntimeException('JWT_SECRET environment variable is not set.');
         $jwt = new JwtMiddleware($secret);
 
         $app->get('/', function (Request $request, Response $response) {
