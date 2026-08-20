@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented (workflow ran for real; currently **failing** — see Validation evidence for root cause, which is outside this spec's scope)
+- Status: Implemented (two real runs so far, both failed — DB_HOST/$_ENV bug now fixed and locally re-verified against the real bin/migrate; a 006_settings.sql migration bug was also found and fixed independently; awaiting a green GitHub Actions run before `Verified`)
 - Created: 2026-08-19
 - Updated: 2026-08-20
 - Owner: Henry (via Claude Code)
@@ -78,7 +78,8 @@ Not applicable — no new migration files. The workflow *applies* the existing `
 
 - `.github/workflows/ci.yml` — new file.
 - `README.md` — badge row (lines 12-17) edited to replace the "tests: not yet" badge with a live CI badge.
-- `common/migrations/006_settings.sql` — **added during implementation**, not part of the original plan: fixed a pre-existing bug this workflow's first real run exposed (see Validation evidence). Editing an already-shipped migration file's SQL is normally sensitive; justified here because `MigrationRunner` tracks applied migrations by filename only (not content hash), so this only changes behavior for fresh installs, never for a database where `006_settings.sql` is already recorded as applied.
+- `bin/migrate` — **added during implementation**: added the same `getenv()`→`$_ENV` bridge `tests/bootstrap.php` already has, fixing the actual cause of both CI run failures (`DB_HOST` never reaching `Settings::get()`). See Validation evidence.
+- `common/migrations/006_settings.sql` — **added during implementation**, not part of the original plan: fixed an independently-discovered, real (but not CI-blocking) bug (see Validation evidence). Editing an already-shipped migration file's SQL is normally sensitive; justified here because `MigrationRunner` tracks applied migrations by filename only (not content hash), so this only changes behavior for fresh installs, never for a database where `006_settings.sql` is already recorded as applied.
 - No other `src/`, `public/`, or `composer.json` changes beyond what spec 004 already introduces.
 
 ## Security considerations
@@ -125,14 +126,16 @@ Additive change on branch `013`. Rollback is a plain revert of `.github/workflow
   1. Fix `006_settings.sql` to guard the `ALTER TABLE` the same way `002_food_category_and_components.sql` already does (`information_schema.COLUMNS` existence check) — safe for already-migrated databases, since `MigrationRunner` tracks applied migrations by filename only, not content hash.
   2. Leave it as-is and accept that CI will keep failing until it's fixed some other way.
   3. Something else the user prefers.
-  **Resolved**: user chose option 1 (fix now). `common/migrations/006_settings.sql` was patched to guard the `ALTER TABLE` with the same `information_schema.COLUMNS` existence check `002_food_category_and_components.sql` already uses. Re-verified locally against a second fresh throwaway database (see Validation evidence) — all 7 migrations now apply cleanly end-to-end. Not yet confirmed on a real GitHub Actions run; this spec moves to `Verified` once that's observed.
+  **Resolved**: user chose option 1 (fix now). `common/migrations/006_settings.sql` was patched to guard the `ALTER TABLE` with the same `information_schema.COLUMNS` existence check `002_food_category_and_components.sql` already uses. Re-verified locally (via a bypass script, not the real `bin/migrate` — see Validation evidence's correction note) — all 7 migrations apply cleanly end-to-end against that reproduction.
+- **This did not actually fix run #2** — run #2 (commit `cda0d36`, the 006 fix) failed again, at the same "Run migrations" step, with a *different* error this time (`getaddrinfo for db failed`), which the user surfaced by pasting the real log after a WebFetch attempt was declined. This revealed the actual root cause: `bin/migrate` never populates `$_ENV['DB_HOST']` from the workflow's real environment variable (see Validation evidence for the full explanation) — a separate, unrelated bug from the 006 one, coincidentally hit first. Fixed in `bin/migrate` (same `getenv()` bridge `tests/bootstrap.php` already had) and re-verified locally against the *real* `bin/migrate` script this time. Not yet confirmed on an actual GitHub Actions run; this spec moves to `Verified` only once that's observed.
 
 ## Task checklist
 
 - [x] `.github/workflows/ci.yml` created
 - [x] `README.md` badge swapped for a live CI badge
-- [x] `common/migrations/006_settings.sql` fixed (unplanned, discovered via run #1's failure) and re-verified locally end-to-end
-- [ ] Workflow observed to run green at least once — run #1 failed (migration bug, now fixed and locally re-verified); a follow-up push/run is needed to confirm green on GitHub Actions itself
+- [x] `common/migrations/006_settings.sql` fixed (independently-found bug, not the actual CI blocker) and re-verified locally end-to-end
+- [x] `bin/migrate` fixed (actual root cause of both run #1 and run #2's failures: `$_ENV['DB_HOST']` never populated) and re-verified locally against the real script
+- [ ] Workflow observed to run green at least once — two runs so far, both failed; a follow-up push/run is needed to confirm green on GitHub Actions itself
 
 ## Implementation log
 
@@ -158,7 +161,28 @@ Additive change on branch `013`. Rollback is a plain revert of `.github/workflow
   9. Run PHPUnit — **skipped** (never reached; AC 5 not met)
   10. Stop containers / complete job — success
   - **Overall run conclusion: failure.** AC 4 (schema+migrate) and AC 5 (phpunit passing in CI) are **not met**.
-- **Root cause identified** (reproduced locally, without touching `.env` or CI): a throwaway, isolated `mysql:8.0` container (`docker run --network gastroflow_default ...`, torn down afterward — never touched the real dev `db`/`restaurant` data) was loaded with `common/sql/001_schema.sql`, then migrations were run against it via a one-off script that sets `$_ENV` directly in-process and calls `Database::boot()` + `MigrationRunner::run()` (bypassing `bin/migrate`'s `.env` requirement entirely — this is what made the local dry-run possible without violating the "never modify `.env`" rule). Result:
+- **Correction**: an earlier version of this section claimed run #1's failure was the `006_settings.sql` duplicate-column bug below, based on a local reproduction that used explicit `$_ENV` values set directly in-process — not on run #1's actual log text (a WebFetch attempt to read the real job log was declined). That was a real, independently-reproducible bug (kept fixed, see below), but **it was not actually what failed run #1 or run #2** — the real cause (confirmed from the user pasting run #2's actual raw log) was different and is described next. Recorded here so the spec's history doesn't quietly imply the first diagnosis was verified when it wasn't.
+- **Actual root cause of both run #1 and run #2's failures** (confirmed from run #2's real log, pasted directly by the user after a WebFetch attempt was declined): `PDOException: ... getaddrinfo for db failed: Temporary failure in name resolution`, i.e. the app tried to connect to a host literally named `db` — `Database::boot()`'s default fallback (`src/Database.php:13`, `$settings->get('DB_HOST', 'db')`) — meaning `$_ENV['DB_HOST']` was never actually set when `bin/migrate` ran, despite the workflow's "Write .env for bin/migrate" step (which does set `DB_HOST=127.0.0.1` in the file) reporting success.
+  - Why: `bin/migrate` calls `Dotenv::createImmutable(...)->load()` with no bridge from `getenv()` into `$_ENV`. Two PHP/CI specifics combine: (1) the runner's PHP `variables_order` doesn't include `E`, so `$_ENV` isn't auto-populated from real OS environment variables; (2) GitHub Actions' job-level `env:` block **does** set `DB_HOST` as a real OS process environment variable, visible via `getenv()` — and phpdotenv's default "immutable" mode refuses to let a `.env` **file** value override a key that `getenv()` already reports as set, so it skips writing `DB_HOST` into `$_ENV` from the file too. Net result: `$_ENV['DB_HOST']` stays unset from both sources, and `Settings::get()` falls back to its hardcoded default `'db'`, which doesn't resolve on a GitHub-hosted runner. This never showed up in normal Docker use because `docker-compose.yml`'s `environment: DB_HOST: db` happens to equal that same default.
+  - **Fix**: `bin/migrate` now includes the identical `getenv()`→`$_ENV` bridge `tests/bootstrap.php` already had (added for spec 004) — anything `getenv()` reports that `$_ENV` doesn't already have gets copied in, after `Dotenv::load()`.
+  - **Fix verified locally against the real `bin/migrate` script** (not a bypass), reproducing CI's exact condition — `DB_HOST` supplied only as a bare process environment variable, nothing pre-set in `$_ENV`: a third throwaway, isolated `mysql:8.0` container was loaded with the schema, then `docker compose exec -e DB_HOST=ci-dryrun-mysql3 -T web php bin/migrate` ran successfully end-to-end:
+    ```
+    === GastroFlow Migrations ===
+    ▶ Executando 001_ingredients.sql ... [OK]
+    ▶ Executando 002_food_category_and_components.sql ... [OK]
+    ▶ Executando 003_dish_components_data.sql ... [OK]
+    ▶ Executando 005_dining_option.sql ... [OK]
+    ▶ Executando 006_settings.sql ... [OK]
+    ▶ Executando 007_jobs.sql ... [OK]
+    ▶ Executando 008_order_items_price.sql ... [OK]
+    ✓ Concluído.
+    ```
+    Container torn down afterward. `docker compose exec web php -l bin/migrate` → "No syntax errors detected".
+  - This is now believed to be the actual, complete fix for both run #1 and run #2's failures — but per this section's own correction above, that belief is only confirmed once a real GitHub Actions run is green; it is not asserted as fact until then.
+
+### Independently-found bug (real, but not the CI blocker): `common/migrations/006_settings.sql`
+
+Reproduced locally (a *different* throwaway, isolated `mysql:8.0` container, using a one-off script that bypassed `bin/migrate`/`.env` entirely by setting `$_ENV` directly in-process — this is what let the connection succeed despite the `DB_HOST` bug above, which is why this SQL-level error was reachable in that specific reproduction even though it wasn't what actually failed in CI). Result:
   ```
   ▶ Executando 001_ingredients.sql ... [OK]
   ▶ Executando 002_food_category_and_components.sql ... [OK]

@@ -23,6 +23,17 @@ use App\Database as DB;
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->load();
 
+
+// Some environments (e.g. CI) set real OS environment variables instead of a
+// .env file. PHP's default variables_order doesn't populate $_ENV from those,
+// and phpdotenv won't override a key getenv() already reports as set — so
+// bridge anything getenv() has that $_ENV doesn't.
+foreach (getenv() as $key => $value) {
+    if (!array_key_exists($key, $_ENV)) {
+        $_ENV[$key] = $value;
+    }
+}
+
 // Inicializar conexão com o banco (Eloquent)
 $settings = new Settings();
 DB::boot($settings);
