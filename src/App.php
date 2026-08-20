@@ -47,7 +47,7 @@ class App
 
         // Middleware
         $app->add(new Middleware\JsonBodyParserMiddleware());
-        $app->add(new Middleware\CorsMiddleware());
+        $app->add(new Middleware\CorsMiddleware($this->settings->get('CORS_ALLOWED_ORIGIN', '*')));
 
         // Error middleware — always return JSON for API routes
         $errorMiddleware = $app->addErrorMiddleware(true, true, true);
