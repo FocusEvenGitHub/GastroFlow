@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/PHP-%3E%3D8.1-777BB4?style=flat-square&logo=php" alt="PHP 8.1+"/>
   <img src="https://img.shields.io/badge/Slim-4-8A2BE2?style=flat-square" alt="Slim 4"/>
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker" alt="Docker Compose"/>
-  <img src="https://img.shields.io/badge/tests-not%20yet-lightgrey?style=flat-square" alt="No automated tests yet"/>
+  <a href="https://github.com/FocusEvenGitHub/GastroFlow/actions/workflows/ci.yml"><img src="https://github.com/FocusEvenGitHub/GastroFlow/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
 </p>
 
 ---
