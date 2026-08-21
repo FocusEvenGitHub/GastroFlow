@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.5.6 (2026-08-20)
+
+### Segurança
+- **Autenticação**: `JWT_SECRET` agora é obrigatório — a aplicação lança exceção na inicialização se a variável de ambiente não estiver definida, em vez de usar um segredo hardcoded conhecido publicamente
+- **CORS**: origem permitida agora é configurável via `CORS_ALLOWED_ORIGIN` (aplicada em toda resposta, incluindo preflight OPTIONS); mantém `*` como padrão quando não definida, preservando o comportamento anterior
+
+### Correções
+- **Migrations**: `006_settings.sql` agora verifica se a coluna `orders.customer_name` já existe antes de tentar criá-la, evitando falha ("Duplicate column name") em instalações novas — a coluna já é declarada em `001_schema.sql`
+- **`bin/migrate`**: agora propaga variáveis de ambiente do processo (`getenv()`) para `$_ENV`, corrigindo falha de conexão ao banco (`DB_HOST` não reconhecido) em ambientes que definem variáveis de ambiente reais em vez de um arquivo `.env`, como o GitHub Actions
+
+### Infraestrutura (`ROADMAP.md` v2.0/v2.1)
+- **Testes**: adicionado PHPUnit `^11` com teste de smoke (`GET /api/menu`) e testes unitários para `OrderService` e `OrderValidator`
+- **CI**: novo workflow do GitHub Actions que roda `composer install`, aplica o schema + migrations em MySQL 8.0 e executa a suíte PHPUnit em todo push/PR para `master`; badge do README atualizado para refletir o status real do workflow
+- **Config**: caminhos de sistema de arquivos centralizados em `Settings` via injeção de dependência, substituindo caminhos `__DIR__`-relativos espalhados em `App`, `AdminController`, `PrintService` e `PrintOrderJob`
+- **Code style**: `declare(strict_types=1)` adicionado a todos os arquivos PHP em `src/`
+
 ## v1.5.5 (2026-07-11)
 
 ### Novidades
