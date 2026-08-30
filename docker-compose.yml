@@ -6,6 +6,7 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: America/Sao_Paulo
     volumes:
       - db_data:/var/lib/mysql
       - ./common/sql/001_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
@@ -28,6 +29,7 @@ services:
       - ./phpunit.xml:/var/www/html/phpunit.xml
       - ./.env:/var/www/html/.env
       - ./vendor:/var/www/html/vendor
+      - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
     depends_on:
       - db
     ports:
@@ -37,6 +39,7 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: America/Sao_Paulo
 
   print-worker:
     build: .
@@ -55,6 +58,7 @@ services:
       - ./phpunit.xml:/var/www/html/phpunit.xml
       - ./.env:/var/www/html/.env
       - ./vendor:/var/www/html/vendor
+      - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
     depends_on:
       - db
     restart: unless-stopped
@@ -63,6 +67,7 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: America/Sao_Paulo
     # No host ports exposed — the worker only consumes the print queue.
 
 volumes:

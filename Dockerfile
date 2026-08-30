@@ -44,4 +44,9 @@ COPY .env ./
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
+# Timezone do servidor: America/Sao_Paulo (UTC-3)
+ENV TZ=America/Sao_Paulo
+RUN ln -sfn /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime \
+    && echo 'date.timezone=America/Sao_Paulo' > /usr/local/etc/php/conf.d/timezone.ini
+
 EXPOSE 80
