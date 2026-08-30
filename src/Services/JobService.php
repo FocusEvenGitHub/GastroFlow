@@ -72,7 +72,7 @@ class JobService
 
             if ($handler && class_exists($handler)) {
                 $instance = new $handler();
-                $instance->handle($data);
+                $instance->handle($data, $job);
             }
 
             // Success — delete the job
@@ -82,6 +82,7 @@ class JobService
             // Otherwise release it so it can be retried.
             if ($job->attempts >= $job->max_attempts) {
                 $job->update(['reserved_at' => null]);
+                $this->logJobFailure($job, $e, "Falha permanente (max_attempts={$job->max_attempts} atingido)");
             } else {
                 // Release with a small delay (exponential backoff)
                 $backoff = pow(2, $job->attempts);
@@ -89,10 +90,23 @@ class JobService
                     'reserved_at'  => null,
                     'available_at' => Carbon::now()->addSeconds($backoff),
                 ]);
+                $this->logJobFailure($job, $e, "Job liberado para retry em {$backoff}s (attempt={$job->attempts}/{$job->max_attempts})");
             }
         }
 
         return true;
+    }
+
+    private function logJobFailure(Job $job, \Throwable $e, string $context): void
+    {
+        error_log(sprintf(
+            'Job #%d queue=%s %s error="%s" payload=%s',
+            $job->id,
+            $job->queue,
+            $context,
+            $e->getMessage(),
+            (string) $job->payload
+        ));
     }
 
     /**

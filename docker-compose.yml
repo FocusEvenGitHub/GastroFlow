@@ -14,6 +14,7 @@ services:
 
   web:
     build: .
+    image: gastroflow-web
     container_name: restaurant_web
     volumes:
       - ./public:/var/www/html/public
@@ -26,6 +27,7 @@ services:
       - ./composer.lock:/var/www/html/composer.lock
       - ./phpunit.xml:/var/www/html/phpunit.xml
       - ./.env:/var/www/html/.env
+      - ./vendor:/var/www/html/vendor
     depends_on:
       - db
     ports:
@@ -35,6 +37,33 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+  print-worker:
+    build: .
+    image: gastroflow-web
+    container_name: restaurant_print_worker
+    command: php bin/worker print
+    volumes:
+      - ./public:/var/www/html/public
+      - ./src:/var/www/html/src
+      - ./common:/var/www/html/common
+      - ./legacy:/var/www/html/legacy
+      - ./bin:/var/www/html/bin
+      - ./tests:/var/www/html/tests
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+      - ./phpunit.xml:/var/www/html/phpunit.xml
+      - ./.env:/var/www/html/.env
+      - ./vendor:/var/www/html/vendor
+    depends_on:
+      - db
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    # No host ports exposed — the worker only consumes the print queue.
 
 volumes:
   db_data:

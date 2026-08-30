@@ -58,17 +58,24 @@ if ($once) {
 }
 
 // Loop contínuo
-declare(ticks=1);
-pcntl_signal(SIGINT, function () use (&$running) {
-    echo "\n⏹ Worker stopped.\n";
-    $running = false;
-});
-pcntl_signal(SIGTERM, function () use (&$running) {
-    echo "\n⏹ Worker stopped.\n";
-    $running = false;
-});
-
 $running = true;
+
+if (function_exists('pcntl_signal')) {
+    declare(ticks=1);
+    pcntl_signal(SIGINT, function () use (&$running) {
+        echo "\n⏹ Worker stopped.\n";
+        $running = false;
+    });
+    pcntl_signal(SIGTERM, function () use (&$running) {
+        echo "\n⏹ Worker stopped.\n";
+        $running = false;
+    });
+} else {
+    echo "⚠ pcntl não disponível — encerramento gracioso via signal desativado; " .
+        "SIGTERM encerrará o processo (o Docker o reinicia).\n";
+    // Without pcntl the process still works; termination happens on SIGTERM kill.
+}
+
 $processed = 0;
 
 while ($running) {

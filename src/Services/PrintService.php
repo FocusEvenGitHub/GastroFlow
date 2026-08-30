@@ -14,10 +14,32 @@ use App\Settings;
 
 class PrintService
 {
+    /** @var callable|null */
+    private $connectorFactory;
+
+    /**
+     * @param callable|null $connectorFactory Optional factory
+     *        fn(string $ip, int $port): PrintConnector used to create the
+     *        network connector. Injected for testability (a real printer must
+     *        never be required by the automated tests).
+     */
     public function __construct(
         private readonly LoggerInterface $logger,
         private readonly Settings $settings,
+        ?callable $connectorFactory = null,
     ) {
+        $this->connectorFactory = $connectorFactory;
+    }
+
+    /**
+     * Create the printer connector for the given host/port.
+     */
+    private function makeConnector(string $ip, int $port): \Mike42\Escpos\PrintConnectors\PrintConnector
+    {
+        if ($this->connectorFactory !== null) {
+            return ($this->connectorFactory)($ip, $port);
+        }
+        return new NetworkPrintConnector($ip, $port, 5);
     }
 
     /**
@@ -34,11 +56,17 @@ class PrintService
 
     /**
      * Print an order receipt on the network thermal printer.
-     * Errors are logged but never thrown — printing is best-effort.
+     *
+     * Logs the outcome and, on failure, rethrows the exception so the caller
+     * (e.g. PrintOrderJob -> JobService) can decide whether to retry. Printing
+     * is best-effort at the point where the order is created, but a failed print
+     * must NOT be silently treated as success by the queue.
      */
-    public function printOrder(Order $order): void
+    public function printOrder(Order $order, array $context = []): void
     {
         $config = $this->getPrinterConfig();
+
+        $ctx = $this->labelContext($context, $config);
 
         if (empty($config['ip'])) {
             $this->logger->warning('Impressão cancelada: IP da impressora não configurado.');
@@ -46,16 +74,32 @@ class PrintService
         }
 
         try {
-            $connector = new NetworkPrintConnector($config['ip'], $config['port'], 5);
+            $connector = $this->makeConnector($config['ip'], $config['port']);
             $printer = new Printer($connector);
 
             $this->buildReceipt($printer, $order, $config['name']);
 
             $printer->close();
-            $this->logger->info('Pedido #' . $order->id . ' impresso em ' . $config['ip'] . ':' . $config['port']);
+            $this->logger->info('Print success' . $ctx . ' order=' . $order->id . ' printer=' . $config['ip'] . ':' . $config['port']);
         } catch (\Throwable $e) {
-            $this->logger->error('Falha ao imprimir pedido #' . $order->id . ': ' . $e->getMessage());
+            $this->logger->error('Print failed' . $ctx . ' order=' . $order->id . ' printer=' . $config['ip'] . ':' . $config['port'] . ' error="' . $e->getMessage() . '"');
+            throw $e;
         }
+    }
+
+    /**
+     * Build a log suffix with useful job context, when available.
+     */
+    private function labelContext(array $context, array $config): string
+    {
+        $parts = [];
+        if (!empty($context['job_id'])) {
+            $parts[] = ' print_job=' . $context['job_id'];
+        }
+        if (isset($context['attempt'])) {
+            $parts[] = ' attempt=' . $context['attempt'] . '/' . $context['max_attempts'];
+        }
+        return implode('', $parts);
     }
 
     /**
@@ -69,7 +113,7 @@ class PrintService
             throw new \RuntimeException('IP da impressora não configurado.');
         }
 
-        $connector = new NetworkPrintConnector($config['ip'], $config['port'], 5);
+        $connector = $this->makeConnector($config['ip'], $config['port']);
         $printer = new Printer($connector);
 
         $printer->initialize();
