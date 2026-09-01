@@ -9,6 +9,7 @@ function adminApp() {
 
         menu: [],
         categories: [],
+        searchQuery: '',
         loading: true,
         newItem: { name: '', price: '', category_name: '', description: '' },
         saving: false,
@@ -83,6 +84,16 @@ function adminApp() {
             } finally {
                 this.loading = false;
             }
+        },
+
+        // Menu filtrado pela busca por nome
+        get filteredMenu() {
+            const query = this.searchQuery.trim().toLowerCase();
+            if (!query) return this.menu;
+
+            return this.menu
+                .map(cat => ({ ...cat, items: cat.items.filter(item => item.name.toLowerCase().includes(query)) }))
+                .filter(cat => cat.items.length > 0);
         },
 
         async addItem() {

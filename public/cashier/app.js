@@ -5,6 +5,7 @@ function cashierApp() {
         menu: [],               // array vindo da API
         categories: [],         // nomes únicos das categorias
         currentCategory: 'all',
+        searchQuery: '',
         selectedItems: [],
         toasts: [],
         loading: true,
@@ -38,10 +39,18 @@ function cashierApp() {
             }
         },
 
-        // Menu filtrado pela categoria selecionada
+        // Menu filtrado pela categoria selecionada e pela busca por nome
         get filteredMenu() {
-            if (this.currentCategory === 'all') return this.menu;
-            return this.menu.filter(cat => cat.category_name === this.currentCategory);
+            let menu = this.currentCategory === 'all'
+                ? this.menu
+                : this.menu.filter(cat => cat.category_name === this.currentCategory);
+
+            const query = this.searchQuery.trim().toLowerCase();
+            if (!query) return menu;
+
+            return menu
+                .map(cat => ({ ...cat, items: cat.items.filter(item => item.name.toLowerCase().includes(query)) }))
+                .filter(cat => cat.items.length > 0);
         },
 
         // Adiciona item ao pedido (padrão: Local)
@@ -61,6 +70,8 @@ function cashierApp() {
                     diningOption: 'local'
                 });
             }
+            // Limpa a busca para facilitar a próxima seleção
+            this.searchQuery = '';
         },
 
         // Altera a opção de onde comer (local / viagem_simples / viagem_vip)

@@ -153,12 +153,26 @@
         </div>
 
         <!-- Cardápio -->
-        <h3><i class="fas fa-list me-2"></i>Cardápio Atual</h3>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h3 class="mb-0"><i class="fas fa-list me-2"></i>Cardápio Atual</h3>
+            <div class="input-group" style="max-width: 320px;">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" x-model="searchQuery" class="form-control"
+                       placeholder="Buscar item pelo nome...">
+                <button class="btn btn-outline-secondary" type="button" x-show="searchQuery"
+                        @click="searchQuery = ''" title="Limpar busca">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
         <div x-show="loading" class="text-center py-5">
             <div class="spinner-border text-primary"></div>
         </div>
+        <div x-show="!loading && filteredMenu.length === 0 && searchQuery" class="text-muted mb-3">
+            Nenhum item encontrado para "<span x-text="searchQuery"></span>".
+        </div>
         <div x-show="!loading">
-            <template x-for="category in menu" :key="category.category_name">
+            <template x-for="category in filteredMenu" :key="category.category_name">
                 <div class="card mb-4 shadow-sm">
                     <div class="card-header">
                         <h4 class="mb-0"><i class="fas" :class="category.type === 'food' ? 'fa-utensils' : 'fa-glass-cheers'"></i> <span x-text="category.category_name"></span></h4>

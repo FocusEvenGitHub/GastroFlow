@@ -109,6 +109,19 @@
                 </div>
             </div>
 
+            <!-- Busca -->
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" x-model="searchQuery" class="form-control"
+                           placeholder="Buscar item pelo nome...">
+                    <button class="btn btn-outline-secondary" type="button" x-show="searchQuery"
+                            @click="searchQuery = ''" title="Limpar busca">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
             <!-- Categorias -->
             <ul class="nav nav-tabs mb-3" x-show="categories.length > 0">
                 <li class="nav-item" @click="currentCategory='all'">
@@ -123,7 +136,10 @@
 
             <!-- Itens do cardápio -->
             <div x-show="loading">Carregando cardápio...</div>
-            <div x-show="!loading && filteredMenu.length === 0" class="text-muted">Nenhum item disponível.</div>
+            <div x-show="!loading && filteredMenu.length === 0 && searchQuery" class="text-muted">
+                Nenhum item encontrado para "<span x-text="searchQuery"></span>".
+            </div>
+            <div x-show="!loading && filteredMenu.length === 0 && !searchQuery" class="text-muted">Nenhum item disponível.</div>
             <div class="row" x-show="!loading">
                 <template x-for="category in filteredMenu" :key="category.category_name">
                     <div class="col-12 mb-4">
