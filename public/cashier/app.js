@@ -12,6 +12,9 @@ function cashierApp() {
         printTicket: true,
         viewMode: localStorage.getItem('cashierViewMode') || 'grid',
         darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
+        reorderMode: false,
+        dragSource: null, // { categoryName, index }
+        reordering: false,
 
         async init() {
             this.applyTheme();
@@ -169,6 +172,47 @@ function cashierApp() {
         toggleView(mode) {
             this.viewMode = mode;
             localStorage.setItem('cashierViewMode', mode);
+        },
+
+        toggleReorderMode() {
+            this.reorderMode = !this.reorderMode;
+        },
+
+        dragStart(category, index) {
+            this.dragSource = { categoryName: category.category_name, index };
+        },
+
+        async dragDrop(category, targetIndex) {
+            if (!this.dragSource || this.dragSource.categoryName !== category.category_name) {
+                this.dragSource = null;
+                return;
+            }
+            const sourceIndex = this.dragSource.index;
+            this.dragSource = null;
+            if (sourceIndex === targetIndex) return;
+
+            const items = category.items;
+            const [moved] = items.splice(sourceIndex, 1);
+            items.splice(targetIndex, 0, moved);
+
+            this.reordering = true;
+            try {
+                const res = await fetch('/api/menu/reorder', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        category_name: category.category_name,
+                        item_ids: items.map(i => i.id)
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao reorganizar');
+                this.showMessage('Ordem do cardápio atualizada!', 'success');
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            } finally {
+                this.reordering = false;
+            }
         },
 
         applyTheme() {

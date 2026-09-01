@@ -144,13 +144,22 @@
                                             <span class="badge bg-primary badge-table"><i class="fas fa-hashtag me-1"></i><span x-text="order.table_number"></span></span>
                                             <small class="text-muted" x-text="timeAgo(order.created_at)"></small>
                                         </div>
-                                        <button class="btn btn-success btn-sm-icon" @click="completeOrder(order.id)" :disabled="completing === order.id" title="Dar Baixa">
-                                            <span x-show="completing !== order.id"><i class="fas fa-check"></i></span>
-                                            <span x-show="completing === order.id"><span class="spinner-border spinner-border-sm"></span></span>
-                                        </button>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <button class="btn btn-outline-secondary btn-sm-icon" @click="reprintOrder(order.id)" :disabled="reprinting === order.id" title="Reimprimir nota">
+                                                <span x-show="reprinting !== order.id"><i class="fas fa-print"></i></span>
+                                                <span x-show="reprinting === order.id"><span class="spinner-border spinner-border-sm"></span></span>
+                                            </button>
+                                            <button class="btn btn-outline-primary btn-sm-icon" @click="openEditModal(order)" title="Editar pedido">
+                                                <i class="fas fa-pencil-alt"></i>
+                                            </button>
+                                            <button class="btn btn-success btn-sm-icon" @click="completeOrder(order.id)" :disabled="completing === order.id" title="Dar Baixa">
+                                                <span x-show="completing !== order.id"><i class="fas fa-check"></i></span>
+                                                <span x-show="completing === order.id"><span class="spinner-border spinner-border-sm"></span></span>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="card-body">
-                                        <template x-for="item in order.items" :key="item.name">
+                                        <template x-for="item in kitchenItems(order)" :key="item.item_id">
                                             <div class="mb-1">
                                                 <div class="item-row d-flex justify-content-between">
                                                     <span>
@@ -193,13 +202,22 @@
                                                 <span class="badge bg-secondary badge-table"><i class="fas fa-hashtag me-1"></i><span x-text="order.table_number"></span></span>
                                                 <small class="text-muted" x-text="timeAgo(order.created_at)"></small>
                                             </div>
-                                            <button class="btn btn-outline-secondary btn-sm-icon" @click="uncompleteOrder(order.id)" :disabled="uncompleting === order.id" title="Estornar Baixa">
-                                                <span x-show="uncompleting !== order.id"><i class="fas fa-undo"></i></span>
-                                                <span x-show="uncompleting === order.id"><span class="spinner-border spinner-border-sm"></span></span>
-                                            </button>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <button class="btn btn-outline-secondary btn-sm-icon" @click="reprintOrder(order.id)" :disabled="reprinting === order.id" title="Reimprimir nota">
+                                                    <span x-show="reprinting !== order.id"><i class="fas fa-print"></i></span>
+                                                    <span x-show="reprinting === order.id"><span class="spinner-border spinner-border-sm"></span></span>
+                                                </button>
+                                                <button class="btn btn-outline-primary btn-sm-icon" @click="openEditModal(order)" title="Editar pedido">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </button>
+                                                <button class="btn btn-outline-secondary btn-sm-icon" @click="uncompleteOrder(order.id)" :disabled="uncompleting === order.id" title="Estornar Baixa">
+                                                    <span x-show="uncompleting !== order.id"><i class="fas fa-undo"></i></span>
+                                                    <span x-show="uncompleting === order.id"><span class="spinner-border spinner-border-sm"></span></span>
+                                                </button>
+                                            </div>
                                         </div>
                                         <div class="card-body">
-                                            <template x-for="item in order.items" :key="item.name">
+                                            <template x-for="item in kitchenItems(order)" :key="item.item_id">
                                                 <div class="mb-1">
                                                     <div class="item-row d-flex justify-content-between">
                                                         <span>
@@ -264,6 +282,91 @@
                     </template>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de editar/remover pedido -->
+<div class="modal fade" id="editOrderModal" tabindex="-1" data-bs-backdrop="static"
+     x-effect="(() => { const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editOrderModal')); editingOrder ? modal.show() : modal.hide(); })()">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="font-size: 1rem;">
+            <template x-if="editingOrder">
+                <div>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Pedido <span x-text="'#' + editingOrder.id"></span></h5>
+                        <button type="button" class="btn-close" @click="closeEditModal()"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Senha</label>
+                                <input type="text" class="form-control" x-model="editingOrder.table_number">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Cliente</label>
+                                <input type="text" class="form-control" x-model="editingOrder.customer_name">
+                            </div>
+                        </div>
+                        <hr>
+                        <h6>Itens do pedido</h6>
+                        <template x-for="item in editingOrder.items" :key="item.item_id">
+                            <div class="d-flex justify-content-between align-items-start border-bottom py-2">
+                                <div class="flex-grow-1 me-3">
+                                    <strong x-text="item.name"></strong>
+                                    <span class="badge bg-secondary ms-1" x-text="item.category_name || 'Sem categoria'"></span>
+                                    <div class="mt-1">
+                                        <input type="text" class="form-control form-control-sm" placeholder="Observação"
+                                               x-model="item.notes">
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" @click="item.quantity = Math.max(1, item.quantity - 1)">−</button>
+                                        <span class="mx-2" x-text="item.quantity"></span>
+                                        <button class="btn btn-outline-secondary" @click="item.quantity++">+</button>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger" @click="removeItemFromModal(item.item_id)" :disabled="removingItemId === item.item_id" title="Remover item">
+                                        <span x-show="removingItemId !== item.item_id"><i class="fas fa-trash"></i></span>
+                                        <span x-show="removingItemId === item.item_id"><span class="spinner-border spinner-border-sm"></span></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                        <div class="d-flex gap-2 align-items-end mt-3 pt-3 border-top">
+                            <div class="flex-grow-1">
+                                <label class="form-label small mb-1">Adicionar item</label>
+                                <select class="form-select form-select-sm" x-model.number="newItemId">
+                                    <option value="">Selecione um item...</option>
+                                    <template x-for="item in allMenuItems()" :key="item.id">
+                                        <option :value="item.id" x-text="item.category_name + ' — ' + item.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div style="width:80px">
+                                <label class="form-label small mb-1">Qtd</label>
+                                <input type="number" min="1" class="form-control form-control-sm" x-model.number="newItemQty">
+                            </div>
+                            <button class="btn btn-sm btn-primary" @click="addItemToModal()" :disabled="!newItemId || addingItem" title="Adicionar item ao pedido">
+                                <span x-show="!addingItem"><i class="fas fa-plus"></i></span>
+                                <span x-show="addingItem"><span class="spinner-border spinner-border-sm"></span></span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-footer d-flex justify-content-between">
+                        <button class="btn btn-outline-danger" @click="deleteOrder()" :disabled="savingOrder">
+                            <i class="fas fa-trash me-1"></i>Excluir Pedido
+                        </button>
+                        <div>
+                            <button class="btn btn-outline-secondary me-2" @click="closeEditModal()">Cancelar</button>
+                            <button class="btn btn-primary" @click="saveOrderChanges()" :disabled="savingOrder">
+                                <span x-show="!savingOrder">Salvar</span>
+                                <span x-show="savingOrder"><span class="spinner-border spinner-border-sm"></span></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
         </div>
     </div>
 </div>

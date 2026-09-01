@@ -105,6 +105,32 @@ class MenuController
         }
     }
 
+    // PATCH /api/menu/reorder
+    public function reorder(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+
+        if (!isset($data['category_name']) || !isset($data['item_ids']) || !is_array($data['item_ids']) || empty($data['item_ids'])) {
+            $response->getBody()->write(json_encode([
+                'error' => 'Campos obrigatórios: category_name, item_ids (array não vazio)'
+            ]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        try {
+            $this->menuService->reorderItems($data['category_name'], $data['item_ids']);
+            $payload = ['success' => true, 'message' => 'Ordem atualizada'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Categoria não encontrada']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\Throwable $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
     // DELETE /api/admin/items/{id}
     public function delete(Request $request, Response $response, array $args): Response
     {

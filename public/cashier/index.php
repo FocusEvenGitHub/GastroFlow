@@ -12,6 +12,7 @@
     <style>
         .menu-item-card { cursor: pointer; transition: all 0.2s; }
         .menu-item-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .reorder-card { cursor: move; border: 1px dashed #ffc107; -webkit-user-select: none; user-select: none; }
         .selected-item { background: #fff; transition: background 0.2s; }
         .selected-item:hover { background: #f8f9fa; }
         .quantity-btn { min-width: 2rem; }
@@ -76,6 +77,11 @@
                         <i class="fas fa-list"></i>
                     </button>
                 </div>
+                <button class="btn btn-sm" :class="reorderMode ? 'btn-warning' : 'btn-outline-secondary'"
+                        @click="toggleReorderMode()" title="Reorganizar itens do cardápio">
+                    <span x-show="!reordering"><i class="fas fa-arrows-alt me-1"></i><span x-text="reorderMode ? 'Concluir' : 'Reorganizar'"></span></span>
+                    <span x-show="reordering"><span class="spinner-border spinner-border-sm me-1"></span>Salvando ordem...</span>
+                </button>
                 <div class="form-check form-switch print-switch mb-0" title="Quando ligado, o pedido é enviado para a impressora térmica">
                     <input class="form-check-input" type="checkbox" id="printToggle" x-model="printTicket" checked>
                     <label class="form-check-label small" for="printToggle">
@@ -123,9 +129,13 @@
                     <div class="col-12 mb-4">
                         <h5 class="text-primary"><i class="fas" :class="category.type === 'food' ? 'fa-utensils' : 'fa-glass-cheers'"></i> <span x-text="category.category_name"></span></h5>
                         <div class="row" :class="viewMode === 'list' ? 'view-list' : ''">
-                            <template x-for="item in category.items" :key="item.id">
-                                <div class="menu-item-col col-md-4 col-sm-6 mb-3">
-                                    <div class="card menu-item-card h-100" @click="addItem(item)">
+                            <template x-for="(item, index) in category.items" :key="item.id">
+                                <div class="menu-item-col col-md-4 col-sm-6 mb-3"
+                                     :draggable="reorderMode && !reordering"
+                                     @dragstart="dragStart(category, index)"
+                                     @dragover.prevent
+                                     @drop.prevent="dragDrop(category, index)">
+                                    <div class="card menu-item-card h-100" :class="reorderMode ? 'reorder-card' : ''" @click="!reorderMode && addItem(item)">
                                         <div class="card-body">
                                             <h6 class="card-title" x-text="item.name"></h6>
                                             <template x-if="category.category_name !== 'Pratos Principais'">
@@ -139,9 +149,10 @@
                                             </template>
                                             <div class="d-flex justify-content-between align-items-center item-footer">
                                                 <span class="h5 text-success mb-0">R$ <span x-text="item.price.toFixed(2)"></span></span>
-                                                <button class="btn btn-sm btn-outline-primary" @click.stop="addItem(item)">
+                                                <button class="btn btn-sm btn-outline-primary" @click.stop="addItem(item)" x-show="!reorderMode">
                                                     <i class="fas fa-plus"></i> Adicionar
                                                 </button>
+                                                <span class="text-muted" x-show="reorderMode" title="Arraste para reorganizar"><i class="fas fa-grip-lines"></i></span>
                                             </div>
                                         </div>
                                     </div>

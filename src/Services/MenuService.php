@@ -50,4 +50,9 @@ class MenuService
     {
         $this->menuRepo->deleteItem($id);
     }
+
+    public function reorderItems(string $categoryName, array $itemIds): void
+    {
+        $this->menuRepo->reorderItems($categoryName, $itemIds);
+    }
 }

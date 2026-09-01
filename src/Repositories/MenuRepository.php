@@ -12,7 +12,7 @@ class MenuRepository
     public function getFullMenu(): array
     {
         $categories = Category::with(['menuItems' => function ($query) {
-            $query->orderBy('name');
+            $query->orderBy('position')->orderBy('name');
         }, 'menuItems.components'])->orderBy('type')->orderBy('name')->get();
 
         $menu = [];
@@ -115,5 +115,20 @@ class MenuRepository
     {
         $item = MenuItem::findOrFail($id);
         $item->delete();
+    }
+
+    /**
+     * Persist a new manual order for the items of one category.
+     * $itemIds is the full ordered list of menu_item ids within that category.
+     */
+    public function reorderItems(string $categoryName, array $itemIds): void
+    {
+        $category = Category::where('name', $categoryName)->firstOrFail();
+
+        foreach (array_values($itemIds) as $position => $itemId) {
+            MenuItem::where('id', (int) $itemId)
+                ->where('category_id', $category->id)
+                ->update(['position' => $position]);
+        }
     }
 }

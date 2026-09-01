@@ -12,6 +12,15 @@ function kitchenApp() {
         eventSource: null,
         foodSummary: [],
         selectedDate: new Date().toISOString().split('T')[0],
+        editingOrder: null,
+        savingOrder: false,
+        reprinting: null,
+        menu: [],
+        newItemId: '',
+        newItemQty: 1,
+        addingItem: false,
+        removingItemId: null,
+        KITCHEN_CATEGORIES: ['Pratos Principais', 'Adicionais'],
 
         _today() {
             return new Date().toISOString().split('T')[0];
@@ -19,8 +28,27 @@ function kitchenApp() {
 
         async init() {
             this.applyTheme();
-            await this.fetchAll();
+            await Promise.all([this.fetchAll(), this.loadMenu()]);
             this.connectSSE();
+        },
+
+        async loadMenu() {
+            try {
+                const res = await fetch('/api/menu');
+                if (!res.ok) throw new Error('Erro ao carregar cardápio');
+                this.menu = await res.json();
+            } catch (err) {
+                console.error('Erro ao carregar cardápio:', err);
+            }
+        },
+
+        // Cardápio achatado (sem agrupar por categoria) para o seletor "Adicionar item"
+        allMenuItems() {
+            return this.menu.flatMap(cat => (cat.items || []).map(i => ({
+                id: i.id,
+                name: i.name,
+                category_name: cat.category_name
+            })));
         },
 
         onDateChange() {
@@ -48,6 +76,14 @@ function kitchenApp() {
             });
 
             this.eventSource.addEventListener('order.uncompleted', () => {
+                if (this.selectedDate === this._today()) this.fetchAll();
+            });
+
+            this.eventSource.addEventListener('order.updated', () => {
+                if (this.selectedDate === this._today()) this.fetchAll();
+            });
+
+            this.eventSource.addEventListener('order.deleted', () => {
                 if (this.selectedDate === this._today()) this.fetchAll();
             });
 
@@ -164,6 +200,136 @@ function kitchenApp() {
                 this.showMessage(err.message, 'danger');
             } finally {
                 this.uncompleting = null;
+            }
+        },
+
+        // Itens que a cozinha precisa preparar (prato principal + adicionais)
+        kitchenItems(order) {
+            return (order.items || []).filter(i => this.KITCHEN_CATEGORIES.includes(i.category_name));
+        },
+
+        openEditModal(order) {
+            // Cópia profunda: edições só afetam o servidor ao salvar/remover explicitamente.
+            this.editingOrder = JSON.parse(JSON.stringify(order));
+            this.newItemId = '';
+            this.newItemQty = 1;
+        },
+
+        closeEditModal() {
+            this.editingOrder = null;
+        },
+
+        async addItemToModal() {
+            if (!this.editingOrder || !this.newItemId || this.addingItem) return;
+            this.addingItem = true;
+            try {
+                const res = await fetch(`/api/orders/${this.editingOrder.id}/items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        menu_item_id: this.newItemId,
+                        quantity: this.newItemQty || 1
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao adicionar item');
+                this.editingOrder.items.push(data.item);
+                this.newItemId = '';
+                this.newItemQty = 1;
+                this.showMessage('Item adicionado!', 'success');
+                await this.fetchAll();
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            } finally {
+                this.addingItem = false;
+            }
+        },
+
+        async removeItemFromModal(itemId) {
+            if (!this.editingOrder || this.removingItemId !== null) return;
+            if (this.editingOrder.items.length <= 1) {
+                this.showMessage('Não é possível remover o último item. Exclua o pedido inteiro.', 'warning');
+                return;
+            }
+            this.removingItemId = itemId;
+            try {
+                const res = await fetch(`/api/orders/${this.editingOrder.id}/items/${itemId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao remover item');
+                this.editingOrder.items = this.editingOrder.items.filter(i => i.item_id !== itemId);
+                this.showMessage('Item removido!', 'success');
+                await this.fetchAll();
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            } finally {
+                this.removingItemId = null;
+            }
+        },
+
+        async saveOrderChanges() {
+            if (!this.editingOrder) return;
+            this.savingOrder = true;
+            try {
+                const res = await fetch(`/api/orders/${this.editingOrder.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        table_number: this.editingOrder.table_number,
+                        customer_name: this.editingOrder.customer_name
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao salvar pedido');
+
+                for (const item of this.editingOrder.items) {
+                    const itemRes = await fetch(`/api/orders/${this.editingOrder.id}/items/${item.item_id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ quantity: item.quantity, notes: item.notes })
+                    });
+                    const itemData = await itemRes.json();
+                    if (!itemRes.ok || itemData.error) throw new Error(itemData.error || 'Erro ao salvar item');
+                }
+
+                this.showMessage('Pedido atualizado!', 'success');
+                this.editingOrder = null;
+                await this.fetchAll();
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            } finally {
+                this.savingOrder = false;
+            }
+        },
+
+        async deleteOrder() {
+            if (!this.editingOrder) return;
+            if (!confirm(`Excluir o pedido #${this.editingOrder.id} definitivamente? Essa ação não pode ser desfeita.`)) return;
+            this.savingOrder = true;
+            try {
+                const res = await fetch(`/api/orders/${this.editingOrder.id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao excluir pedido');
+                this.showMessage('Pedido excluído!', 'success');
+                this.editingOrder = null;
+                await this.fetchAll();
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            } finally {
+                this.savingOrder = false;
+            }
+        },
+
+        async reprintOrder(orderId) {
+            this.reprinting = orderId;
+            try {
+                const res = await fetch(`/api/orders/${orderId}/print`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao reimprimir');
+                this.showMessage(`Pedido #${orderId} enviado para impressão!`, 'success');
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            } finally {
+                this.reprinting = null;
             }
         },
 

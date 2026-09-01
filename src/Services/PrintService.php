@@ -191,9 +191,10 @@ class PrintService
 
         // Order info
         $printer->setEmphasis(true);
-        $printer->text("Pedido #" . $order->id . "\n");
-        $printer->setEmphasis(false);
+        $printer->selectPrintMode(Printer::MODE_DOUBLE_WIDTH | Printer::MODE_DOUBLE_HEIGHT);
         $printer->text("Senha: " . $order->table_number . "\n");
+        $printer->selectPrintMode();
+        $printer->setEmphasis(false);
         if (!empty($order->customer_name)) {
             $printer->text("Cliente: " . $order->customer_name . "\n");
         }

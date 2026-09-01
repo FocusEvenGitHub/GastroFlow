@@ -37,6 +37,38 @@ class OrderValidator
         return $this->v->validate();
     }
 
+    public function validateOrderUpdate(array $data): bool
+    {
+        $this->v = new Validator($data);
+        $this->v->rule('optional', 'table_number');
+        $this->v->rule('lengthMax', 'table_number', 50);
+        $this->v->rule('optional', 'customer_name');
+        $this->v->rule('lengthMax', 'customer_name', 100);
+        return $this->v->validate();
+    }
+
+    public function validateOrderItemAdd(array $data): bool
+    {
+        $this->v = new Validator($data);
+        $this->v->rule('required', 'menu_item_id');
+        $this->v->rule('integer', 'menu_item_id');
+        $this->v->rule('optional', 'quantity');
+        $this->v->rule('integer', 'quantity');
+        $this->v->rule('min', 'quantity', 1);
+        $this->v->rule('optional', 'notes');
+        return $this->v->validate();
+    }
+
+    public function validateOrderItemUpdate(array $data): bool
+    {
+        $this->v = new Validator($data);
+        $this->v->rule('optional', 'quantity');
+        $this->v->rule('integer', 'quantity');
+        $this->v->rule('min', 'quantity', 1);
+        $this->v->rule('optional', 'notes');
+        return $this->v->validate();
+    }
+
     public function errors(): array
     {
         return $this->v->errors();

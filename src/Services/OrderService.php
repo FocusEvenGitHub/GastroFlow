@@ -60,6 +60,49 @@ class OrderService
         return $this->orderRepo->getNextNumber();
     }
 
+    public function updateOrder(int $id, array $data): void
+    {
+        $this->orderRepo->updateOrder($id, $data);
+        $this->triggerKitchenEvent('order.updated', $id);
+    }
+
+    public function addOrderItem(int $orderId, array $data): array
+    {
+        $item = $this->orderRepo->addOrderItem($orderId, $data);
+        $this->triggerKitchenEvent('order.updated', $orderId);
+        return $item;
+    }
+
+    public function updateOrderItem(int $orderId, int $itemId, array $data): void
+    {
+        $this->orderRepo->updateOrderItem($orderId, $itemId, $data);
+        $this->triggerKitchenEvent('order.updated', $orderId);
+    }
+
+    public function removeOrderItem(int $orderId, int $itemId): void
+    {
+        $removed = $this->orderRepo->removeOrderItem($orderId, $itemId);
+        if (!$removed) {
+            throw new \DomainException('Não é possível remover o último item do pedido. Exclua o pedido inteiro.');
+        }
+        $this->triggerKitchenEvent('order.updated', $orderId);
+    }
+
+    public function deleteOrder(int $id): void
+    {
+        $this->orderRepo->deleteOrder($id);
+        $this->triggerKitchenEvent('order.deleted', $id);
+    }
+
+    public function printOrder(int $id): void
+    {
+        // Garante que o pedido existe antes de enfileirar a impressão.
+        Order::findOrFail($id);
+        $this->jobService->dispatch('print', \App\Jobs\PrintOrderJob::class, [
+            'order_id' => $id,
+        ]);
+    }
+
     /**
      * Write a notification event for the SSE stream.
      */

@@ -86,4 +86,138 @@ class OrderController
         $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json')->withStatus($status ?? 200);
     }
+
+    public function update(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)$args['id'];
+        $data = $request->getParsedBody() ?? [];
+
+        if (!$this->validator->validateOrderUpdate($data)) {
+            $errors = $this->validator->errors();
+            $response->getBody()->write(json_encode(['error' => 'Validation failed', 'messages' => $errors]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        try {
+            $this->orderService->updateOrder($id, $data);
+            $payload = ['success' => true, 'message' => 'Order updated'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\Throwable $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    public function addItem(Request $request, Response $response, array $args): Response
+    {
+        $orderId = (int)$args['id'];
+        $data = $request->getParsedBody() ?? [];
+
+        if (!$this->validator->validateOrderItemAdd($data)) {
+            $errors = $this->validator->errors();
+            $response->getBody()->write(json_encode(['error' => 'Validation failed', 'messages' => $errors]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        try {
+            $item = $this->orderService->addOrderItem($orderId, $data);
+            $payload = ['success' => true, 'item' => $item];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Pedido ou item de cardápio não encontrado']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\Throwable $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    public function updateItem(Request $request, Response $response, array $args): Response
+    {
+        $orderId = (int)$args['id'];
+        $itemId = (int)$args['itemId'];
+        $data = $request->getParsedBody() ?? [];
+
+        if (!$this->validator->validateOrderItemUpdate($data)) {
+            $errors = $this->validator->errors();
+            $response->getBody()->write(json_encode(['error' => 'Validation failed', 'messages' => $errors]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        try {
+            $this->orderService->updateOrderItem($orderId, $itemId, $data);
+            $payload = ['success' => true, 'message' => 'Item updated'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Item não encontrado neste pedido']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\Throwable $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    public function removeItem(Request $request, Response $response, array $args): Response
+    {
+        $orderId = (int)$args['id'];
+        $itemId = (int)$args['itemId'];
+
+        try {
+            $this->orderService->removeOrderItem($orderId, $itemId);
+            $payload = ['success' => true, 'message' => 'Item removed'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Item não encontrado neste pedido']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\DomainException $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
+        } catch (\Throwable $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    public function destroy(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)$args['id'];
+
+        try {
+            $this->orderService->deleteOrder($id);
+            $payload = ['success' => true, 'message' => 'Order deleted'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\Throwable $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    public function print(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)$args['id'];
+
+        try {
+            $this->orderService->printOrder($id);
+            $payload = ['success' => true, 'message' => 'Print job queued'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\Throwable $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
 }

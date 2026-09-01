@@ -28,8 +28,15 @@ class Routes
 
         $app->group('/api', function ($group) {
             $group->get('/menu', [MenuController::class, 'index']);
+            $group->patch('/menu/reorder', [MenuController::class, 'reorder']);
             $group->get('/orders', [OrderController::class, 'index']);
             $group->post('/orders', [OrderController::class, 'store']);
+            $group->patch('/orders/{id}', [OrderController::class, 'update']);
+            $group->delete('/orders/{id}', [OrderController::class, 'destroy']);
+            $group->post('/orders/{id}/items', [OrderController::class, 'addItem']);
+            $group->patch('/orders/{id}/items/{itemId}', [OrderController::class, 'updateItem']);
+            $group->delete('/orders/{id}/items/{itemId}', [OrderController::class, 'removeItem']);
+            $group->post('/orders/{id}/print', [OrderController::class, 'print']);
             $group->post('/orders/{id}/complete', [OrderController::class, 'complete']);
             $group->post('/orders/{id}/uncomplete', [OrderController::class, 'uncomplete']);
             $group->get('/orders/next-number', [OrderController::class, 'nextNumber']);
