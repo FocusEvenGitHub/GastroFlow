@@ -14,6 +14,7 @@ use App\Controllers\KitchenController;
 use App\Controllers\AdminController;
 use App\Controllers\ReportController;
 use App\Middleware\JwtMiddleware;
+use App\Middleware\RoleMiddleware;
 
 class Routes
 {
@@ -48,25 +49,33 @@ class Routes
             return $controller->login($request, $response);
         });
 
-        $app->group('/api/admin', function ($group) {
-            $group->get('/menu', [MenuController::class, 'index']);
-            $group->post('/items', [MenuController::class, 'store']);
-            $group->patch('/items/{id}', [MenuController::class, 'updateItem']);
-            $group->get('/items/{id}/components', [MenuController::class, 'getComponents']);
-            $group->put('/items/{id}/components', [MenuController::class, 'updateComponents']);
-            $group->delete('/items/{id}', [MenuController::class, 'delete']);
-            $group->get('/settings', [AdminController::class, 'getSettings']);
-            $group->put('/settings', [AdminController::class, 'updateSettings']);
-            $group->post('/settings/logo', [AdminController::class, 'uploadLogo']);
-            $group->get('/logs', [AdminController::class, 'getLogs']);
-            $group->post('/settings/test-print', [AdminController::class, 'testPrint']);
-            $group->get('/reports/sales',          [ReportController::class, 'sales']);
-            $group->get('/reports/top-items',      [ReportController::class, 'topItems']);
-            $group->get('/reports/dining-options', [ReportController::class, 'diningOptions']);
-            $group->get('/reports/summary',        [ReportController::class, 'summary']);
-            $group->get('/reports/peak-hours',     [ReportController::class, 'peakHours']);
-            $group->get('/reports/prep-time',      [ReportController::class, 'prepTime']);
-            $group->get('/reports/month-comparison', [ReportController::class, 'monthlyComparison']);
+        $app->patch('/api/admin/account/password', function ($request, $response) use ($secret) {
+            $controller = new AuthController($secret);
+            return $controller->changePassword($request, $response);
+        })->add($jwt);
+
+        $adminOrManager = fn () => new RoleMiddleware(['admin', 'manager']);
+        $adminOnly = fn () => new RoleMiddleware(['admin']);
+
+        $app->group('/api/admin', function ($group) use ($adminOrManager, $adminOnly) {
+            $group->get('/menu', [MenuController::class, 'index'])->add($adminOrManager());
+            $group->post('/items', [MenuController::class, 'store'])->add($adminOrManager());
+            $group->patch('/items/{id}', [MenuController::class, 'updateItem'])->add($adminOrManager());
+            $group->get('/items/{id}/components', [MenuController::class, 'getComponents'])->add($adminOrManager());
+            $group->put('/items/{id}/components', [MenuController::class, 'updateComponents'])->add($adminOrManager());
+            $group->delete('/items/{id}', [MenuController::class, 'delete'])->add($adminOrManager());
+            $group->get('/settings', [AdminController::class, 'getSettings'])->add($adminOnly());
+            $group->put('/settings', [AdminController::class, 'updateSettings'])->add($adminOnly());
+            $group->post('/settings/logo', [AdminController::class, 'uploadLogo'])->add($adminOnly());
+            $group->get('/logs', [AdminController::class, 'getLogs'])->add($adminOnly());
+            $group->post('/settings/test-print', [AdminController::class, 'testPrint'])->add($adminOnly());
+            $group->get('/reports/sales',          [ReportController::class, 'sales'])->add($adminOrManager());
+            $group->get('/reports/top-items',      [ReportController::class, 'topItems'])->add($adminOrManager());
+            $group->get('/reports/dining-options', [ReportController::class, 'diningOptions'])->add($adminOrManager());
+            $group->get('/reports/summary',        [ReportController::class, 'summary'])->add($adminOrManager());
+            $group->get('/reports/peak-hours',     [ReportController::class, 'peakHours'])->add($adminOrManager());
+            $group->get('/reports/prep-time',      [ReportController::class, 'prepTime'])->add($adminOrManager());
+            $group->get('/reports/month-comparison', [ReportController::class, 'monthlyComparison'])->add($adminOrManager());
         })->add($jwt);
     }
 }

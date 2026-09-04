@@ -1,0 +1,80 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * GastroFlow Administrator Bootstrap
+ *
+ * Uso:
+ *   php bin/create-admin <username> [role]
+ *
+ * role: admin (padrão), manager, cashier ou kitchen.
+ */
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use App\Models\User;
+use App\Settings;
+use App\Database as DB;
+
+// Carregar variáveis de ambiente
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
+
+foreach (getenv() as $key => $value) {
+    if (!array_key_exists($key, $_ENV)) {
+        $_ENV[$key] = $value;
+    }
+}
+
+// Inicializar conexão com o banco (Eloquent)
+$settings = new Settings();
+DB::boot($settings);
+
+$username = trim($argv[1] ?? '');
+if ($username === '') {
+    fwrite(STDERR, "Uso: php bin/create-admin <username> [role]\n");
+    exit(1);
+}
+
+$allowedRoles = ['admin', 'manager', 'cashier', 'kitchen'];
+$role = trim($argv[2] ?? 'admin');
+if (!in_array($role, $allowedRoles, true)) {
+    fwrite(STDERR, "Erro: role inválida \"$role\". Use uma de: " . implode(', ', $allowedRoles) . ".\n");
+    exit(1);
+}
+
+if (User::where('username', $username)->exists()) {
+    fwrite(STDERR, "Erro: já existe um usuário com o username \"$username\".\n");
+    exit(1);
+}
+
+fwrite(STDOUT, "Senha para \"$username\": ");
+$password = trim((string) fgets(STDIN));
+
+if ($password === '') {
+    fwrite(STDERR, "Erro: a senha não pode ser vazia.\n");
+    exit(1);
+}
+
+if (strlen($password) < 8) {
+    fwrite(STDERR, "Erro: a senha deve ter ao menos 8 caracteres.\n");
+    exit(1);
+}
+
+fwrite(STDOUT, "Confirme a senha: ");
+$confirmation = trim((string) fgets(STDIN));
+
+if ($password !== $confirmation) {
+    fwrite(STDERR, "Erro: as senhas não coincidem.\n");
+    exit(1);
+}
+
+User::create([
+    'username' => $username,
+    'password' => password_hash($password, PASSWORD_BCRYPT),
+    'role'     => $role,
+]);
+
+fwrite(STDOUT, "\n✓ Usuário \"$username\" ($role) criado com sucesso.\n");

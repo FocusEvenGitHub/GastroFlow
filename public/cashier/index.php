@@ -93,7 +93,7 @@
         </div>
 
     <div class="row">
-        <!-- Lado esquerdo: mesa + cardápio -->
+        <!-- Lado esquerdo: senha + cardápio -->
         <div class="col-md-8">
             <!-- Senha + Cliente -->
             <div class="row mb-4 g-3">

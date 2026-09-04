@@ -229,7 +229,7 @@ paths:
       description: |
         Realiza login e retorna um token JWT para acessar as rotas administrativas.
 
-        Credenciais padrão: `admin` / `admin123`
+        Nenhuma credencial padrão é criada automaticamente — crie um administrador com `php bin/create-admin <username>`.
       operationId: login
       tags:
         - Autenticação
@@ -248,7 +248,7 @@ paths:
                   example: admin
                 password:
                   type: string
-                  example: admin123
+                  example: your-password-here
       responses:
         "200":
           description: Login bem-sucedido
@@ -776,12 +776,12 @@ components:
     CreateOrderInput:
       type: object
       required:
-        - table
+        - table_number
         - items
       properties:
-        table:
+        table_number:
           type: string
-          description: Número ou identificação da mesa
+          description: Número da senha (ticket de retirada do pedido), não identifica uma mesa física
           example: "5"
         customer_name:
           type: string
@@ -844,7 +844,7 @@ components:
                 items:
                   type: string
                 example:
-                  - O campo "table" é obrigatório
+                  - O campo "table_number" é obrigatório
                   - A lista "items" deve conter ao menos 1 item
 
   securitySchemes:

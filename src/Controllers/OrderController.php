@@ -6,18 +6,36 @@ namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Log\LoggerInterface;
 use App\Services\OrderService;
 use App\Validators\OrderValidator;
+use App\Settings;
 
 class OrderController
 {
     private OrderService $orderService;
     private OrderValidator $validator;
+    private Settings $settings;
+    private LoggerInterface $logger;
 
-    public function __construct(OrderService $orderService, OrderValidator $validator)
+    public function __construct(OrderService $orderService, OrderValidator $validator, Settings $settings, LoggerInterface $logger)
     {
         $this->orderService = $orderService;
         $this->validator = $validator;
+        $this->settings = $settings;
+        $this->logger = $logger;
+    }
+
+    private function errorResponse(Response $response, \Throwable $e, int $status = 500): Response
+    {
+        $this->logger->error($e->getMessage(), ['exception' => get_class($e)]);
+
+        $payload = $this->settings->isDebug()
+            ? ['error' => $e->getMessage()]
+            : ['success' => false, 'error' => 'Erro interno do servidor.', 'code' => 'INTERNAL_ERROR'];
+
+        $response->getBody()->write(json_encode($payload));
+        return $response->withStatus($status)->withHeader('Content-Type', 'application/json');
     }
 
     public function index(Request $request, Response $response): Response
@@ -47,8 +65,7 @@ class OrderController
             $response->getBody()->write(json_encode($payload));
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -64,13 +81,12 @@ class OrderController
         $id = (int)$args['id'];
         try {
             $this->orderService->completeOrder($id);
-            $payload = ['success' => true, 'message' => 'Order completed'];
         } catch (\Throwable $e) {
-            $payload = ['error' => $e->getMessage()];
-            $status = 500;
+            return $this->errorResponse($response, $e);
         }
+        $payload = ['success' => true, 'message' => 'Order completed'];
         $response->getBody()->write(json_encode($payload));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus($status ?? 200);
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function uncomplete(Request $request, Response $response, array $args): Response
@@ -78,13 +94,12 @@ class OrderController
         $id = (int)$args['id'];
         try {
             $this->orderService->uncompleteOrder($id);
-            $payload = ['success' => true, 'message' => 'Order reopened'];
         } catch (\Throwable $e) {
-            $payload = ['error' => $e->getMessage()];
-            $status = 500;
+            return $this->errorResponse($response, $e);
         }
+        $payload = ['success' => true, 'message' => 'Order reopened'];
         $response->getBody()->write(json_encode($payload));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus($status ?? 200);
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function update(Request $request, Response $response, array $args): Response
@@ -107,8 +122,7 @@ class OrderController
             $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -132,8 +146,7 @@ class OrderController
             $response->getBody()->write(json_encode(['error' => 'Pedido ou item de cardápio não encontrado']));
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -158,8 +171,7 @@ class OrderController
             $response->getBody()->write(json_encode(['error' => 'Item não encontrado neste pedido']));
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -180,8 +192,7 @@ class OrderController
             $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
             return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -198,8 +209,7 @@ class OrderController
             $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -216,8 +226,7 @@ class OrderController
             $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 }

@@ -373,6 +373,8 @@ Define and test:
 
 Document the authentication strategy clearly.
 
+**Status (spec 016)**: token expiration/invalid/expired handling and password hashing were already correct, just undocumented — now written up in `docs/architecture.md`'s "Authentication" section. Password changes shipped (`PATCH /api/admin/account/password`). Logout was confirmed as a deliberate non-feature (stateless JWT, documented rationale) rather than a gap. **Login throttling is explicitly not done** — deferred to its own follow-up spec (not yet planned), since it needs its own design decisions (per-IP vs per-username tracking, storage mechanism — no Redis/cache exists in this project, so it likely needs a small schema addition — and lockout duration) that don't fit cleanly alongside the rest of this checklist.
+
 ---
 
 ## Authorization / RBAC
@@ -405,6 +407,8 @@ Examples:
 * intentionally public endpoints must be explicitly documented.
 
 Avoid over-engineering the permission system.
+
+**Status (spec 018)**: implemented, scoped to `/api/admin/*` only — an explicit decision made before implementation, not an omission. Taken literally, "cashier/kitchen mutations require appropriate permission" would mean moving `/api/orders*`/`/api/kitchen/*` behind login, but those are deliberately public, trusted-network endpoints (see Current Baseline and `docs/architecture.md`) with no login UI; reversing that was judged a much larger, riskier change than adding role checks, and wasn't requested. `users.role` now supports the full suggested set (`admin`, `manager`, `cashier`, `kitchen`), but `cashier`/`kitchen` don't yet gate anything — their operational domain remains the public endpoints above. Within `/api/admin/*`: settings/logs/printer config require `admin`; menu management and reports allow `admin` or `manager`; changing one's own password is open to any authenticated role.
 
 ---
 

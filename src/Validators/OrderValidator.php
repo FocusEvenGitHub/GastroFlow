@@ -13,7 +13,8 @@ class OrderValidator
     public function validateOrderData(array $data): bool
     {
         $this->v = new Validator($data);
-        $this->v->rule('required', 'table');
+        $this->v->rule('required', 'table_number');
+        $this->v->rule('lengthMax', 'table_number', 50);
         $this->v->rule('required', 'items');
         $this->v->rule('array', 'items');
         // customer_name is optional; if present, must be a string

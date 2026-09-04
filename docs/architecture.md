@@ -40,6 +40,17 @@ Two things worth stating explicitly:
 - **Only `/api/admin/*` requires a JWT.** `/api/orders*`, `/api/menu`, `/api/kitchen/*` are intentionally unauthenticated — a deliberate choice for a single-location, trusted-network deployment, not an oversight.
 - **`public/.htaccess` bypassing Slim is deliberate**, not incidental: the three panels are static Alpine.js shells that only call the JSON API, so there's no reason to pay routing/middleware overhead for them. The cost is that two separate request-handling paths exist, and anything needing CORS/auth middleware has to live under `/api/*`.
 
+## Authentication
+
+The full lifecycle, documented in one place (`docs/ROADMAP.md`'s `v1.6.0 — Baseline & Security` phase, "Authentication hardening"):
+
+- **Issuance**: `POST /api/login` (`AuthController::login`) looks up the user by username, verifies the password with `password_verify()`, and issues an HS256 JWT via `firebase/php-jwt` containing `sub`/`username`/`role`, valid for 8 hours (`'exp' => time() + 3600 * 8`).
+- **Verification**: `JwtMiddleware`, applied to the `/api/admin` route group (plus the standalone `PATCH /api/admin/account/password` route — see below), distinguishes three outcomes: no `Authorization: Bearer ...` header → `401` `"Token não fornecido."`; a syntactically valid but expired token → `401` `"Token expirado."`; anything else that fails to decode (bad signature, malformed, wrong algorithm) → `401` `"Token inválido."`. On success, the decoded payload is attached to the request as the `user` attribute for downstream handlers.
+- **Password hashing**: `password_hash($password, PASSWORD_BCRYPT)` everywhere a password is stored (`bin/create-admin`, `AuthController::changePassword`), verified with `password_verify()`. No custom hashing scheme.
+- **Password changes**: `PATCH /api/admin/account/password` (JWT-protected), added to close the "password changes" item in the roadmap's authentication checklist. Requires the correct `current_password` before accepting a `new_password` (minimum 8 characters) — this stops a leaked/stolen JWT alone from letting an attacker lock out the legitimate user, since there is no server-side session to separately invalidate. Changing a password does **not** invalidate the JWT used to make the request, or any other JWT already issued to that user — it remains valid until its own 8-hour expiry. This is a deliberate limitation, not an oversight: revoking it would require a server-side token-revocation mechanism (see next point).
+- **Logout**: there is no `POST /api/logout` route and no server-side token-revocation mechanism of any kind. JWTs are stateless and self-contained — nothing in `Middleware/` queries a database or cache to validate a token beyond its signature and expiry. "Logging out" today means the client discards its own token; the worst case of a leaked token is bounded by its 8-hour expiry. This is a deliberate choice matching the project's "Keep the stack proportional" principle (`docs/ROADMAP.md`) — a revocation list would need a shared store (Redis, a DB table) for a single-location deployment that doesn't otherwise need one. If this stops being acceptable (e.g., multi-location deployments, longer token lifetimes), it would need its own dedicated design, not a small addition here.
+- **Login throttling**: **not implemented.** `POST /api/login` has no rate limiting, failed-attempt counting, or lockout today. This is a known, tracked gap (`docs/ROADMAP.md`'s "Authentication hardening" item lists it explicitly) — deliberately deferred to its own follow-up spec rather than bundled into the work above, since it needs its own design decisions (per-IP vs per-username tracking, storage mechanism — this project has no Redis/cache, so it likely needs a small schema addition — and lockout duration).
+
 ## Layers under `src/`
 
 Coverage is real but uneven — this reflects what's actually implemented, not a target architecture:
@@ -53,11 +64,11 @@ Coverage is real but uneven — this reflects what's actually implemented, not a
 | `Middleware/` | 3 (PSR-15): Cors, JsonBodyParser, Jwt | `Jwt` applies only to the `/api/admin` route group |
 | `Models/` | 8 Eloquent models: User, Category, MenuItem, Ingredient, Order, OrderItem, Setting, Job | — |
 
-Extending `Repositories/`/`Validators/` to cover the remaining domains is tracked as `ROADMAP.md` #2 and #6, not assumed to already be done.
+Extending `Repositories/`/`Validators/` to cover the remaining domains is tracked in `docs/ROADMAP.md`'s `v1.7.0 — Domain & Architecture` phase ("Controller responsibilities", "Persistence boundaries"), not assumed to already be done.
 
 ## Real-time kitchen updates (SSE)
 
-The kitchen's "real-time" update is a signal file, not a message queue: `OrderService` writes a JSON file to `sys_get_temp_dir()` on order creation/completion, and `public/api/events/stream.php` polls it to emit Server-Sent Events. This works correctly for a single app instance and zero extra infrastructure, but is not safe under concurrent writes or a multi-instance deployment — `ROADMAP.md` #5 plans to replace it with Redis pub/sub or a MySQL-backed `events` table.
+The kitchen's "real-time" update is a signal file, not a message queue: `OrderService` writes a JSON file to `sys_get_temp_dir()` on order creation/completion, and `public/api/events/stream.php` polls it to emit Server-Sent Events. This works correctly for a single app instance and zero extra infrastructure, but is not safe under concurrent writes or a multi-instance deployment — `docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality` phase ("Realtime reliability") plans to replace it with Redis pub/sub or a MySQL-backed `events` table.
 
 ## Background jobs and printing
 
@@ -100,11 +111,10 @@ GastroFlow
 
 ## Known architectural limitations
 
-Named, not hidden — tracked in `specs/000-project-baseline.md` and `ROADMAP.md`:
+Named, not hidden — tracked in `specs/000-project-baseline.md` and `docs/ROADMAP.md`:
 
-- Hardcoded JWT-secret fallback at `src/Routes.php:19` (`ROADMAP.md` #9).
-- CORS currently allows any origin (`ROADMAP.md` #8).
-- No automated test suite, no lint/static-analysis tooling, no CI pipeline (`ROADMAP.md` #1, #15).
+- CORS defaults to `*` when `CORS_ALLOWED_ORIGIN` is unset; configurable per spec 001, but the permissive default is still an open gap (`docs/ROADMAP.md`'s `v1.6.0 — Baseline & Security` phase doesn't yet name a fix for the default itself).
+- No lint/static-analysis tooling (`docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality` phase: "Static analysis", "Code style"). The hardcoded JWT-secret fallback and the lack of a test suite/CI pipeline, both previously listed here, were fixed by specs 002, 004 and 005 (`v1.5.6`).
 - `IngredientController` exists but no `/api/admin/ingredients*` route was found wired in `src/Routes.php` — not confirmed whether it's reachable another way.
 - Migrations are forward-only; no rollback mechanism.
 - Signal-file SSE and the DB-backed job queue both assume a single app instance.

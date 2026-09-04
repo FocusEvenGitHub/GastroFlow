@@ -4,7 +4,7 @@
 
 - Status: Implemented
 - Created: 2026-08-05
-- Updated: 2026-08-05
+- Updated: 2026-09-03
 - Owner: GastroFlow maintainers
 - Related issue: Not applicable — this spec predates the issue-tracking workflow it documents
 - Related branch: Not applicable — no branch; captured directly on `master`
@@ -57,7 +57,7 @@ A restaurant order-management web app covering cashier order entry, kitchen orde
 
 ### Order flow (confirmed in code)
 
-`POST /api/orders` (`OrderController::store` → `OrderValidator` → `OrderService` → `OrderRepository`, `src/Repositories/OrderRepository.php`): validates payload (table, items with `dining_option` ∈ `local`/`viagem_simples`/`viagem_vip`), writes the order and its items inside a DB transaction, dispatches an async print job (`JobService` + `PrintOrderJob`) when printing is enabled, and notifies the kitchen by writing a JSON file to `sys_get_temp_dir()` that the SSE stream (`public/api/events/stream.php`) polls — a deliberate, non-abstracted mechanism, not a message queue. `GET /api/orders`, `POST /api/orders/{id}/complete`, `POST /api/orders/{id}/uncomplete`, `GET /api/orders/next-number` round out the flow.
+`POST /api/orders` (`OrderController::store` → `OrderValidator` → `OrderService` → `OrderRepository`, `src/Repositories/OrderRepository.php`): validates payload (`table_number`, items with `dining_option` ∈ `local`/`viagem_simples`/`viagem_vip`) — **corrected 2026-09-03**: at the time this baseline was written the create endpoint's field was named `table`; spec 010 renamed it to `table_number` for consistency with the update endpoint, which already used that name; `table_number` itself is a customer-facing pickup ticket ("Senha"), not a physical restaurant table (see Implementation log) — writes the order and its items inside a DB transaction, dispatches an async print job (`JobService` + `PrintOrderJob`) when printing is enabled, and notifies the kitchen by writing a JSON file to `sys_get_temp_dir()` that the SSE stream (`public/api/events/stream.php`) polls — a deliberate, non-abstracted mechanism, not a message queue. `GET /api/orders`, `POST /api/orders/{id}/complete`, `POST /api/orders/{id}/uncomplete`, `GET /api/orders/next-number` round out the flow.
 
 ### Cashier flow (confirmed in code, frontend-only)
 
@@ -73,7 +73,7 @@ A restaurant order-management web app covering cashier order entry, kitchen orde
 
 ### Authentication (confirmed in code)
 
-`POST /api/login` (unauthenticated, outside the `/api` group, wired directly in `src/Routes.php`) → `AuthController::login`: looks up `App\Models\User` by `username`, checks `password_verify()`, issues an HS256 JWT (8h expiry) via `firebase/php-jwt` containing `sub`/`username`/`role`. `JwtMiddleware` guards the entire `/api/admin` route group. **Confirmed security gap**: `src/Routes.php:19` falls back to a hardcoded secret (`'your-secret-key-change-me'`) when `$_ENV['JWT_SECRET']` is unset. A default `admin`/`admin123` user (bcrypt hash) is seeded by `common/sql/001_schema.sql` (lines ~148–150), matching the README's stated default credentials.
+`POST /api/login` (unauthenticated, outside the `/api` group, wired directly in `src/Routes.php`) → `AuthController::login`: looks up `App\Models\User` by `username`, checks `password_verify()`, issues an HS256 JWT (8h expiry) via `firebase/php-jwt` containing `sub`/`username`/`role`. `JwtMiddleware` guards the entire `/api/admin` route group. **Corrected 2026-09-03**: at the time this baseline was written, `src/Routes.php:19` fell back to a hardcoded secret (`'your-secret-key-change-me'`) when `$_ENV['JWT_SECRET']` was unset; that fallback was removed by spec 002 (shipped `v1.5.6`) and `src/Routes.php:22` now throws a `RuntimeException` instead (see Implementation log). **Corrected 2026-09-03 (spec 015)**: at the time this baseline was written, a default `admin`/`admin123` user (bcrypt hash) was seeded by `common/sql/001_schema.sql`, matching the README's then-stated default credentials. That seed was removed by spec 015 — a fresh installation now has zero users until an explicit `php bin/create-admin <username>` is run (see Implementation log).
 
 ### Reports (confirmed in code)
 
@@ -140,7 +140,7 @@ Not applicable in the feature-spec sense — the confirmed functional behavior i
 
 ## Non-functional requirements
 
-Not applicable as a forward-looking requirement list. Confirmed gaps relevant to non-functional quality: no automated tests, no static analysis/lint tooling, and one confirmed hardcoded-secret fallback (see Security considerations).
+Not applicable as a forward-looking requirement list. Confirmed gaps relevant to non-functional quality at the time this baseline was written: no automated tests, no static analysis/lint tooling, and one confirmed hardcoded-secret fallback (see Security considerations). **Corrected 2026-09-03**: the hardcoded-secret fallback and the lack of automated tests were both fixed since (specs 002, 004, 005); no static analysis/lint tooling remains the one still-open gap.
 
 ## User flows
 
@@ -160,7 +160,7 @@ Covered above under "Architecture observed" in Current behavior.
 
 ## Security considerations
 
-- **Confirmed**: hardcoded JWT secret fallback at `src/Routes.php:19` (`$_ENV['JWT_SECRET'] ?? 'your-secret-key-change-me'`) — if `JWT_SECRET` is ever unset in an environment, tokens become forgeable with a publicly known string.
+- **Corrected 2026-09-03**: this baseline originally confirmed a hardcoded JWT secret fallback at `src/Routes.php:19` (`$_ENV['JWT_SECRET'] ?? 'your-secret-key-change-me'`). That fallback was removed by spec 002 (shipped `v1.5.6`) — `src/Routes.php:22` now throws a `RuntimeException` if `JWT_SECRET` is unset, instead of falling back to a publicly known string.
 - **Confirmed**: only the `/api/admin/*` group requires a JWT; `/api/orders*`, `/api/menu`, `/api/kitchen/*` are unauthenticated by design (consistent with a single-location, trusted-network deployment model, but worth naming explicitly).
 - **Confirmed**: passwords are stored bcrypt-hashed (`password_verify()` in `AuthController`).
 - **Not confirmed**: whether `.env` values are enforced/rotated in any deployed environment — out of scope to check (would require reading `.env`, which this workflow must never do).
@@ -199,6 +199,9 @@ Not applicable — this is a documentation snapshot, not a unit of implementatio
 ## Implementation log
 
 - 2026-08-05 — Initial baseline written by direct investigation: full reads of `README.md`, `composer.json`, `COMMIT_CONVENTION.md`, `.gitignore`, `docker-compose.yml`, `Dockerfile`, `src/Routes.php`, `src/App.php`, `src/Database.php`, `src/Settings.php`, `common/config.php`, `common/db.php`, `src/Controllers/AuthController.php`, `public/.htaccess`, `public/cashier/index.php`, `common/sql/001_schema.sql` (grep for seed data); repo-wide greps for `common/config`/`common/db` usage and for `$table`/`$fillable` across `src/Models/`; `git status`, `git log`, `git ls-files`, and `git check-ignore -v composer.lock` to confirm tracked/untracked state. No containers were started and no database was queried — all findings are static-code confirmations.
+- 2026-09-03 (spec 006) — Corrected three stale claims left over from this baseline's original snapshot, confirmed against the current `src/Routes.php:22` (reads `$_ENV['JWT_SECRET'] ?? throw new \RuntimeException(...)`, no hardcoded fallback): the Authentication paragraph, the Security considerations bullet, and the Non-functional requirements sentence all previously asserted a hardcoded JWT-secret fallback that was actually removed by spec 002 and shipped in `v1.5.6`. Corrected in place with dated notes rather than silently rewritten, per this baseline's own "confirmed in code" discipline. The Non-functional requirements sentence's "no automated tests" claim was also corrected (specs 004/005 added PHPUnit + CI) since it was adjacent to the same sentence being fixed.
+- 2026-09-03 (spec 010) — Corrected the Order flow paragraph's mention of the create endpoint's `table` field: spec 010 renamed `POST /api/orders`'s request field from `table` to `table_number` (unifying it with the update endpoint, which already used `table_number`), and confirmed `table_number` is a customer-facing pickup ticket ("Senha"), not a physical restaurant table. Corrected in place with a dated note rather than silently rewritten.
+- 2026-09-03 (spec 015) — Corrected the Authentication paragraph's mention of the seeded `admin`/`admin123` user: spec 015 removed that seed from `common/sql/001_schema.sql` and introduced `bin/create-admin` as the explicit replacement process. Corrected in place with a dated note rather than silently rewritten.
 
 ## Validation evidence
 

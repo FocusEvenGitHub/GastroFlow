@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Log\LoggerInterface;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\PrintService;
@@ -16,7 +17,20 @@ class AdminController
     public function __construct(
         private readonly PrintService $printService,
         private readonly Settings $settings,
+        private readonly LoggerInterface $logger,
     ) {
+    }
+
+    private function errorResponse(Response $response, \Throwable $e, int $status = 500): Response
+    {
+        $this->logger->error($e->getMessage(), ['exception' => get_class($e)]);
+
+        $payload = $this->settings->isDebug()
+            ? ['error' => $e->getMessage()]
+            : ['success' => false, 'error' => 'Erro interno do servidor.', 'code' => 'INTERNAL_ERROR'];
+
+        $response->getBody()->write(json_encode($payload));
+        return $response->withStatus($status)->withHeader('Content-Type', 'application/json');
     }
 
     /**
@@ -29,9 +43,7 @@ class AdminController
             $this->printService->printTestPage();
             $payload = ['success' => true, 'message' => 'Teste enviado para a impressora.'];
         } catch (\Throwable $e) {
-            $payload = ['error' => $e->getMessage()];
-            $response->getBody()->write(json_encode($payload));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
 
         $response->getBody()->write(json_encode($payload));

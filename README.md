@@ -71,7 +71,7 @@
 
 ## Overview
 
-GastroFlow is a restaurant order-management system: a cashier takes an order by table number, the kitchen sees it appear in real time and marks it done, an admin panel manages the menu and produces a receipt on a thermal printer, and a reporting module turns the accumulated order history into sales, timing and demand insights. It targets a single-location restaurant running everything — cashier terminal, kitchen display, admin panel — on one local network, which is why the design favors a simple, self-hosted deployment over a distributed one.
+GastroFlow is a restaurant order-management system: a cashier takes an order and issues a sequential pickup ticket number ("Senha"), the kitchen sees it appear in real time and marks it done, an admin panel manages the menu and produces a receipt on a thermal printer, and a reporting module turns the accumulated order history into sales, timing and demand insights. It targets a single-location restaurant running everything — cashier terminal, kitchen display, admin panel — on one local network, which is why the design favors a simple, self-hosted deployment over a distributed one.
 
 It continues to be developed both because the product itself has open functional ground (see [Roadmap](#roadmap)) and because it doubles as a working environment for practicing software engineering process — see [Project philosophy](#project-philosophy).
 
@@ -151,7 +151,7 @@ What that means in practice:
 
 - The human sets the objective; ambiguous or architectural decisions require explicit approval before implementation starts (`Draft → Approved`) — a blocking open question stops the work.
 - A spec is the contract for what gets built: implementation is checked against it, and any conflict between the two is reported, not silently resolved either way.
-- Validation requires evidence, not a self-report — `php -l`, real `curl` calls, reading the diff, and now `vendor/bin/phpunit` (locally and in CI) since `ROADMAP.md` #1/#15 landed.
+- Validation requires evidence, not a self-report — `php -l`, real `curl` calls, reading the diff, and now `vendor/bin/phpunit` (locally and in CI) since automated tests + CI landed — see `docs/ROADMAP.md`'s "Current Baseline — v1.5.6".
 - AI speeds up execution. The approval gate, the scope limits, and the evidence requirement are what make that execution trustworthy — and they're enforced by the rules above, not by taking a model's word for it.
 
 ---
@@ -194,18 +194,18 @@ Five picks that best represent how this project trades things off — full table
 - Thermal receipt printing (ESC/POS) dispatched through an async job queue (`bin/worker`)
 - Sales reporting: summary, top items, dining-option breakdown, peak hours, average prep time, month-over-month comparison (`v1.0.0` → `v1.5.5`)
 - Spec-driven development workflow adopted: `specs/`, `CLAUDE.md`, `/spec-plan`, `/spec-implement` (August 2026)
-- Foundation cleanup (`ROADMAP.md` v2.0): `declare(strict_types=1)` everywhere, configurable CORS origin, hardcoded JWT fallback removed, filesystem paths centralized in `Settings`
-- Automated tests + CI (`ROADMAP.md` v2.1): PHPUnit smoke test + unit tests for `OrderService`/`OrderValidator`, GitHub Actions running the suite on every push/PR
+- Foundation cleanup: `declare(strict_types=1)` everywhere, configurable CORS origin, hardcoded JWT fallback removed, filesystem paths centralized in `Settings` (see `docs/ROADMAP.md`'s "Current Baseline — v1.5.6")
+- Automated tests + CI: PHPUnit smoke test + unit tests for `OrderService`/`OrderValidator`, GitHub Actions running the suite on every push/PR (see `docs/ROADMAP.md`'s "Current Baseline — v1.5.6")
 
 **In progress**
 
 - Nothing right now — the working tree is clean. What follows is queued next, not started.
 
-**Next up** (`ROADMAP.md` v2.2 — Architecture)
+**Next up** (`docs/ROADMAP.md`'s `v1.7.0 — Domain & Architecture`)
 
 - Controller/service refactors: split `AdminController`, move `Dish`/`Ingredient` behind a Service+Repository, standardized error-response format, paginated order listing
 
-**Future ideas** (`ROADMAP.md` v2.3 — Frontend & Infra)
+**Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
 
 - Frontend modularization: shared `common.js` (toasts, theme, fetch wrapper), a real build step (Vite) instead of CDN-loaded dependencies
 - Replace the signal-file SSE mechanism with Redis pub/sub or a MySQL-backed `events` table
@@ -246,6 +246,9 @@ cp .env.example .env
 openssl rand -base64 48
 
 docker compose up -d
+
+# Create your administrator account (no default credentials are seeded):
+docker compose exec web php bin/create-admin admin
 ```
 
 - Application: [http://localhost:8080](http://localhost:8080)
@@ -269,12 +272,12 @@ docker exec -it restaurant_web composer update
 
 ## Using the app
 
-- **Cashier** — create an order by table number, select items, add notes, send to the kitchen.
+- **Cashier** — create an order under a pickup ticket number ("Senha"), select items, add notes, send to the kitchen.
 - **Kitchen** — pending orders appear in near real time; mark as done or reopen.
 - **Admin** — manage the menu, dish components, ingredients, settings, and view the app log.
 - **Reports** — sales summary, top items, dining-option split, peak hours, average prep time, month-over-month comparison.
 
-> **Default login:** the initial schema (`common/sql/001_schema.sql`) seeds one admin user, `admin` / `admin123`, for local development. It's a seed value, not a production credential — change it (or add proper user management) before this ever runs anywhere reachable outside a trusted local network.
+> **Admin login:** no default credentials are seeded. Create your administrator with `docker compose exec web php bin/create-admin <username>` (prompts for a password, minimum 8 characters) — see [Installation](#getting-started).
 
 All data persists in the MySQL container (`db`).
 
@@ -294,7 +297,7 @@ curl -s http://localhost:8080/api/menu | python -m json.tool
 # Create an order
 curl -s -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
-  -d '{"table":"3","items":[{"id":1,"quantity":2,"notes":"no onion"}]}' | python -m json.tool
+  -d '{"table_number":"3","items":[{"id":1,"quantity":2,"notes":"no onion"}]}' | python -m json.tool
 
 # Pending orders
 curl -s http://localhost:8080/api/orders?status=pending | python -m json.tool
@@ -302,10 +305,10 @@ curl -s http://localhost:8080/api/orders?status=pending | python -m json.tool
 # Complete an order
 curl -s -X POST http://localhost:8080/api/orders/1/complete | python -m json.tool
 
-# Login (local dev seed user — see "Using the app" above)
+# Login (use the account you created with `bin/create-admin` — see "Using the app" above)
 curl -s -X POST http://localhost:8080/api/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}' | python -m json.tool
+  -d '{"username":"admin","password":"your-password-here"}' | python -m json.tool
 
 # Use the token against admin routes
 TOKEN="paste-your-token-here"

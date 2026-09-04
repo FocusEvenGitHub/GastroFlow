@@ -20,7 +20,7 @@ class OrderServiceTest extends TestCase
         $order->id = 42;
 
         $data = [
-            'table' => '5',
+            'table_number' => '5',
             'items' => [
                 ['id' => 1, 'quantity' => 2],
             ],

@@ -1,8 +1,13 @@
 {
   "permissions": {
     "defaultMode": "default",
-    "disableAutoMode": "disable",
     "disableBypassPermissionsMode": "disable",
+
+    "allow": [
+      "Read(./.env.example)",
+      "Write(./.env.example)",
+      "Edit(./.env.example)"
+    ],
 
     "deny": [
       "Read(./.env)",
@@ -37,6 +42,9 @@
         "./.env.*",
         "~/.ssh",
         "~/.aws"
+      ],
+      "allowRead": [
+        "./.env.example"
       ]
     }
   },

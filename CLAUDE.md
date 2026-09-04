@@ -12,7 +12,7 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - `public/.htaccess` serves any existing file directly; only non-existent paths fall through to the Slim front controller. This means `public/cashier/`, `public/kitchen/`, and `public/admin/*.php` are plain PHP view scripts running **outside** Slim — only `/api/*` and `/` go through it.
 - Real layers in `src/`: `Controllers/`, `Services/`, `Repositories/` (only `MenuRepository` and `OrderRepository` — several controllers call Eloquent models directly), `Validators/` (only `OrderValidator` exists), `Middleware/`, `Models/` (Eloquent). Follow this actual layering — don't invent a repository/validator/service for a domain that doesn't already have one unless a spec calls for it.
 - `common/config.php`/`common/db.php` are legacy raw-PDO helpers with no callers found anywhere in `src/` or `public/` — treat as dead code, do not build on them.
-- Persistence: initial schema `common/sql/001_schema.sql` (MySQL container first-init only) + incremental `common/migrations/*.sql`, applied via the custom `App\Database\MigrationRunner` through `bin/migrate`. There is no ORM migration framework and no formal seeding beyond the one admin row in `001_schema.sql`.
+- Persistence: initial schema `common/sql/001_schema.sql` (MySQL container first-init only) + incremental `common/migrations/*.sql`, applied via the custom `App\Database\MigrationRunner` through `bin/migrate`. There is no ORM migration framework and no seeded data beyond the menu/category rows in `001_schema.sql` — no default admin user is seeded; run `bin/create-admin` to create one.
 - Full details, endpoints, and known gaps: `specs/000-project-baseline.md`.
 
 ## Commands actually available
@@ -20,6 +20,7 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - `docker compose up -d` — starts `db` (MySQL 8.0) and `web` (container name `restaurant_web`, port `8080:80`).
 - `docker compose exec web composer install|update|require|remove`
 - `bin/migrate` — apply pending SQL migrations.
+- `bin/create-admin <username>` — create an administrator (prompts for a password, minimum 8 characters; no default credentials are seeded).
 - `bin/worker [--once] [queue]` — process the DB-backed job queue (e.g. print jobs).
 - `composer start` — `php -S 0.0.0.0:80 -t public` (only script in `composer.json`).
 - **There is no test command and no lint/static-analysis command in this project.** Do not invent one, and never claim tests passed if none were run — say plainly that no test infrastructure exists when that's the case.
@@ -38,7 +39,11 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - Never commit or push without an explicit request.
 - Never run destructive database operations (drops, truncates, irreversible data changes).
 - Never change the DB schema outside a migration file in `common/migrations/` (or an explicitly agreed equivalent) — no ad hoc `ALTER TABLE` outside that mechanism.
-- `src/Routes.php:19` has a known hardcoded JWT-secret fallback; don't add similar hardcoded-secret fallbacks elsewhere, and don't silently "fix" this one outside of an explicit spec.
+- The hardcoded JWT-secret fallback formerly at `src/Routes.php:19` was removed by spec 002 (`v1.5.6`); `src/Routes.php:22` now throws a `RuntimeException` when `JWT_SECRET` is unset. Don't reintroduce a hardcoded-secret fallback there or elsewhere, and don't silently "fix" security-relevant code like this outside of an explicit spec.
+
+## Release workflow
+
+- Whenever a merge into `master` is detected (e.g. a merge commit, or commits landing on `master` that weren't there before), proactively suggest — don't do it unasked — updating `CHANGELOG.md` and cutting the next SemVer tag, per the process in `docs/COMMIT_CONVENTION.md` ("Release & Changelog Workflow"). Never update the changelog, tag, commit, or push as part of this suggestion without explicit confirmation.
 
 ## General rules
 
