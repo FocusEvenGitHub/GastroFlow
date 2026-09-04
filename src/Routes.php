@@ -48,6 +48,11 @@ class Routes
             return $controller->login($request, $response);
         });
 
+        $app->patch('/api/admin/account/password', function ($request, $response) use ($secret) {
+            $controller = new AuthController($secret);
+            return $controller->changePassword($request, $response);
+        })->add($jwt);
+
         $app->group('/api/admin', function ($group) {
             $group->get('/menu', [MenuController::class, 'index']);
             $group->post('/items', [MenuController::class, 'store']);
