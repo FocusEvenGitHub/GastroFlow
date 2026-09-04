@@ -229,7 +229,7 @@ paths:
       description: |
         Realiza login e retorna um token JWT para acessar as rotas administrativas.
 
-        Credenciais padrão: `admin` / `admin123`
+        Nenhuma credencial padrão é criada automaticamente — crie um administrador com `php bin/create-admin <username>`.
       operationId: login
       tags:
         - Autenticação
@@ -248,7 +248,7 @@ paths:
                   example: admin
                 password:
                   type: string
-                  example: admin123
+                  example: your-password-here
       responses:
         "200":
           description: Login bem-sucedido

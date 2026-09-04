@@ -246,6 +246,9 @@ cp .env.example .env
 openssl rand -base64 48
 
 docker compose up -d
+
+# Create your administrator account (no default credentials are seeded):
+docker compose exec web php bin/create-admin admin
 ```
 
 - Application: [http://localhost:8080](http://localhost:8080)
@@ -274,7 +277,7 @@ docker exec -it restaurant_web composer update
 - **Admin** — manage the menu, dish components, ingredients, settings, and view the app log.
 - **Reports** — sales summary, top items, dining-option split, peak hours, average prep time, month-over-month comparison.
 
-> **Default login:** the initial schema (`common/sql/001_schema.sql`) seeds one admin user, `admin` / `admin123`, for local development. It's a seed value, not a production credential — change it (or add proper user management) before this ever runs anywhere reachable outside a trusted local network.
+> **Admin login:** no default credentials are seeded. Create your administrator with `docker compose exec web php bin/create-admin <username>` (prompts for a password, minimum 8 characters) — see [Installation](#getting-started).
 
 All data persists in the MySQL container (`db`).
 
@@ -302,10 +305,10 @@ curl -s http://localhost:8080/api/orders?status=pending | python -m json.tool
 # Complete an order
 curl -s -X POST http://localhost:8080/api/orders/1/complete | python -m json.tool
 
-# Login (local dev seed user — see "Using the app" above)
+# Login (use the account you created with `bin/create-admin` — see "Using the app" above)
 curl -s -X POST http://localhost:8080/api/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}' | python -m json.tool
+  -d '{"username":"admin","password":"your-password-here"}' | python -m json.tool
 
 # Use the token against admin routes
 TOKEN="paste-your-token-here"
