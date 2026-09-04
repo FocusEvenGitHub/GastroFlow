@@ -13,7 +13,5 @@ Decisions with a real trade-off, not a stack list. See [`docs/architecture.md`](
 
 ## Open, not yet resolved
 
-- The hardcoded JWT-secret fallback at `src/Routes.php:19` is a known, named security gap (`ROADMAP.md` #9) — not fixed incidentally; `CLAUDE.md` reserves that change for its own spec.
-- CORS currently allows any origin; making it configurable via env var is planned (`ROADMAP.md` #8) but not done.
 - Whether raw-SQL migrations remain the right choice as the schema grows, versus adopting a Schema-builder-based migration layer, is unresolved.
 - `common/config.php`/`common/db.php` (dead PDO helpers) — kept for now; whether to delete them or whether something external still depends on them is an open question in `specs/000-project-baseline.md`.
