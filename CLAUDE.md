@@ -23,7 +23,9 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - `bin/create-admin <username>` — create an administrator (prompts for a password, minimum 8 characters; no default credentials are seeded).
 - `bin/worker [--once] [queue]` — process the DB-backed job queue (e.g. print jobs).
 - `composer start` — `php -S 0.0.0.0:80 -t public` (only script in `composer.json`).
-- **There is no test command and no lint/static-analysis command in this project.** Do not invent one, and never claim tests passed if none were run — say plainly that no test infrastructure exists when that's the case.
+- `docker compose exec web vendor/bin/phpunit` — run the PHPUnit suite (`phpunit.xml`, `tests/Smoke` + `tests/Unit`). No `composer test` alias exists — use the `vendor/bin/phpunit` invocation directly.
+- GitHub Actions (`.github/workflows/ci.yml`) runs this same suite against a real MySQL 8.0 service on every push/PR to `master`.
+- **There is still no lint/static-analysis command in this project** (no PHPStan/Psalm/CS-Fixer configured). Do not invent one, and never claim a test or check passed without having actually run it and observed the result.
 
 ## Code conventions observed
 
