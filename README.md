@@ -119,7 +119,7 @@ Full request lifecycle, the annotated project-structure tree, and the current li
 - **Specs before non-trivial code.** Features, fixes and improvements go through a spec file under [`specs/`](specs/) — problem, proposed behavior, acceptance criteria, then an implementation log and validation evidence as work happens. `specs/000-project-baseline.md` is a code-verified snapshot of the whole system, written before any feature spec.
 - **A defined lifecycle**, not just a folder of markdown: `Draft → Approved → In Progress → Implemented → Verified` (or `Cancelled`), per [`specs/README.md`](specs/README.md). `Verified` requires recorded evidence tied to acceptance criteria — it isn't granted on trust.
 - **Persistent, written project rules.** [`CLAUDE.md`](CLAUDE.md) documents the confirmed stack, the actual code layering, the commands that really exist, and explicit security rules — a checked-in artifact, not tribal knowledge.
-- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.5.5`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
+- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.6.0`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
 
 ```mermaid
 flowchart LR
@@ -151,7 +151,7 @@ What that means in practice:
 
 - The human sets the objective; ambiguous or architectural decisions require explicit approval before implementation starts (`Draft → Approved`) — a blocking open question stops the work.
 - A spec is the contract for what gets built: implementation is checked against it, and any conflict between the two is reported, not silently resolved either way.
-- Validation requires evidence, not a self-report — `php -l`, real `curl` calls, reading the diff, and now `vendor/bin/phpunit` (locally and in CI) since automated tests + CI landed — see `docs/ROADMAP.md`'s "Current Baseline — v1.5.6".
+- Validation requires evidence, not a self-report — `php -l`, real `curl` calls, reading the diff, and now `vendor/bin/phpunit` (locally and in CI) since automated tests + CI landed — see `docs/ROADMAP.md`'s Current Baseline section.
 - AI speeds up execution. The approval gate, the scope limits, and the evidence requirement are what make that execution trustworthy — and they're enforced by the rules above, not by taking a model's word for it.
 
 ---
@@ -189,13 +189,14 @@ Five picks that best represent how this project trades things off — full table
 
 **Completed**
 
-- Core ordering flow: cashier → kitchen → admin, table-based orders, near-real-time kitchen updates via SSE
+- Core ordering flow: cashier → kitchen → admin, pickup-ticket ("Senha") ordering, near-real-time kitchen updates via SSE
 - JWT-authenticated admin area: menu CRUD, dish components, settings, log viewer
-- Thermal receipt printing (ESC/POS) dispatched through an async job queue (`bin/worker`)
+- Thermal receipt printing (ESC/POS) dispatched through an async job queue (`bin/worker`); kitchen can edit, delete and reprint orders
 - Sales reporting: summary, top items, dining-option breakdown, peak hours, average prep time, month-over-month comparison (`v1.0.0` → `v1.5.5`)
 - Spec-driven development workflow adopted: `specs/`, `CLAUDE.md`, `/spec-plan`, `/spec-implement` (August 2026)
-- Foundation cleanup: `declare(strict_types=1)` everywhere, configurable CORS origin, hardcoded JWT fallback removed, filesystem paths centralized in `Settings` (see `docs/ROADMAP.md`'s "Current Baseline — v1.5.6")
-- Automated tests + CI: PHPUnit smoke test + unit tests for `OrderService`/`OrderValidator`, GitHub Actions running the suite on every push/PR (see `docs/ROADMAP.md`'s "Current Baseline — v1.5.6")
+- Foundation cleanup: `declare(strict_types=1)` everywhere, configurable CORS origin, hardcoded JWT fallback removed, filesystem paths centralized in `Settings` (see `docs/ROADMAP.md`'s Current Baseline section)
+- Automated tests + CI: PHPUnit smoke test + unit tests, GitHub Actions running the suite on every push/PR (see `docs/ROADMAP.md`'s Current Baseline section)
+- **`v1.6.0` — Baseline & Security**: default admin/DB credentials removed (`bin/create-admin` now required), role-based authorization (`admin`/`manager`/`cashier`/`kitchen`) enforced on `/api/admin/*`, sanitized production error responses, `.env` no longer baked into Docker images, `composer.lock` tracked for reproducible builds, `table_number` terminology corrected (it's a pickup ticket, never a physical table) — full detail in [`CHANGELOG.md`](CHANGELOG.md)
 
 **In progress**
 
