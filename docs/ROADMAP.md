@@ -1,6 +1,6 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.5.6
+> **Current version:** v1.6.0
 > **Target:** v2.0.0
 > **Edition:** GastroFlow Community
 > **Scope:** Self-hosted restaurant management for a single restaurant/location.
@@ -171,33 +171,40 @@ GitHub Issues should track individual pieces of work.
 
 ---
 
-# Current Baseline — v1.5.6
+# Current Baseline — v1.6.0
 
 GastroFlow already includes:
 
-* cashier ordering workflow;
-* kitchen workflow;
-* menu administration;
+* cashier ordering workflow (pickup-ticket "Senha" numbering — never a physical table);
+* kitchen workflow, including order edit/delete/reprint;
+* menu administration, with search;
 * ingredients/components;
 * restaurant settings;
 * ESC/POS thermal printing;
 * asynchronous DB-backed jobs;
 * reports;
-* JWT authentication;
+* JWT authentication with self-service password change (no logout — stateless JWT, documented rationale);
+* role-based authorization (`admin`/`manager`/`cashier`/`kitchen`) enforced on `/api/admin/*`;
+* no default admin or database credentials — `bin/create-admin` and environment-provided DB config only;
+* sanitized production error responses (`APP_ENV=production`);
+* `.env` never baked into Docker images;
 * configurable CORS;
 * SQL migrations;
 * Docker Compose;
+* `composer.lock` tracked for reproducible builds;
 * PHPUnit;
 * GitHub Actions CI;
 * spec-driven development;
 * tagged releases;
 * CHANGELOG.
 
-The v2 cycle is therefore primarily a **hardening and productization cycle**.
+`v1.6.0 — Baseline & Security` (below) is complete — see `CHANGELOG.md` and tag `v1.6.0`. The v2 cycle continues with `v1.7.0 — Domain & Architecture`.
 
 ---
 
 # v1.6.0 — Baseline & Security
+
+**Status: Complete.** Tagged `v1.6.0`, documented in `CHANGELOG.md`. Per-subsection status is noted inline below.
 
 ## Objective
 
@@ -222,6 +229,8 @@ Review and synchronize:
 * current project baseline spec
 
 Remove documentation referring to functionality that no longer reflects the implementation.
+
+**Status (spec 006)**: Verified — `README.md`, `CLAUDE.md`, `docs/architecture.md`, `docs/technical-decisions.md`, the API docs and `specs/000-project-baseline.md` synchronized with the real codebase. Follow-up doc-sync passes (README/ROADMAP updates) continued as later specs in this milestone landed.
 
 ---
 
@@ -250,6 +259,8 @@ Any future restaurant table feature must be modeled independently.
 
 Searching the active application for old table-based ordering assumptions should not reveal incorrect business behavior.
 
+**Status (spec 010)**: Implemented — confirmed `table_number` is a customer-facing pickup ticket ("Senha"), never a physical table; unified `POST /api/orders`'s request field (was `table`) with `PUT`'s (`table_number`); corrected `README.md`/OpenAPI docs that described a physical-table model. Concurrency-safe numbering and the `order_number` rename itself are deferred to `v1.7.0`'s "Order number integrity".
+
 ---
 
 ## Application environment
@@ -271,6 +282,8 @@ production
 ```
 
 Production defaults must never silently enable insecure development behavior.
+
+**Status (spec 011)**: Implemented — `APP_ENV`/`APP_DEBUG`/`APP_TIMEZONE` are now read via `Settings`, documented in `.env.example`; application timezone is configurable without editing Docker/OS config.
 
 ---
 
@@ -298,6 +311,8 @@ Example production response:
 
 Full exceptions should remain available through application logs.
 
+**Status (spec 012)**: Verified — `APP_ENV=production` responses no longer expose stack trace, file path or SQL detail; full exceptions still logged to `logs/app.log`.
+
 ---
 
 ## Docker secret handling
@@ -319,6 +334,8 @@ Production images must not contain:
 * development-only files;
 * local logs.
 
+**Status (spec 013)**: Verified — `.env` is no longer copied into the built Docker image.
+
 ---
 
 ## Database bootstrap cleanup
@@ -328,6 +345,8 @@ Remove globally known default database credentials from schema/bootstrap logic.
 Database users and passwords should come from environment/deployment configuration.
 
 Schema migrations should only manage application database structures and data required by GastroFlow itself.
+
+**Status (spec 014)**: Verified — hardcoded DB credentials removed from schema/bootstrap; database users/passwords now come exclusively from environment/deployment configuration.
 
 ---
 
@@ -354,6 +373,8 @@ Requirements:
 * duplicate-user validation;
 * empty/invalid password rejection;
 * no predictable production credentials.
+
+**Status (spec 015)**: Verified — the seeded `admin`/`admin123` row is gone from `001_schema.sql`; `bin/create-admin` creates the first administrator (password confirmed twice, bcrypt hash, duplicate-username/empty-password rejection). Existing, already-initialized databases are unaffected — the schema only runs on a genuinely empty volume.
 
 ---
 
@@ -419,6 +440,8 @@ Avoid over-engineering the permission system.
 * run `composer audit`;
 * ensure development, CI and Docker use the same dependency graph.
 
+**Status (spec 017)**: Verified — `composer.lock` is now tracked and committed (as of tag `v1.6.0`); `composer validate --strict` and `composer audit` both pass clean.
+
 ---
 
 # v1.6 Exit Gate
@@ -426,6 +449,8 @@ Avoid over-engineering the permission system.
 v1.6 is complete when:
 
 > GastroFlow no longer depends on insecure development defaults and the repository documentation accurately describes the current application.
+
+**Met.** No default admin or database credentials remain, production error responses are sanitized, `.env`/secrets are excluded from Docker images, dependencies are reproducible (`composer.lock` tracked), and `README.md`/`CLAUDE.md`/this roadmap are synchronized with the actual `v1.6.0` implementation.
 
 ---
 
