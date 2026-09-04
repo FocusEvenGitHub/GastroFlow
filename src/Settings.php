@@ -20,6 +20,15 @@ class Settings
         return ($value !== null && $value !== '') ? $value : $default;
     }
 
+    public function getRequired(string $key): string
+    {
+        $value = $this->get($key);
+        if ($value === null) {
+            throw new \RuntimeException("$key environment variable is not set.");
+        }
+        return $value;
+    }
+
     /**
      * Defaults to 'production' when unset — a deployment that forgets to set APP_ENV
      * gets the restrictive behavior, never the permissive one.

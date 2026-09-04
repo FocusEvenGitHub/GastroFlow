@@ -4,11 +4,6 @@ COLLATE utf8mb4_unicode_ci;
 
 USE restaurant;
 
--- Garantir acesso do usuário da aplicação vindo de qualquer host
-CREATE USER IF NOT EXISTS 'restuser'@'%' IDENTIFIED BY 'restpass';
-GRANT ALL PRIVILEGES ON restaurant.* TO 'restuser'@'%';
-FLUSH PRIVILEGES;
-
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 -- Tabela de categorias
