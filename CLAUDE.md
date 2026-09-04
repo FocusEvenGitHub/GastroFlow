@@ -43,7 +43,7 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 
 ## Release workflow
 
-- Whenever a merge into `master` is detected (e.g. a merge commit, or commits landing on `master` that weren't there before), proactively suggest — don't do it unasked — updating `CHANGELOG.md` and cutting the next SemVer tag, per the process in `docs/COMMIT_CONVENTION.md` ("Release & Changelog Workflow"). Never update the changelog, tag, commit, or push as part of this suggestion without explicit confirmation.
+- Whenever new work lands on `master` — a merge commit, a direct commit, or a `git push` that puts commits on `master` that weren't there before (detected via `git log`/`git status`, or observed directly when you perform the commit/push yourself) — proactively suggest, don't do it unasked, updating `CHANGELOG.md` (using `git log <last-tag>..HEAD` and `docs/ROADMAP.md`'s current milestone to draft the entry) and cutting the next SemVer tag, per the process in `docs/COMMIT_CONVENTION.md` ("Release & Changelog Workflow"). This applies the same way whether the user asked for the commit/push/merge or you performed it as part of a task. Never update the changelog, tag, commit, or push as part of this suggestion without explicit confirmation — the trigger is broader now, the confirmation requirement is not.
 
 ## General rules
 
