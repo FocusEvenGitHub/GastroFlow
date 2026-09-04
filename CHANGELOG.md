@@ -1,5 +1,34 @@
 # Changelog
 
+## v1.6.0 (2026-09-03) — Baseline & Security
+
+Fecha o milestone `v1.6.0 — Baseline & Security` do `ROADMAP.md`: remove os últimos defaults inseguros conhecidos (senha de admin, credenciais de banco), adiciona RBAC aos endpoints administrativos e sincroniza a documentação com o comportamento real da aplicação.
+
+### Segurança
+- **Bootstrap do administrador**: removida a linha semeada `admin`/`admin123` de `001_schema.sql` — uma instalação nova não tem mais nenhum usuário até que um seja criado explicitamente; novo `bin/create-admin` cria o primeiro administrador (senha mínima de 8 caracteres, confirmada, hash bcrypt). Bancos já inicializados (incluindo o de desenvolvimento) não são afetados retroativamente (spec 015)
+- **Autorização (RBAC)**: rotas `/api/admin/*` agora exigem papel, além de autenticação — `admin` para configurações/logs/impressora; `admin` ou `manager` para cardápio e relatórios; troca da própria senha aberta a qualquer papel autenticado. `users.role` passa a suportar `admin`/`manager`/`cashier`/`kitchen`, mas `cashier`/`kitchen` ainda não bloqueiam nada — `/api/orders*` e `/api/kitchen/*` continuam públicas de propósito (endpoints de rede confiável, sem tela de login) (spec 018)
+- **Respostas de erro em produção**: com `APP_ENV=production`, respostas da API não expõem mais stack trace, caminho de arquivo ou detalhes de SQL — passam a retornar `{"success": false, "error": "Internal server error", "code": "INTERNAL_ERROR"}`; a exceção completa continua disponível em `logs/app.log` (spec 012)
+- **Docker**: `.env` não é mais copiado para dentro da imagem construída (spec 013)
+- **Banco de dados**: credenciais de banco hardcoded removidas de `common/sql/001_schema.sql`/bootstrap — usuário e senha do banco agora vêm exclusivamente de configuração de ambiente/deploy (spec 014)
+
+### Novidades
+- **Autenticação**: novo endpoint `PATCH /api/admin/account/password` para troca de senha; estratégia de autenticação (expiração/invalidação de token, hashing, ausência deliberada de logout — JWT stateless) documentada em `docs/architecture.md` (spec 016)
+- **Configuração**: variáveis `APP_ENV`, `APP_DEBUG` e `APP_TIMEZONE` introduzidas — timezone da aplicação agora é configurável sem editar Docker/OS (spec 011)
+- **Cozinha**: pedidos agora podem ser editados, excluídos e reimpressos diretamente da tela da cozinha
+- **Cardápio**: barra de busca adicionada ao Caixa e ao Admin, limpa automaticamente após adicionar um item (spec 009)
+
+### Correções
+- **Impressão**: falhas de impressão agora se propagam corretamente, permitindo que jobs sejam reenfileirados e tentem novamente em vez de serem descartados silenciosamente
+- **Dados**: cardápio padrão de Pratos Principais re-semeado com receitas corrigidas
+
+### Alterações que quebram compatibilidade
+- **`POST /api/orders`**: campo do corpo da requisição renomeado de `table` para `table_number`, unificando com o nome já usado por `PUT` (o valor sempre foi um número de senha de retirada, não uma mesa física — rótulo "Número da Senha" no Caixa, "Senha" na Cozinha). Clientes de API que ainda enviam `table` precisam ser atualizados (spec 010)
+
+### Infraestrutura
+- **Dependências**: `composer.lock` agora é versionado e faz parte do repositório; `composer validate --strict` passa (spec 017)
+- **Docker**: timezone do container fixado em `America/Sao_Paulo` (-3)
+- **Documentação**: `README.md`, `CLAUDE.md`, `docs/architecture.md` e as specs sincronizados com o comportamento real da aplicação (baseline v1.6.0)
+
 ## v1.5.6 (2026-08-20)
 
 ### Segurança
