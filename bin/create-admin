@@ -7,7 +7,9 @@ declare(strict_types=1);
  * GastroFlow Administrator Bootstrap
  *
  * Uso:
- *   php bin/create-admin <username>
+ *   php bin/create-admin <username> [role]
+ *
+ * role: admin (padrão), manager, cashier ou kitchen.
  */
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -32,7 +34,14 @@ DB::boot($settings);
 
 $username = trim($argv[1] ?? '');
 if ($username === '') {
-    fwrite(STDERR, "Uso: php bin/create-admin <username>\n");
+    fwrite(STDERR, "Uso: php bin/create-admin <username> [role]\n");
+    exit(1);
+}
+
+$allowedRoles = ['admin', 'manager', 'cashier', 'kitchen'];
+$role = trim($argv[2] ?? 'admin');
+if (!in_array($role, $allowedRoles, true)) {
+    fwrite(STDERR, "Erro: role inválida \"$role\". Use uma de: " . implode(', ', $allowedRoles) . ".\n");
     exit(1);
 }
 
@@ -65,7 +74,7 @@ if ($password !== $confirmation) {
 User::create([
     'username' => $username,
     'password' => password_hash($password, PASSWORD_BCRYPT),
-    'role'     => 'admin',
+    'role'     => $role,
 ]);
 
-fwrite(STDOUT, "\n✓ Administrador \"$username\" criado com sucesso.\n");
+fwrite(STDOUT, "\n✓ Usuário \"$username\" ($role) criado com sucesso.\n");
