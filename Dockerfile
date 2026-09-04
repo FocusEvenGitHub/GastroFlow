@@ -38,7 +38,6 @@ COPY src/ ./src/
 COPY common/ ./common/
 COPY legacy/ ./legacy/
 COPY bin/ ./bin/
-COPY .env ./
 
 # Ajustar permissões finais
 RUN chown -R www-data:www-data /var/www/html \
