@@ -2,9 +2,9 @@
 
 ## Metadata
 
-- Status: Draft
+- Status: Verified
 - Created: 2026-08-24
-- Updated: 2026-08-24
+- Updated: 2026-09-03
 - Owner: Henry
 - Related issue: Not applicable
 - Related branch: 014
@@ -153,18 +153,27 @@ Documentation-only change on branch `014`. No deployment, migration, or feature 
 
 ## Task checklist
 
-- [ ] `docs/architecture.md` lines 56, 60, 105-107 updated
-- [ ] `docs/technical-decisions.md` line 11 updated
-- [ ] `README.md` lines 154, 197, 198, 204, 208 updated
-- [ ] `CLAUDE.md` Security rules bullet updated
-- [ ] `specs/000-project-baseline.md` Authentication + Security considerations sections corrected, `Implementation log` + `Updated` date added
-- [ ] Greps re-run to confirm no dangling `ROADMAP.md #`/`v2.[0-3]` references remain outside excluded historical files
-- [ ] Each new citation manually confirmed against real `docs/ROADMAP.md` headings
+- [x] `docs/architecture.md` lines 56, 60, 105-107 updated
+- [x] `docs/technical-decisions.md` line 11 updated
+- [x] `README.md` lines 154, 197, 198, 204, 208 updated
+- [x] `CLAUDE.md` Security rules bullet updated
+- [x] `specs/000-project-baseline.md` Authentication + Security considerations sections corrected, `Implementation log` + `Updated` date added
+- [x] Greps re-run to confirm no dangling `ROADMAP.md #`/`v2.[0-3]` references remain outside excluded historical files
+- [x] Each new citation manually confirmed against real `docs/ROADMAP.md` headings
 
 ## Implementation log
 
-Not yet started — filled in during `/spec-implement`.
+- 2026-09-03 — Found `docs/technical-decisions.md`'s "Open, not yet resolved" section already missing its two `ROADMAP.md #8`/`#9` bullets (JWT fallback, CORS) and `.claude/settings.json`/`CLAUDE.md`'s Release workflow section already carrying unrelated uncommitted edits, present in the working tree before this implementation pass started. Left the unrelated `.claude/settings.json` change untouched; kept the already-removed technical-decisions.md bullets since removing them serves this spec's own goal (no stale `ROADMAP.md #` citations) and re-added nothing that would reintroduce a stale claim.
+- 2026-09-03 — Implemented functional requirements 1-9 as specified. For `docs/architecture.md`'s "Known architectural limitations" (requirement 3), reworded the CORS bullet to state the permissive-by-default gap accurately (per non-goals, not fixing the default itself, only its description) rather than removing it, since it's still genuinely open.
+- 2026-09-03 — Deviation beyond the literal task list: also corrected `specs/000-project-baseline.md`'s Non-functional requirements sentence (line ~143), which repeated the same stale hardcoded-secret-fallback claim being fixed elsewhere in the same file, plus its adjacent "no automated tests" claim (also stale — specs 004/005). Not in the original Functional requirements list, but leaving it uncorrected while fixing the two adjacent sections would have left an internal contradiction in the same document.
+- 2026-09-03 — Verified `src/Routes.php:22` directly before writing any correction: `$_ENV['JWT_SECRET'] ?? throw new \RuntimeException(...)`, confirming no hardcoded fallback exists, consistent with the spec's Current behavior section.
 
 ## Validation evidence
 
-Not yet available — filled in during `/spec-implement`.
+- Acceptance criterion 1 — `grep -rn "ROADMAP\.md\` #\|ROADMAP\.md #" . --include="*.md"` (excluding `.git/`, `CHANGELOG.md`, `specs/006-*.md`, `specs/001-*.md` through `specs/005-*.md`): **0 matches**.
+- Acceptance criterion 2 — `grep -rnE "ROADMAP\.md.{0,3}v2\.[0-3]" . --include="*.md"` (same exclusions): **0 matches**.
+- Acceptance criterion 3 — `docs/architecture.md`'s "Known architectural limitations" no longer asserts a hardcoded JWT fallback or a missing test suite/CI pipeline (confirmed by reading the edited section back); only the still-true "no lint/static-analysis tooling" and the reworded, accurate CORS-default note remain.
+- Acceptance criterion 4 — `CLAUDE.md`'s Security rules bullet now reads "The hardcoded JWT-secret fallback formerly at `src/Routes.php:19` was removed by spec 002 (`v1.5.6`)..." — no longer asserts the fallback currently exists.
+- Acceptance criterion 5 — `specs/000-project-baseline.md` has a new Implementation log entry dated 2026-09-03 documenting the JWT-fallback correction, and `Updated: 2026-09-03` in Metadata.
+- Acceptance criterion 6 — Read `docs/ROADMAP.md`'s full heading list (`grep -n "^# \|^## " docs/ROADMAP.md`) after all edits; confirmed every new citation used (`v1.6.0 — Baseline & Security`, `v1.7.0 — Domain & Architecture`, its "Controller responsibilities"/"Persistence boundaries" subsections, `v1.8.0 — Reliability & Quality`, its "Static analysis"/"Code style"/"Realtime reliability" subsections, `v1.9.0 — Community Productization`, `Current Baseline — v1.5.6`) matches a real heading present in the file.
+- No automated test infrastructure applies to documentation content (per this project's testing strategy) — no `vendor/bin/phpunit` run was relevant here.
