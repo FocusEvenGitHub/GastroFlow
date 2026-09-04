@@ -38,7 +38,11 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - Never commit or push without an explicit request.
 - Never run destructive database operations (drops, truncates, irreversible data changes).
 - Never change the DB schema outside a migration file in `common/migrations/` (or an explicitly agreed equivalent) — no ad hoc `ALTER TABLE` outside that mechanism.
-- `src/Routes.php:19` has a known hardcoded JWT-secret fallback; don't add similar hardcoded-secret fallbacks elsewhere, and don't silently "fix" this one outside of an explicit spec.
+- The hardcoded JWT-secret fallback formerly at `src/Routes.php:19` was removed by spec 002 (`v1.5.6`); `src/Routes.php:22` now throws a `RuntimeException` when `JWT_SECRET` is unset. Don't reintroduce a hardcoded-secret fallback there or elsewhere, and don't silently "fix" security-relevant code like this outside of an explicit spec.
+
+## Release workflow
+
+- Whenever a merge into `master` is detected (e.g. a merge commit, or commits landing on `master` that weren't there before), proactively suggest — don't do it unasked — updating `CHANGELOG.md` and cutting the next SemVer tag, per the process in `docs/COMMIT_CONVENTION.md` ("Release & Changelog Workflow"). Never update the changelog, tag, commit, or push as part of this suggestion without explicit confirmation.
 
 ## General rules
 

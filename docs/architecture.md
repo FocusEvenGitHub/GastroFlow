@@ -53,11 +53,11 @@ Coverage is real but uneven — this reflects what's actually implemented, not a
 | `Middleware/` | 3 (PSR-15): Cors, JsonBodyParser, Jwt | `Jwt` applies only to the `/api/admin` route group |
 | `Models/` | 8 Eloquent models: User, Category, MenuItem, Ingredient, Order, OrderItem, Setting, Job | — |
 
-Extending `Repositories/`/`Validators/` to cover the remaining domains is tracked as `ROADMAP.md` #2 and #6, not assumed to already be done.
+Extending `Repositories/`/`Validators/` to cover the remaining domains is tracked in `docs/ROADMAP.md`'s `v1.7.0 — Domain & Architecture` phase ("Controller responsibilities", "Persistence boundaries"), not assumed to already be done.
 
 ## Real-time kitchen updates (SSE)
 
-The kitchen's "real-time" update is a signal file, not a message queue: `OrderService` writes a JSON file to `sys_get_temp_dir()` on order creation/completion, and `public/api/events/stream.php` polls it to emit Server-Sent Events. This works correctly for a single app instance and zero extra infrastructure, but is not safe under concurrent writes or a multi-instance deployment — `ROADMAP.md` #5 plans to replace it with Redis pub/sub or a MySQL-backed `events` table.
+The kitchen's "real-time" update is a signal file, not a message queue: `OrderService` writes a JSON file to `sys_get_temp_dir()` on order creation/completion, and `public/api/events/stream.php` polls it to emit Server-Sent Events. This works correctly for a single app instance and zero extra infrastructure, but is not safe under concurrent writes or a multi-instance deployment — `docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality` phase ("Realtime reliability") plans to replace it with Redis pub/sub or a MySQL-backed `events` table.
 
 ## Background jobs and printing
 
@@ -100,11 +100,10 @@ GastroFlow
 
 ## Known architectural limitations
 
-Named, not hidden — tracked in `specs/000-project-baseline.md` and `ROADMAP.md`:
+Named, not hidden — tracked in `specs/000-project-baseline.md` and `docs/ROADMAP.md`:
 
-- Hardcoded JWT-secret fallback at `src/Routes.php:19` (`ROADMAP.md` #9).
-- CORS currently allows any origin (`ROADMAP.md` #8).
-- No automated test suite, no lint/static-analysis tooling, no CI pipeline (`ROADMAP.md` #1, #15).
+- CORS defaults to `*` when `CORS_ALLOWED_ORIGIN` is unset; configurable per spec 001, but the permissive default is still an open gap (`docs/ROADMAP.md`'s `v1.6.0 — Baseline & Security` phase doesn't yet name a fix for the default itself).
+- No lint/static-analysis tooling (`docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality` phase: "Static analysis", "Code style"). The hardcoded JWT-secret fallback and the lack of a test suite/CI pipeline, both previously listed here, were fixed by specs 002, 004 and 005 (`v1.5.6`).
 - `IngredientController` exists but no `/api/admin/ingredients*` route was found wired in `src/Routes.php` — not confirmed whether it's reachable another way.
 - Migrations are forward-only; no rollback mechanism.
 - Signal-file SSE and the DB-backed job queue both assume a single app instance.

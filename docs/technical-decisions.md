@@ -8,7 +8,7 @@ Decisions with a real trade-off, not a stack list. See [`docs/architecture.md`](
 | Eloquent standalone (`Capsule\Manager`), not full Laravel | Familiar, expressive query builder/ORM without the framework around it | Pulls in several `illuminate/*` packages as implicit dependencies; no Laravel-style Schema-builder migrations |
 | Hand-rolled `MigrationRunner` over plain `.sql` files, not an ORM migration framework | Schema changes are explicit SQL, easy to read as a diff, framework-agnostic | Forward-only — no `down()`/rollback semantics |
 | `public/.htaccess` bypass for cashier/kitchen/admin views, instead of routing everything through Slim | Those pages are static Alpine.js shells that only need to call the JSON API — no reason to pay framework overhead for them | Two separate request-handling paths to reason about; anything needing CORS/auth middleware has to live under `/api/*` |
-| Signal-file SSE instead of Redis/RabbitMQ for kitchen live updates | Zero extra infrastructure for a single-location deployment | Not safe under concurrent writes or multiple app instances — `ROADMAP.md` #5 plans to replace it |
+| Signal-file SSE instead of Redis/RabbitMQ for kitchen live updates | Zero extra infrastructure for a single-location deployment | Not safe under concurrent writes or multiple app instances — `docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality` phase ("Realtime reliability") plans to replace it |
 | DB-backed `jobs` table + `bin/worker`, not a message broker | Avoids adding Redis/RabbitMQ for one background job type (printing) | Needs a long-running worker process supervised separately — `docker compose up -d` alone does not run it |
 
 ## Open, not yet resolved
