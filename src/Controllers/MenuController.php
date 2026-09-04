@@ -6,15 +6,33 @@ namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Log\LoggerInterface;
 use App\Services\MenuService;
+use App\Settings;
 
 class MenuController
 {
     private MenuService $menuService;
+    private Settings $settings;
+    private LoggerInterface $logger;
 
-    public function __construct(MenuService $menuService)
+    public function __construct(MenuService $menuService, Settings $settings, LoggerInterface $logger)
     {
         $this->menuService = $menuService;
+        $this->settings = $settings;
+        $this->logger = $logger;
+    }
+
+    private function errorResponse(Response $response, \Throwable $e, int $status = 500): Response
+    {
+        $this->logger->error($e->getMessage(), ['exception' => get_class($e)]);
+
+        $payload = $this->settings->isDebug()
+            ? ['error' => $e->getMessage()]
+            : ['success' => false, 'error' => 'Erro interno do servidor.', 'code' => 'INTERNAL_ERROR'];
+
+        $response->getBody()->write(json_encode($payload));
+        return $response->withStatus($status)->withHeader('Content-Type', 'application/json');
     }
 
     // GET /api/menu
@@ -42,8 +60,7 @@ class MenuController
             $response->getBody()->write(json_encode($payload));
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -64,8 +81,7 @@ class MenuController
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -78,8 +94,7 @@ class MenuController
             $response->getBody()->write(json_encode($components));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -100,8 +115,7 @@ class MenuController
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -126,8 +140,7 @@ class MenuController
             $response->getBody()->write(json_encode(['error' => 'Categoria não encontrada']));
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 
@@ -151,8 +164,7 @@ class MenuController
             ]));
             return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            return $this->errorResponse($response, $e);
         }
     }
 }
