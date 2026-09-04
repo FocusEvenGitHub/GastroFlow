@@ -10,6 +10,8 @@ class Order extends Model
 {
     protected $table = 'orders';
 
+    // table_number is a customer-facing pickup ticket ("Senha"), not a physical restaurant
+    // table; see docs/ROADMAP.md's v1.7.0 "Order number integrity" for the planned order_number rework.
     protected $fillable = ['table_number', 'customer_name', 'status'];
 
     protected $casts = [

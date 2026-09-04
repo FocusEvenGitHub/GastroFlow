@@ -143,7 +143,7 @@ function cashierApp() {
             this.submitting = true;
             try {
                 const payload = {
-                    table: this.tableNumber,
+                    table_number: this.tableNumber,
                     customer_name: this.customerName || undefined,
                     print_ticket: this.printTicket,
                     items: this.selectedItems.map(i => ({

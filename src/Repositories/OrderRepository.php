@@ -69,7 +69,7 @@ class OrderRepository
             }
 
             $order = Order::create([
-                'table_number'  => $data['table'],
+                'table_number'  => $data['table_number'],
                 'customer_name' => $customerName,
                 'status'        => Order::STATUS_PENDING,
             ]);
@@ -119,6 +119,11 @@ class OrderRepository
         $order->save();
     }
 
+    /**
+     * table_number is a customer-facing pickup ticket ("Senha"), not a physical restaurant
+     * table; this MAX()+1 is not concurrency-safe — see docs/ROADMAP.md's v1.7.0 "Order number
+     * integrity" for the planned order_number rework.
+     */
     public function getNextNumber(): int
     {
         $result = DB::select('SELECT COALESCE(MAX(CAST(table_number AS UNSIGNED)), 0) + 1 AS next FROM orders');

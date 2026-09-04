@@ -71,7 +71,7 @@
 
 ## Overview
 
-GastroFlow is a restaurant order-management system: a cashier takes an order by table number, the kitchen sees it appear in real time and marks it done, an admin panel manages the menu and produces a receipt on a thermal printer, and a reporting module turns the accumulated order history into sales, timing and demand insights. It targets a single-location restaurant running everything — cashier terminal, kitchen display, admin panel — on one local network, which is why the design favors a simple, self-hosted deployment over a distributed one.
+GastroFlow is a restaurant order-management system: a cashier takes an order and issues a sequential pickup ticket number ("Senha"), the kitchen sees it appear in real time and marks it done, an admin panel manages the menu and produces a receipt on a thermal printer, and a reporting module turns the accumulated order history into sales, timing and demand insights. It targets a single-location restaurant running everything — cashier terminal, kitchen display, admin panel — on one local network, which is why the design favors a simple, self-hosted deployment over a distributed one.
 
 It continues to be developed both because the product itself has open functional ground (see [Roadmap](#roadmap)) and because it doubles as a working environment for practicing software engineering process — see [Project philosophy](#project-philosophy).
 
@@ -269,7 +269,7 @@ docker exec -it restaurant_web composer update
 
 ## Using the app
 
-- **Cashier** — create an order by table number, select items, add notes, send to the kitchen.
+- **Cashier** — create an order under a pickup ticket number ("Senha"), select items, add notes, send to the kitchen.
 - **Kitchen** — pending orders appear in near real time; mark as done or reopen.
 - **Admin** — manage the menu, dish components, ingredients, settings, and view the app log.
 - **Reports** — sales summary, top items, dining-option split, peak hours, average prep time, month-over-month comparison.
@@ -294,7 +294,7 @@ curl -s http://localhost:8080/api/menu | python -m json.tool
 # Create an order
 curl -s -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
-  -d '{"table":"3","items":[{"id":1,"quantity":2,"notes":"no onion"}]}' | python -m json.tool
+  -d '{"table_number":"3","items":[{"id":1,"quantity":2,"notes":"no onion"}]}' | python -m json.tool
 
 # Pending orders
 curl -s http://localhost:8080/api/orders?status=pending | python -m json.tool

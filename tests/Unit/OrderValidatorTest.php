@@ -14,7 +14,7 @@ class OrderValidatorTest extends TestCase
         $validator = new OrderValidator();
 
         $result = $validator->validateOrderData([
-            'table' => '5',
+            'table_number' => '5',
             'items' => [
                 ['id' => 1, 'quantity' => 2],
             ],
@@ -23,7 +23,7 @@ class OrderValidatorTest extends TestCase
         $this->assertTrue($result);
     }
 
-    public function testMissingTableIsRejected(): void
+    public function testMissingTableNumberIsRejected(): void
     {
         $validator = new OrderValidator();
 
@@ -42,7 +42,7 @@ class OrderValidatorTest extends TestCase
         $validator = new OrderValidator();
 
         $result = $validator->validateOrderData([
-            'table' => '5',
+            'table_number' => '5',
         ]);
 
         $this->assertFalse($result);
@@ -54,7 +54,7 @@ class OrderValidatorTest extends TestCase
         $validator = new OrderValidator();
 
         $result = $validator->validateOrderData([
-            'table' => '5',
+            'table_number' => '5',
             'items' => [
                 ['id' => 1],
             ],
@@ -69,7 +69,7 @@ class OrderValidatorTest extends TestCase
         $validator = new OrderValidator();
 
         $result = $validator->validateOrderData([
-            'table' => '5',
+            'table_number' => '5',
             'items' => [
                 ['id' => 1, 'quantity' => 2, 'dining_option' => 'invalid_option'],
             ],
