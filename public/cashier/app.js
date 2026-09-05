@@ -57,6 +57,7 @@ function cashierApp() {
 
         // Adiciona item ao pedido (padrão: Local)
         addItem(item) {
+            if (item.available === false) return;
             const existing = this.selectedItems.find(i => i.id === item.id);
             if (existing) {
                 existing.quantity++;

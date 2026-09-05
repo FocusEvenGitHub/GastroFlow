@@ -156,4 +156,41 @@ class OrderRepositoryTest extends TestCase
         $this->expectException(\DomainException::class);
         $this->repo->uncompleteOrder($order->id);
     }
+
+    public function testCreateOrderWithNonexistentMenuItemThrowsAndPersistsNothing(): void
+    {
+        $nonexistentId = $this->menuItemId + 999;
+
+        try {
+            $this->repo->createOrder(['items' => [['id' => $nonexistentId, 'quantity' => 1]]]);
+            $this->fail('Expected DomainException was not thrown.');
+        } catch (\DomainException $e) {
+            // expected
+        }
+
+        $this->assertSame(0, Db::table('orders')->count());
+        $this->assertSame(0, Db::table('order_items')->count());
+        $this->assertSame(1, $this->repo->getNextNumber(), 'no order_number should have been consumed');
+    }
+
+    public function testCreateOrderWithUnavailableMenuItemThrows(): void
+    {
+        $unavailableId = (int) MenuItem::create([
+            'name' => 'Fora de estoque', 'price' => 5.0, 'available' => false,
+        ])->id;
+
+        $this->expectException(\DomainException::class);
+        $this->repo->createOrder(['items' => [['id' => $unavailableId, 'quantity' => 1]]]);
+    }
+
+    public function testAddOrderItemWithUnavailableMenuItemThrows(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $unavailableId = (int) MenuItem::create([
+            'name' => 'Fora de estoque', 'price' => 5.0, 'available' => false,
+        ])->id;
+
+        $this->expectException(\DomainException::class);
+        $this->repo->addOrderItem($order->id, ['menu_item_id' => $unavailableId]);
+    }
 }

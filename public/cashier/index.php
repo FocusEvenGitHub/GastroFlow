@@ -151,9 +151,10 @@
                                      @dragstart="dragStart(category, index)"
                                      @dragover.prevent
                                      @drop.prevent="dragDrop(category, index)">
-                                    <div class="card menu-item-card h-100" :class="reorderMode ? 'reorder-card' : ''" @click="!reorderMode && addItem(item)">
+                                    <div class="card menu-item-card h-100" :class="{ 'reorder-card': reorderMode, 'opacity-50': item.available === false }" @click="!reorderMode && item.available !== false && addItem(item)">
                                         <div class="card-body">
                                             <h6 class="card-title" x-text="item.name"></h6>
+                                            <span class="badge bg-secondary" x-show="item.available === false">Indisponível</span>
                                             <template x-if="category.category_name !== 'Pratos Principais'">
                                                 <p class="card-text text-muted small item-desc" x-text="item.description || 'Sem descrição'"></p>
                                             </template>
@@ -165,7 +166,7 @@
                                             </template>
                                             <div class="d-flex justify-content-between align-items-center item-footer">
                                                 <span class="h5 text-success mb-0">R$ <span x-text="item.price.toFixed(2)"></span></span>
-                                                <button class="btn btn-sm btn-outline-primary" @click.stop="addItem(item)" x-show="!reorderMode">
+                                                <button class="btn btn-sm btn-outline-primary" @click.stop="addItem(item)" x-show="!reorderMode" :disabled="item.available === false">
                                                     <i class="fas fa-plus"></i> Adicionar
                                                 </button>
                                                 <span class="text-muted" x-show="reorderMode" title="Arraste para reorganizar"><i class="fas fa-grip-lines"></i></span>

@@ -58,10 +58,28 @@ class OrderRepository
 
     /**
      * Create an order and its items inside a transaction.
+     *
+     * Every item's menu item is resolved and validated (exists, available)
+     * *before* the Order row is created or an order_number is allocated —
+     * spec 022: an invalid/unavailable item must reject the whole order, not
+     * silently become a zero-price line, and a doomed request shouldn't
+     * consume a ticket number.
      */
     public function createOrder(array $data): Order
     {
         return DB::transaction(function () use ($data) {
+            $resolvedItems = [];
+            foreach ($data['items'] as $item) {
+                $menuItem = MenuItem::find($item['id']);
+                if (!$menuItem) {
+                    throw new \DomainException("Item de cardápio não encontrado: #{$item['id']}");
+                }
+                if (!$menuItem->available) {
+                    throw new \DomainException("Item indisponível: {$menuItem->name}");
+                }
+                $resolvedItems[] = ['input' => $item, 'menuItem' => $menuItem];
+            }
+
             $customerName = null;
             if (isset($data['customer_name']) && is_string($data['customer_name'])) {
                 $trimmed = trim($data['customer_name']);
@@ -83,9 +101,10 @@ class OrderRepository
                 'status'        => Order::STATUS_PENDING,
             ]);
 
-            foreach ($data['items'] as $item) {
-                $menuItem = MenuItem::find($item['id']);
-                $unitPrice = $menuItem ? Money::fromReais($menuItem->price) : Money::zero();
+            foreach ($resolvedItems as $resolved) {
+                $item = $resolved['input'];
+                $menuItem = $resolved['menuItem'];
+                $unitPrice = Money::fromReais($menuItem->price);
                 $diningOption = $item['dining_option'] ?? 'local';
                 $quantity = (int) $item['quantity'];
                 $packagingCost = match ($diningOption) {
@@ -231,6 +250,9 @@ class OrderRepository
     {
         Order::findOrFail($orderId);
         $menuItem = MenuItem::with('category')->findOrFail((int) $data['menu_item_id']);
+        if (!$menuItem->available) {
+            throw new \DomainException("Item indisponível: {$menuItem->name}");
+        }
 
         $quantity = (int) ($data['quantity'] ?? 1);
         $diningOption = $data['dining_option'] ?? 'local';

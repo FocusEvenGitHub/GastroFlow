@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Validators\OrderValidator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class OrderValidatorTest extends TestCase
@@ -78,5 +79,112 @@ class OrderValidatorTest extends TestCase
 
         $this->assertFalse($result);
         $this->assertNotEmpty($validator->errors());
+    }
+
+    public function testEmptyItemsArrayIsRejected(): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderData(['items' => []]);
+
+        $this->assertFalse($result);
+    }
+
+    #[DataProvider('invalidQuantities')]
+    public function testInvalidQuantityIsRejectedOnOrderCreation($quantity): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderData([
+            'items' => [['id' => 1, 'quantity' => $quantity]],
+        ]);
+
+        $this->assertFalse($result);
+    }
+
+    public static function invalidQuantities(): array
+    {
+        return [
+            'zero'          => [0],
+            'negative'      => [-1],
+            'non-integer'   => [2.5],
+            'above-max'     => [51],
+        ];
+    }
+
+    public function testNotesOverLimitIsRejectedOnOrderCreation(): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderData([
+            'items' => [['id' => 1, 'quantity' => 1, 'notes' => str_repeat('a', 501)]],
+        ]);
+
+        $this->assertFalse($result);
+    }
+
+    public function testNotesAtLimitIsAcceptedOnOrderCreation(): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderData([
+            'items' => [['id' => 1, 'quantity' => 1, 'notes' => str_repeat('a', 500)]],
+        ]);
+
+        $this->assertTrue($result);
+    }
+
+    public function testOrderItemAddRejectsInvalidDiningOption(): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderItemAdd([
+            'menu_item_id' => 1,
+            'dining_option' => 'mesa',
+        ]);
+
+        $this->assertFalse($result);
+    }
+
+    public function testOrderItemAddRejectsQuantityAboveMax(): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderItemAdd([
+            'menu_item_id' => 1,
+            'quantity' => 51,
+        ]);
+
+        $this->assertFalse($result);
+    }
+
+    public function testOrderItemAddRejectsNotesOverLimit(): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderItemAdd([
+            'menu_item_id' => 1,
+            'notes' => str_repeat('a', 501),
+        ]);
+
+        $this->assertFalse($result);
+    }
+
+    public function testOrderItemUpdateRejectsQuantityAboveMax(): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderItemUpdate(['quantity' => 51]);
+
+        $this->assertFalse($result);
+    }
+
+    public function testOrderItemUpdateRejectsNotesOverLimit(): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderItemUpdate(['notes' => str_repeat('a', 501)]);
+
+        $this->assertFalse($result);
     }
 }

@@ -64,6 +64,10 @@ class OrderController
             $payload = ['success' => true, 'id' => $order->id, 'message' => 'Order created'];
             $response->getBody()->write(json_encode($payload));
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
+        } catch (\DomainException $e) {
+            // Nonexistent or unavailable menu item (spec 022) — bad input, not a conflict.
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\QueryException $e) {
             if ($e->getCode() !== '23000') {
                 // Not a duplicate-key violation (e.g. a deadlock/lock-wait
@@ -196,6 +200,10 @@ class OrderController
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             $response->getBody()->write(json_encode(['error' => 'Pedido ou item de cardápio não encontrado']));
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\DomainException $e) {
+            // Unavailable menu item (spec 022) — bad input, not a conflict.
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
             return $this->errorResponse($response, $e);
         }
