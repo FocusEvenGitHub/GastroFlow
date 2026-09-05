@@ -7,6 +7,7 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\ApiResponse;
+use App\OrderCancelledException;
 use App\Services\OrderService;
 use App\Validators\OrderValidator;
 
@@ -129,6 +130,8 @@ class OrderController
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return ApiResponse::error($response, 404, 'ORDER_NOT_FOUND', 'Pedido não encontrado');
+        } catch (OrderCancelledException $e) {
+            return ApiResponse::error($response, 409, 'ORDER_CANCELLED', $e->getMessage());
         } catch (\Illuminate\Database\QueryException $e) {
             if ($e->getCode() !== '23000') {
                 throw $e;
@@ -155,6 +158,8 @@ class OrderController
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return ApiResponse::error($response, 404, 'ORDER_OR_MENU_ITEM_NOT_FOUND', 'Pedido ou item de cardápio não encontrado');
+        } catch (OrderCancelledException $e) {
+            return ApiResponse::error($response, 409, 'ORDER_CANCELLED', $e->getMessage());
         } catch (\DomainException $e) {
             // Unavailable menu item (spec 022) — bad input, not a conflict.
             return ApiResponse::error($response, 400, 'MENU_ITEM_UNAVAILABLE', $e->getMessage());
@@ -179,6 +184,8 @@ class OrderController
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return ApiResponse::error($response, 404, 'ORDER_ITEM_NOT_FOUND', 'Item não encontrado neste pedido');
+        } catch (OrderCancelledException $e) {
+            return ApiResponse::error($response, 409, 'ORDER_CANCELLED', $e->getMessage());
         }
     }
 
@@ -194,6 +201,8 @@ class OrderController
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return ApiResponse::error($response, 404, 'ORDER_ITEM_NOT_FOUND', 'Item não encontrado neste pedido');
+        } catch (OrderCancelledException $e) {
+            return ApiResponse::error($response, 409, 'ORDER_CANCELLED', $e->getMessage());
         } catch (\DomainException $e) {
             return ApiResponse::error($response, 409, 'LAST_ORDER_ITEM', $e->getMessage());
         }

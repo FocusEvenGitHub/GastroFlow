@@ -83,7 +83,10 @@ function kitchenApp() {
                 if (this.selectedDate === this._today()) this.fetchAll();
             });
 
-            this.eventSource.addEventListener('order.deleted', () => {
+            // order.cancelled replaced order.deleted when hard-delete was
+            // removed in favor of soft-cancel (spec 020) — this listener was
+            // never updated then (code review fix).
+            this.eventSource.addEventListener('order.cancelled', () => {
                 if (this.selectedDate === this._today()) this.fetchAll();
             });
 

@@ -151,6 +151,20 @@ class OrderValidatorTest extends TestCase
         $this->assertFalse($result);
     }
 
+    public function testNonStringNotesIsRejectedOnOrderCreation(): void
+    {
+        // Code review fix: a non-string notes value used to skip the length
+        // check entirely (is_string() was a prerequisite to even attempt it)
+        // instead of being rejected.
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderData([
+            'items' => [['id' => 1, 'quantity' => 1, 'notes' => ['foo' => 'bar']]],
+        ]);
+
+        $this->assertFalse($result);
+    }
+
     public function testNotesAtLimitIsAcceptedOnOrderCreation(): void
     {
         $validator = new OrderValidator();

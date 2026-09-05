@@ -44,8 +44,17 @@ class OrderValidator
                 if (isset($item['dining_option']) && !in_array($item['dining_option'], self::DINING_OPTIONS, true)) {
                     return false;
                 }
-                if (isset($item['notes']) && is_string($item['notes']) && mb_strlen($item['notes']) > self::MAX_NOTES_LENGTH) {
-                    return false;
+                if (isset($item['notes'])) {
+                    // A non-string notes value (array/number/bool) used to
+                    // skip this check entirely instead of failing it (code
+                    // review fix) — is_string() was a prerequisite for even
+                    // attempting the length check, not a separate rejection.
+                    if (!is_string($item['notes'])) {
+                        return false;
+                    }
+                    if (mb_strlen($item['notes']) > self::MAX_NOTES_LENGTH) {
+                        return false;
+                    }
                 }
             }
             return true;

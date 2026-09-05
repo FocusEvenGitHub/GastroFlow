@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Models\MenuItem;
+use App\OrderCancelledException;
 use App\Repositories\OrderRepository;
 use Illuminate\Database\Capsule\Manager as Db;
 use Illuminate\Database\QueryException;
@@ -119,6 +120,22 @@ class OrderRepositoryTest extends TestCase
         $auto = $this->repo->createOrder($this->orderData());
 
         $this->assertSame('1', $auto->order_number);
+    }
+
+    public function testManualOverrideMatchingTheNextAutoNumberDoesNotJamAllocation(): void
+    {
+        // Code review regression (reproduced live against the real dev DB
+        // before this fix): a manual order_number equal to counter+1 used to
+        // make every subsequent auto-assign recompute the same doomed value
+        // forever, since the whole transaction (including the counter
+        // increment) rolled back on the collision.
+        $this->repo->createOrder($this->orderData('1')); // manually "poison" the next auto value
+
+        $first = $this->repo->createOrder($this->orderData());
+        $second = $this->repo->createOrder($this->orderData());
+
+        $this->assertSame('2', $first->order_number);
+        $this->assertSame('3', $second->order_number);
     }
 
     public function testDuplicateManualOrderNumberOnSameDayFails(): void
@@ -241,5 +258,43 @@ class OrderRepositoryTest extends TestCase
         $yesterdayResults = $this->repo->getOrdersByStatus('pending', $yesterday);
         $this->assertCount(1, $yesterdayResults);
         $this->assertNotSame($today->id, $yesterdayResults[0]['id']);
+    }
+
+    public function testCancelledOrderCannotBeUpdated(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $this->repo->cancelOrder($order->id);
+
+        $this->expectException(OrderCancelledException::class);
+        $this->repo->updateOrder($order->id, ['customer_name' => 'Alguém']);
+    }
+
+    public function testItemCannotBeAddedToACancelledOrder(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $this->repo->cancelOrder($order->id);
+
+        $this->expectException(OrderCancelledException::class);
+        $this->repo->addOrderItem($order->id, ['menu_item_id' => $this->menuItemId]);
+    }
+
+    public function testItemCannotBeUpdatedOnACancelledOrder(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $itemId = Db::table('order_items')->where('order_id', $order->id)->value('id');
+        $this->repo->cancelOrder($order->id);
+
+        $this->expectException(OrderCancelledException::class);
+        $this->repo->updateOrderItem($order->id, $itemId, ['quantity' => 2]);
+    }
+
+    public function testItemCannotBeRemovedFromACancelledOrder(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $itemId = Db::table('order_items')->where('order_id', $order->id)->value('id');
+        $this->repo->cancelOrder($order->id);
+
+        $this->expectException(OrderCancelledException::class);
+        $this->repo->removeOrderItem($order->id, $itemId);
     }
 }

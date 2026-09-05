@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\MenuItem;
 use App\Models\OrderNumberCounter;
 use App\Money;
+use App\OrderCancelledException;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class OrderRepository
@@ -79,9 +80,21 @@ class OrderRepository
             // could let an order reference an item that became unavailable a
             // moment later. The lock blocks that concurrent update until this
             // transaction commits or rolls back.
+            //
+            // Batched into one whereIn()+lockForUpdate() query, sorted by id,
+            // instead of one locked query per item (code review fix): besides
+            // avoiding N+1 queries, locking in a consistent (ascending id)
+            // order across every concurrent order is what actually prevents a
+            // classic lock-ordering deadlock — two orders locking the same
+            // two menu items in opposite sequence (e.g. [20,10] vs [10,20])
+            // would otherwise each hold one lock while waiting on the other.
+            $itemIds = array_values(array_unique(array_map(fn($item) => (int) $item['id'], $data['items'])));
+            sort($itemIds);
+            $menuItemsById = MenuItem::whereIn('id', $itemIds)->lockForUpdate()->orderBy('id')->get()->keyBy('id');
+
             $resolvedItems = [];
             foreach ($data['items'] as $item) {
-                $menuItem = MenuItem::where('id', $item['id'])->lockForUpdate()->first();
+                $menuItem = $menuItemsById->get((int) $item['id']);
                 if (!$menuItem) {
                     throw new \DomainException("Item de cardápio não encontrado: #{$item['id']}");
                 }
@@ -118,11 +131,7 @@ class OrderRepository
                 $unitPrice = Money::fromReais($menuItem->price);
                 $diningOption = $item['dining_option'] ?? 'local';
                 $quantity = (int) $item['quantity'];
-                $packagingCost = match ($diningOption) {
-                    'viagem_simples' => Money::fromReais(1.0)->multipliedBy($quantity),
-                    'viagem_vip'     => Money::fromReais(2.0)->multipliedBy($quantity),
-                    default          => Money::zero(),
-                };
+                $packagingCost = self::packagingCostFor($diningOption, $quantity);
 
                 OrderItem::create([
                     'order_id'       => $order->id,
@@ -238,18 +247,40 @@ class OrderRepository
             $counter = OrderNumberCounter::where('business_date', $businessDate)->lockForUpdate()->first();
         }
 
-        $counter->last_number += 1;
+        // A manually-typed order_number can "poison" a future auto-assigned
+        // value (code review fix): without this check, if a manual entry
+        // happens to match counter+1, every subsequent auto-assign attempt
+        // recomputes that same doomed value, collides, and rolls back —
+        // including the counter increment itself — forever. Reproduced live
+        // during review: two auto-assign attempts after a colliding manual
+        // entry both failed identically because the counter never advanced.
+        // Skipping past any already-taken number (still under this row's
+        // lock, so safe against concurrent auto-assigns) closes that.
+        do {
+            $counter->last_number += 1;
+            $candidate = (string) $counter->last_number;
+            $taken = Order::where('business_date', $businessDate)
+                ->where('order_number', $candidate)
+                ->exists();
+        } while ($taken && $counter->last_number < 1_000_000);
+
         $counter->save();
 
-        return (string) $counter->last_number;
+        return $candidate;
     }
 
     /**
-     * Update editable order-level fields (senha / customer name).
+     * Update editable order-level fields (senha / customer name). Throws
+     * OrderCancelledException if the order is cancelled — a terminal,
+     * audit-preserved record (spec 020) shouldn't still be silently editable
+     * (code review fix).
      */
     public function updateOrder(int $id, array $data): void
     {
         $order = Order::findOrFail($id);
+        if ($order->status === Order::STATUS_CANCELLED) {
+            throw new OrderCancelledException('Não é possível editar um pedido cancelado.');
+        }
 
         if (isset($data['order_number'])) {
             $order->order_number = $data['order_number'];
@@ -270,7 +301,10 @@ class OrderRepository
     public function addOrderItem(int $orderId, array $data): array
     {
         return DB::transaction(function () use ($orderId, $data) {
-            Order::findOrFail($orderId);
+            $order = Order::findOrFail($orderId);
+            if ($order->status === Order::STATUS_CANCELLED) {
+                throw new OrderCancelledException('Não é possível adicionar itens a um pedido cancelado.');
+            }
             // Locked (spec 023 code review) — same TOCTOU concern as
             // createOrder(): without it, a concurrent availability toggle
             // between this check and the OrderItem insert below could let an
@@ -285,11 +319,7 @@ class OrderRepository
 
             $quantity = (int) ($data['quantity'] ?? 1);
             $diningOption = $data['dining_option'] ?? 'local';
-            $packagingCost = match ($diningOption) {
-                'viagem_simples' => Money::fromReais(1.0)->multipliedBy($quantity),
-                'viagem_vip'     => Money::fromReais(2.0)->multipliedBy($quantity),
-                default          => Money::zero(),
-            };
+            $packagingCost = self::packagingCostFor($diningOption, $quantity);
 
             $item = OrderItem::create([
                 'order_id'       => $orderId,
@@ -322,6 +352,10 @@ class OrderRepository
      */
     public function updateOrderItem(int $orderId, int $itemId, array $data): void
     {
+        $order = Order::findOrFail($orderId);
+        if ($order->status === Order::STATUS_CANCELLED) {
+            throw new OrderCancelledException('Não é possível editar itens de um pedido cancelado.');
+        }
         $item = OrderItem::where('id', $itemId)->where('order_id', $orderId)->firstOrFail();
 
         if (isset($data['quantity'])) {
@@ -340,6 +374,10 @@ class OrderRepository
      */
     public function removeOrderItem(int $orderId, int $itemId): bool
     {
+        $order = Order::findOrFail($orderId);
+        if ($order->status === Order::STATUS_CANCELLED) {
+            throw new OrderCancelledException('Não é possível remover itens de um pedido cancelado.');
+        }
         $item = OrderItem::where('id', $itemId)->where('order_id', $orderId)->firstOrFail();
 
         $remaining = OrderItem::where('order_id', $orderId)->count();
@@ -349,5 +387,19 @@ class OrderRepository
 
         $item->delete();
         return true;
+    }
+
+    /**
+     * Packaging fee for one order item, by dining option. Extracted (code
+     * review fix) from two identical copies in createOrder() and
+     * addOrderItem() — a future fee change only needs to happen once.
+     */
+    private static function packagingCostFor(string $diningOption, int $quantity): Money
+    {
+        return match ($diningOption) {
+            'viagem_simples' => Money::fromReais(1.0)->multipliedBy($quantity),
+            'viagem_vip'     => Money::fromReais(2.0)->multipliedBy($quantity),
+            default          => Money::zero(),
+        };
     }
 }

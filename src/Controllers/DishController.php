@@ -8,6 +8,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use App\ApiResponse;
 use App\Models\MenuItem;
 use App\Models\Ingredient;
+use App\Money;
 
 class DishController
 {
@@ -40,11 +41,23 @@ class DishController
         }
         $data = $request->getParsedBody();
 
+        // Code review fix: this wrote $data['price'] straight through,
+        // bypassing Money::fromReais() unlike MenuRepository's equivalent
+        // paths (spec 021) for the same column — same float-drift exposure
+        // Money was introduced to close.
+        $price = $dish->price;
+        if (isset($data['price'])) {
+            if (!is_numeric($data['price'])) {
+                return ApiResponse::error($response, 400, 'INVALID_PRICE', 'Campo "price" deve ser numérico');
+            }
+            $price = Money::fromReais($data['price'])->toReais();
+        }
+
         // Update basic dish fields
         $dish->update([
             'name' => $data['name'] ?? $dish->name,
             'description' => $data['description'] ?? $dish->description,
-            'price' => $data['price'] ?? $dish->price,
+            'price' => $price,
             'category_id' => $data['category_id'] ?? $dish->category_id,
         ]);
 

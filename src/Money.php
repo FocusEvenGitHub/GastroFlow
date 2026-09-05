@@ -31,6 +31,13 @@ final class Money
 
     public static function fromReais(float|int|string $reais): self
     {
+        // A non-numeric string previously became a silent (float) cast to
+        // 0.0 — a bad price ("grátis") would create a real R$0,00 item with
+        // no error (code review fix). A non-scalar (array/object) already
+        // fails fast with a TypeError at the parameter boundary, unchanged.
+        if (is_string($reais) && !is_numeric($reais)) {
+            throw new \InvalidArgumentException("Valor monetário inválido: \"{$reais}\"");
+        }
         return new self((int) round(((float) $reais) * 100));
     }
 

@@ -33,6 +33,13 @@ class MenuController
         if (!isset($data['name'], $data['price'], $data['category_name'])) {
             return ApiResponse::error($response, 400, 'MISSING_REQUIRED_FIELDS', 'Campos obrigatórios: name, price, category_name');
         }
+        if (!is_numeric($data['price'])) {
+            // Code review fix: a non-numeric price used to silently become
+            // R$0,00 (or, for a non-scalar value, an uncaught 500) inside
+            // Money::fromReais() — reject it here instead, before it reaches
+            // persistence at all.
+            return ApiResponse::error($response, 400, 'INVALID_PRICE', 'Campo "price" deve ser numérico');
+        }
 
         try {
             $item = $this->menuService->addItem($data);
@@ -53,6 +60,9 @@ class MenuController
 
         if (empty($data)) {
             return ApiResponse::error($response, 400, 'EMPTY_PAYLOAD', 'Nenhum dado enviado');
+        }
+        if (isset($data['price']) && !is_numeric($data['price'])) {
+            return ApiResponse::error($response, 400, 'INVALID_PRICE', 'Campo "price" deve ser numérico');
         }
 
         try {

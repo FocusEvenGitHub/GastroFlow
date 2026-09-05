@@ -41,4 +41,11 @@ class MoneyTest extends TestCase
         $this->assertSame(1234.5, $money->toReais());
         $this->assertSame('1234,50', $money->format());
     }
+
+    public function testNonNumericStringIsRejectedInsteadOfSilentlyZeroed(): void
+    {
+        // Code review fix: (float) "grátis" used to silently become 0.0.
+        $this->expectException(\InvalidArgumentException::class);
+        Money::fromReais('grátis');
+    }
 }
