@@ -51,6 +51,24 @@ The full lifecycle, documented in one place (`docs/ROADMAP.md`'s `v1.6.0 — Bas
 - **Logout**: there is no `POST /api/logout` route and no server-side token-revocation mechanism of any kind. JWTs are stateless and self-contained — nothing in `Middleware/` queries a database or cache to validate a token beyond its signature and expiry. "Logging out" today means the client discards its own token; the worst case of a leaked token is bounded by its 8-hour expiry. This is a deliberate choice matching the project's "Keep the stack proportional" principle (`docs/ROADMAP.md`) — a revocation list would need a shared store (Redis, a DB table) for a single-location deployment that doesn't otherwise need one. If this stops being acceptable (e.g., multi-location deployments, longer token lifetimes), it would need its own dedicated design, not a small addition here.
 - **Login throttling**: **not implemented.** `POST /api/login` has no rate limiting, failed-attempt counting, or lockout today. This is a known, tracked gap (`docs/ROADMAP.md`'s "Authentication hardening" item lists it explicitly) — deliberately deferred to its own follow-up spec rather than bundled into the work above, since it needs its own design decisions (per-IP vs per-username tracking, storage mechanism — this project has no Redis/cache, so it likely needs a small schema addition — and lockout duration).
 
+## Order lifecycle
+
+`orders.status` (`common/sql/001_schema.sql`, migrated by `common/migrations/013_order_cancellation.sql`) is a 3-value enum, each reachable through an actual code path — the schema previously also had unused `preparing`/`ready` values (spec 020 removed them, per `docs/ROADMAP.md`'s "Order lifecycle" item: don't keep statuses "merely for theoretical completeness").
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: POST /api/orders
+    pending --> done: POST /api/orders/{id}/complete
+    done --> pending: POST /api/orders/{id}/uncomplete
+    pending --> cancelled: POST /api/orders/{id}/cancel
+    done --> cancelled: POST /api/orders/{id}/cancel
+    cancelled --> [*]
+```
+
+- **`cancelled` is terminal.** No route transitions an order out of it — `OrderRepository::completeOrder()`/`::uncompleteOrder()`/`::cancelOrder()` each check the current status first and throw `\DomainException` (→ `409`) if it's already `cancelled`. This is a deliberate design choice (nothing in this project's real workflow needs "un-cancel"), not a roadmap requirement — see `specs/020-order-lifecycle.md`'s Non-goals.
+- **Cancellation preserves the row.** `POST /api/orders/{id}/cancel` replaced the old `DELETE /api/orders/{id}` (hard delete, no trace left) — a cancelled order stays in `orders`, just excluded from the kitchen's `pending`/`done` views and from `ReportService`'s revenue queries (both already filtered by exact status value, unaffected by adding a third one).
+- **`preparing`/`ready` were never implemented** as a real kitchen workflow (no UI, no code path) — removed from the schema rather than kept as dead options. Reintroducing a multi-stage kitchen flow would be new scope, not a gap in what's documented here.
+
 ## Layers under `src/`
 
 Coverage is real but uneven — this reflects what's actually implemented, not a target architecture:
@@ -62,7 +80,7 @@ Coverage is real but uneven — this reflects what's actually implemented, not a
 | `Repositories/` | 2: Menu, Order | `Dish`/`Ingredient` controllers call Eloquent models directly — no repository layer for them |
 | `Validators/` | 1: `OrderValidator` (wraps `vlucas/valitron`) | No validator for menu items, ingredients, or settings |
 | `Middleware/` | 3 (PSR-15): Cors, JsonBodyParser, Jwt | `Jwt` applies only to the `/api/admin` route group |
-| `Models/` | 8 Eloquent models: User, Category, MenuItem, Ingredient, Order, OrderItem, Setting, Job | — |
+| `Models/` | 9 Eloquent models: User, Category, MenuItem, Ingredient, Order, OrderItem, OrderNumberCounter, Setting, Job | — |
 
 Extending `Repositories/`/`Validators/` to cover the remaining domains is tracked in `docs/ROADMAP.md`'s `v1.7.0 — Domain & Architecture` phase ("Controller responsibilities", "Persistence boundaries"), not assumed to already be done.
 

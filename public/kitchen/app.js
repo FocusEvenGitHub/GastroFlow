@@ -301,15 +301,15 @@ function kitchenApp() {
             }
         },
 
-        async deleteOrder() {
+        async cancelOrder() {
             if (!this.editingOrder) return;
-            if (!confirm(`Excluir o pedido #${this.editingOrder.id} definitivamente? Essa ação não pode ser desfeita.`)) return;
+            if (!confirm(`Cancelar o pedido #${this.editingOrder.id}? Ele deixará de aparecer na cozinha, mas o registro é mantido.`)) return;
             this.savingOrder = true;
             try {
-                const res = await fetch(`/api/orders/${this.editingOrder.id}`, { method: 'DELETE' });
+                const res = await fetch(`/api/orders/${this.editingOrder.id}/cancel`, { method: 'POST' });
                 const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao excluir pedido');
-                this.showMessage('Pedido excluído!', 'success');
+                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao cancelar pedido');
+                this.showMessage('Pedido cancelado!', 'success');
                 this.editingOrder = null;
                 await this.fetchAll();
             } catch (err) {

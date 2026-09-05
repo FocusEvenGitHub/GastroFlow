@@ -92,6 +92,12 @@ class OrderController
         $id = (int)$args['id'];
         try {
             $this->orderService->completeOrder($id);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\DomainException $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
             return $this->errorResponse($response, $e);
         }
@@ -105,10 +111,35 @@ class OrderController
         $id = (int)$args['id'];
         try {
             $this->orderService->uncompleteOrder($id);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\DomainException $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
             return $this->errorResponse($response, $e);
         }
         $payload = ['success' => true, 'message' => 'Order reopened'];
+        $response->getBody()->write(json_encode($payload));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public function cancel(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)$args['id'];
+        try {
+            $this->orderService->cancelOrder($id);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\DomainException $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
+        } catch (\Throwable $e) {
+            return $this->errorResponse($response, $e);
+        }
+        $payload = ['success' => true, 'message' => 'Order cancelled'];
         $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -211,23 +242,6 @@ class OrderController
         } catch (\DomainException $e) {
             $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
             return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
-        }
-    }
-
-    public function destroy(Request $request, Response $response, array $args): Response
-    {
-        $id = (int)$args['id'];
-
-        try {
-            $this->orderService->deleteOrder($id);
-            $payload = ['success' => true, 'message' => 'Order deleted'];
-            $response->getBody()->write(json_encode($payload));
-            return $response->withHeader('Content-Type', 'application/json');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
             return $this->errorResponse($response, $e);
         }

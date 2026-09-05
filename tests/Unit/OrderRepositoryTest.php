@@ -11,10 +11,11 @@ use Illuminate\Database\QueryException;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Exercises OrderRepository's order_number allocation (spec 019) against a
- * real in-memory SQLite database — sequential/single-process only, so this
- * proves correctness, not true concurrency (see specs/019-*.md's Testing
- * and validation strategy for the separate manual concurrency check).
+ * Exercises OrderRepository's order_number allocation (spec 019) and status
+ * transition guards (spec 020) against a real in-memory SQLite database —
+ * sequential/single-process only, so the allocation tests prove correctness,
+ * not true concurrency (see specs/019-*.md's Testing and validation strategy
+ * for the separate manual concurrency check).
  */
 class OrderRepositoryTest extends TestCase
 {
@@ -115,5 +116,44 @@ class OrderRepositoryTest extends TestCase
 
         $order = $this->repo->createOrder($this->orderData());
         $this->assertSame((string) $first, $order->order_number);
+    }
+
+    public function testCancelOrderFromPendingOrDone(): void
+    {
+        $pending = $this->repo->createOrder($this->orderData());
+        $this->repo->cancelOrder($pending->id);
+        $this->assertSame('cancelled', $pending->fresh()->status);
+
+        $done = $this->repo->createOrder($this->orderData());
+        $this->repo->completeOrder($done->id);
+        $this->repo->cancelOrder($done->id);
+        $this->assertSame('cancelled', $done->fresh()->status);
+    }
+
+    public function testCancellingAnAlreadyCancelledOrderThrows(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $this->repo->cancelOrder($order->id);
+
+        $this->expectException(\DomainException::class);
+        $this->repo->cancelOrder($order->id);
+    }
+
+    public function testCompletingACancelledOrderThrows(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $this->repo->cancelOrder($order->id);
+
+        $this->expectException(\DomainException::class);
+        $this->repo->completeOrder($order->id);
+    }
+
+    public function testUncompletingACancelledOrderThrows(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $this->repo->cancelOrder($order->id);
+
+        $this->expectException(\DomainException::class);
+        $this->repo->uncompleteOrder($order->id);
     }
 }

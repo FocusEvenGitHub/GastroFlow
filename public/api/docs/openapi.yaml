@@ -36,21 +36,22 @@ paths:
   /api/orders:
     get:
       summary: Listar pedidos
-      description: Retorna pedidos filtrados por status (pending, completed, all).
+      description: Retorna pedidos filtrados por status (pending, done, cancelled, all).
       operationId: listOrders
       tags:
         - Pedidos
       parameters:
         - name: status
           in: query
-          description: "Filtrar por status: pending, completed, all"
+          description: "Filtrar por status: pending, done, cancelled, all"
           required: false
           schema:
             type: string
             default: pending
             enum:
               - pending
-              - completed
+              - done
+              - cancelled
               - all
       responses:
         "200":
@@ -155,8 +156,8 @@ paths:
                   message:
                     type: string
                     example: Order completed
-        "500":
-          description: Erro ao finalizar pedido
+        "404":
+          description: Pedido não encontrado
           content:
             application/json:
               schema:
@@ -164,7 +165,17 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: Order not found
+                    example: Pedido não encontrado
+        "409":
+          description: Pedido está cancelado (transição inválida)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Não é possível concluir um pedido cancelado.
 
   /api/orders/{id}/uncomplete:
     post:
@@ -194,8 +205,8 @@ paths:
                   message:
                     type: string
                     example: Order reopened
-        "500":
-          description: Erro ao reabrir pedido
+        "404":
+          description: Pedido não encontrado
           content:
             application/json:
               schema:
@@ -203,7 +214,70 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: Order not found
+                    example: Pedido não encontrado
+        "409":
+          description: Pedido está cancelado (transição inválida)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Não é possível reabrir um pedido cancelado.
+
+  /api/orders/{id}/cancel:
+    post:
+      summary: Cancelar pedido
+      description: >-
+        Marca um pedido como cancelado (status=cancelled). Substitui o antigo
+        DELETE /api/orders/{id}: o registro é preservado (auditoria/relatórios
+        futuros) em vez de removido. Um pedido cancelado é terminal — não há
+        transição de volta para pending/done.
+      operationId: cancelOrder
+      tags:
+        - Pedidos
+      parameters:
+        - name: id
+          in: path
+          description: ID do pedido
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pedido cancelado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Order cancelled
+        "404":
+          description: Pedido não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Pedido não encontrado
+        "409":
+          description: Pedido já está cancelado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Este pedido já está cancelado.
 
   /api/kitchen/food-summary:
     get:
@@ -774,7 +848,8 @@ components:
           type: string
           enum:
             - pending
-            - completed
+            - done
+            - cancelled
           example: pending
         items:
           type: array

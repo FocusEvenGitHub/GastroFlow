@@ -20,6 +20,7 @@ class Order extends Model
 
     const STATUS_PENDING = 'pending';
     const STATUS_DONE = 'done';
+    const STATUS_CANCELLED = 'cancelled'; // terminal — no transition leads out of it (spec 020)
 
     public function items()
     {

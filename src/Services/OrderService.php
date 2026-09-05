@@ -55,6 +55,12 @@ class OrderService
         $this->triggerKitchenEvent('order.uncompleted', $id);
     }
 
+    public function cancelOrder(int $id): void
+    {
+        $this->orderRepo->cancelOrder($id);
+        $this->triggerKitchenEvent('order.cancelled', $id);
+    }
+
     public function getNextNumber(): int
     {
         return $this->orderRepo->getNextNumber();
@@ -86,12 +92,6 @@ class OrderService
             throw new \DomainException('Não é possível remover o último item do pedido. Exclua o pedido inteiro.');
         }
         $this->triggerKitchenEvent('order.updated', $orderId);
-    }
-
-    public function deleteOrder(int $id): void
-    {
-        $this->orderRepo->deleteOrder($id);
-        $this->triggerKitchenEvent('order.deleted', $id);
     }
 
     public function printOrder(int $id): void

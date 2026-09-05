@@ -354,8 +354,8 @@
                         </div>
                     </div>
                     <div class="modal-footer d-flex justify-content-between">
-                        <button class="btn btn-outline-danger" @click="deleteOrder()" :disabled="savingOrder">
-                            <i class="fas fa-trash me-1"></i>Excluir Pedido
+                        <button class="btn btn-outline-danger" @click="cancelOrder()" :disabled="savingOrder">
+                            <i class="fas fa-ban me-1"></i>Cancelar Pedido
                         </button>
                         <div>
                             <button class="btn btn-outline-secondary me-2" @click="closeEditModal()">Cancelar</button>

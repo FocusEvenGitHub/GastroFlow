@@ -108,22 +108,45 @@ class OrderRepository
     }
 
     /**
-     * Mark order as done.
+     * Mark order as done. Throws DomainException if the order is cancelled
+     * (terminal — spec 020).
      */
     public function completeOrder(int $id): void
     {
         $order = Order::findOrFail($id);
+        if ($order->status === Order::STATUS_CANCELLED) {
+            throw new \DomainException('Não é possível concluir um pedido cancelado.');
+        }
         $order->status = Order::STATUS_DONE;
         $order->save();
     }
 
     /**
-     * Reopen a completed order (undo "dar baixa").
+     * Reopen a completed order (undo "dar baixa"). Throws DomainException if
+     * the order is cancelled (terminal — spec 020).
      */
     public function uncompleteOrder(int $id): void
     {
         $order = Order::findOrFail($id);
+        if ($order->status === Order::STATUS_CANCELLED) {
+            throw new \DomainException('Não é possível reabrir um pedido cancelado.');
+        }
         $order->status = Order::STATUS_PENDING;
+        $order->save();
+    }
+
+    /**
+     * Cancel an order (replaces the old hard-delete-as-cancellation
+     * behavior — spec 020). Preserves the row for history/audit. Throws
+     * DomainException if already cancelled.
+     */
+    public function cancelOrder(int $id): void
+    {
+        $order = Order::findOrFail($id);
+        if ($order->status === Order::STATUS_CANCELLED) {
+            throw new \DomainException('Este pedido já está cancelado.');
+        }
+        $order->status = Order::STATUS_CANCELLED;
         $order->save();
     }
 
@@ -271,14 +294,5 @@ class OrderRepository
 
         $item->delete();
         return true;
-    }
-
-    /**
-     * Hard-delete an order (order_items cascade via FK).
-     */
-    public function deleteOrder(int $id): void
-    {
-        $order = Order::findOrFail($id);
-        $order->delete();
     }
 }
