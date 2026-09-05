@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Setting;
@@ -76,16 +75,15 @@ class PrintServiceTest extends TestCase
 
     private function makeOrderItem(string $name, float $unitPrice, int $quantity, float $packagingCost = 0.0): OrderItem
     {
-        $menuItem = new MenuItem();
-        $menuItem->name = $name;
-
+        // item_name is the order-time snapshot (spec 023) — PrintService reads
+        // it directly and no longer touches the menuItem relation at all.
         $item = new OrderItem();
+        $item->item_name = $name;
         $item->quantity = $quantity;
         $item->unit_price = $unitPrice;
         $item->packaging_cost = $packagingCost;
         $item->dining_option = 'local';
         $item->notes = '';
-        $item->setRelation('menuItem', $menuItem);
 
         return $item;
     }

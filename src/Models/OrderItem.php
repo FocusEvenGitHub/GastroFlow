@@ -10,7 +10,9 @@ class OrderItem extends Model
 {
     protected $table = 'order_items';
 
-    protected $fillable = ['order_id', 'menu_item_id', 'quantity', 'notes', 'dining_option', 'unit_price', 'packaging_cost'];
+    // item_name is a snapshot of the menu item's name at order time (spec 023)
+    // — never a live join, so renaming a menu item later doesn't rewrite history.
+    protected $fillable = ['order_id', 'menu_item_id', 'item_name', 'quantity', 'notes', 'dining_option', 'unit_price', 'packaging_cost'];
 
     protected $casts = [
         'unit_price'     => 'float',

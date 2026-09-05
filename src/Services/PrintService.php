@@ -213,10 +213,10 @@ class PrintService
         $total = Money::zero();
 
         foreach ($items as $orderItem) {
-            $menuItem = $orderItem->menuItem;
-            if (!$menuItem) continue;
-
-            $name = $menuItem->name;
+            // item_name is the order-time snapshot (spec 023) — printing
+            // (including a reprint, long after the order) never depends on
+            // the menu item's current name.
+            $name = $orderItem->item_name;
             $qty = (int) $orderItem->quantity;
             $price = Money::fromReais($orderItem->unit_price);
             $diningOption = $orderItem->dining_option ?? 'local';

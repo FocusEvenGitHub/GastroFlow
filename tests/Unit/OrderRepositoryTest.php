@@ -57,6 +57,7 @@ class OrderRepositoryTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('order_id');
             $table->unsignedInteger('menu_item_id');
+            $table->string('item_name', 100)->default('');
             $table->integer('quantity')->default(1);
             $table->text('notes')->nullable();
             $table->string('dining_option')->nullable();
@@ -78,6 +79,27 @@ class OrderRepositoryTest extends TestCase
             $data['order_number'] = $orderNumber;
         }
         return $data;
+    }
+
+    public function testItemNameIsSnapshottedAtOrderCreationTime(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $storedItem = Db::table('order_items')->where('order_id', $order->id)->first();
+        $this->assertSame('Prato Teste', $storedItem->item_name);
+
+        // Renaming the menu item afterward must not change the snapshot.
+        Db::table('menu_items')->where('id', $this->menuItemId)->update(['name' => 'Novo Nome']);
+        $storedItem = Db::table('order_items')->where('order_id', $order->id)->first();
+        $this->assertSame('Prato Teste', $storedItem->item_name);
+    }
+
+    public function testItemNameIsSnapshottedWhenAddedToAnExistingOrder(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $this->repo->addOrderItem($order->id, ['menu_item_id' => $this->menuItemId]);
+
+        $storedItem = Db::table('order_items')->where('order_id', $order->id)->orderByDesc('id')->first();
+        $this->assertSame('Prato Teste', $storedItem->item_name);
     }
 
     public function testAutoAllocationIsSequentialForTheSameDay(): void

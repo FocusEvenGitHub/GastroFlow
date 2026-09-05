@@ -49,17 +49,19 @@ class ReportService
      */
     public function getTopItems(string $dateFrom, string $dateTo, int $limit = 10): array
     {
+        // Grouped by menu_item_id (the stable identity), using the order-time
+        // name snapshot (spec 023) — no menu_items join needed, and a rename
+        // partway through the range doesn't split one item into two rows.
         $rows = OrderItem::selectRaw(
-            "menu_items.name,
+            "MAX(order_items.item_name) as name,
              SUM(order_items.quantity) as total_qty,
              SUM(order_items.unit_price * order_items.quantity) as total_revenue"
         )
-            ->join('menu_items', 'menu_items.id', '=', 'order_items.menu_item_id')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('orders.status', Order::STATUS_DONE)
             ->whereDate('orders.created_at', '>=', $dateFrom)
             ->whereDate('orders.created_at', '<=', $dateTo)
-            ->groupBy('menu_items.id', 'menu_items.name')
+            ->groupBy('order_items.menu_item_id')
             ->orderByDesc('total_qty')
             ->limit($limit)
             ->get()

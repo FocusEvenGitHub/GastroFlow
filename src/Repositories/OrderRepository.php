@@ -14,7 +14,8 @@ use Illuminate\Database\Capsule\Manager as DB;
 class OrderRepository
 {
     /**
-     * Return orders with their items (name, description from menu).
+     * Return orders with their items. Item name is the order-time snapshot
+     * (spec 023); description/category_name are still live-joined from menu.
      * If $date is provided, filter by that date; otherwise use current day.
      */
     public function getOrdersByStatus(string $status, ?string $date = null): array
@@ -33,7 +34,7 @@ class OrderRepository
             $items = $order->items->map(function ($item) {
                 return [
                     'item_id'        => $item->id,
-                    'name'           => $item->menuItem->name ?? 'Unknown',
+                    'name'           => $item->item_name,
                     'description'    => $item->menuItem->description ?? '',
                     'quantity'       => (int)$item->quantity,
                     'notes'          => $item->notes ?? '',
@@ -116,6 +117,7 @@ class OrderRepository
                 OrderItem::create([
                     'order_id'       => $order->id,
                     'menu_item_id'   => $item['id'],
+                    'item_name'      => $menuItem->name,
                     'quantity'       => $item['quantity'],
                     'notes'          => $item['notes'] ?? '',
                     'dining_option'  => $diningOption,
@@ -265,6 +267,7 @@ class OrderRepository
         $item = OrderItem::create([
             'order_id'       => $orderId,
             'menu_item_id'   => $menuItem->id,
+            'item_name'      => $menuItem->name,
             'quantity'       => $quantity,
             'notes'          => $data['notes'] ?? '',
             'dining_option'  => $diningOption,
