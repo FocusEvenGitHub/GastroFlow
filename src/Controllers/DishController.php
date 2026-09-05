@@ -5,16 +5,20 @@ namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use App\ApiResponse;
 use App\Models\MenuItem;
 use App\Models\Ingredient;
-use Illuminate\Support\Facades\DB;  // Actually use Illuminate\Database\Capsule\Manager as DB
 
 class DishController
 {
     // GET /api/admin/dishes/{id} – return dish with its ingredients
     public function show(Request $request, Response $response, array $args): Response
     {
-        $dish = MenuItem::with('ingredients')->findOrFail((int)$args['id']);
+        try {
+            $dish = MenuItem::with('ingredients')->findOrFail((int)$args['id']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::error($response, 404, 'DISH_NOT_FOUND', 'Dish not found.');
+        }
         $data = $dish->toArray();
         $data['ingredients'] = $dish->ingredients->map(fn($i) => [
             'ingredient_id' => $i->id,
@@ -29,7 +33,11 @@ class DishController
     // PUT /api/admin/dishes/{id} – update dish and its ingredients
     public function update(Request $request, Response $response, array $args): Response
     {
-        $dish = MenuItem::findOrFail((int)$args['id']);
+        try {
+            $dish = MenuItem::findOrFail((int)$args['id']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::error($response, 404, 'DISH_NOT_FOUND', 'Dish not found.');
+        }
         $data = $request->getParsedBody();
 
         // Update basic dish fields

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
+use App\ApiResponse;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Firebase\JWT\ExpiredException;
@@ -25,7 +26,7 @@ class JwtMiddleware implements MiddlewareInterface
     {
         $authHeader = $request->getHeaderLine('Authorization');
         if (!$authHeader || !preg_match('/^Bearer\s+(.*)$/i', $authHeader, $matches)) {
-            return $this->unauthorizedResponse('Token não fornecido.');
+            return ApiResponse::error(new Response(), 401, 'TOKEN_MISSING', 'Token não fornecido.');
         }
 
         $token = $matches[1];
@@ -34,20 +35,11 @@ class JwtMiddleware implements MiddlewareInterface
             // Adiciona os dados do usuário ao request para uso posterior
             $request = $request->withAttribute('user', $decoded);
         } catch (ExpiredException $e) {
-            return $this->unauthorizedResponse('Token expirado.');
+            return ApiResponse::error(new Response(), 401, 'TOKEN_EXPIRED', 'Token expirado.');
         } catch (\Throwable $e) {
-            return $this->unauthorizedResponse('Token inválido.');
+            return ApiResponse::error(new Response(), 401, 'TOKEN_INVALID', 'Token inválido.');
         }
 
         return $handler->handle($request);
-    }
-
-    private function unauthorizedResponse(string $message): ResponseInterface
-    {
-        $response = new Response();
-        $response->getBody()->write(json_encode(['error' => $message]));
-        return $response
-            ->withStatus(401)
-            ->withHeader('Content-Type', 'application/json');
     }
 }

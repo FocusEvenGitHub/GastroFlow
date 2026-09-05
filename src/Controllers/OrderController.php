@@ -6,36 +6,19 @@ namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Log\LoggerInterface;
+use App\ApiResponse;
 use App\Services\OrderService;
 use App\Validators\OrderValidator;
-use App\Settings;
 
 class OrderController
 {
     private OrderService $orderService;
     private OrderValidator $validator;
-    private Settings $settings;
-    private LoggerInterface $logger;
 
-    public function __construct(OrderService $orderService, OrderValidator $validator, Settings $settings, LoggerInterface $logger)
+    public function __construct(OrderService $orderService, OrderValidator $validator)
     {
         $this->orderService = $orderService;
         $this->validator = $validator;
-        $this->settings = $settings;
-        $this->logger = $logger;
-    }
-
-    private function errorResponse(Response $response, \Throwable $e, int $status = 500): Response
-    {
-        $this->logger->error($e->getMessage(), ['exception' => get_class($e)]);
-
-        $payload = $this->settings->isDebug()
-            ? ['error' => $e->getMessage()]
-            : ['success' => false, 'error' => 'Erro interno do servidor.', 'code' => 'INTERNAL_ERROR'];
-
-        $response->getBody()->write(json_encode($payload));
-        return $response->withStatus($status)->withHeader('Content-Type', 'application/json');
     }
 
     public function index(Request $request, Response $response): Response
@@ -55,8 +38,7 @@ class OrderController
 
         if (!$this->validator->validateOrderData($data)) {
             $errors = $this->validator->errors();
-            $response->getBody()->write(json_encode(['error' => 'Validation failed', 'messages' => $errors]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'VALIDATION_FAILED', 'Validation failed', ['messages' => $errors]);
         }
 
         try {
@@ -66,21 +48,15 @@ class OrderController
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
         } catch (\DomainException $e) {
             // Nonexistent or unavailable menu item (spec 022) — bad input, not a conflict.
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'INVALID_ORDER_ITEM', $e->getMessage());
         } catch (\Illuminate\Database\QueryException $e) {
             if ($e->getCode() !== '23000') {
                 // Not a duplicate-key violation (e.g. a deadlock/lock-wait
                 // timeout under concurrency) — not this order_number's fault.
-                return $this->errorResponse($response, $e);
+                throw $e;
             }
             // Unique constraint violation — order_number already used for this business_date
-            $response->getBody()->write(json_encode([
-                'error' => 'Número da senha já utilizado hoje. Peça um novo número.'
-            ]));
-            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 409, 'ORDER_NUMBER_TAKEN', 'Número da senha já utilizado hoje. Peça um novo número.');
         }
     }
 
@@ -97,13 +73,9 @@ class OrderController
         try {
             $this->orderService->completeOrder($id);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 404, 'ORDER_NOT_FOUND', 'Pedido não encontrado');
         } catch (\DomainException $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 409, 'ORDER_CANCELLED', $e->getMessage());
         }
         $payload = ['success' => true, 'message' => 'Order completed'];
         $response->getBody()->write(json_encode($payload));
@@ -116,13 +88,9 @@ class OrderController
         try {
             $this->orderService->uncompleteOrder($id);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 404, 'ORDER_NOT_FOUND', 'Pedido não encontrado');
         } catch (\DomainException $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 409, 'ORDER_CANCELLED', $e->getMessage());
         }
         $payload = ['success' => true, 'message' => 'Order reopened'];
         $response->getBody()->write(json_encode($payload));
@@ -135,13 +103,9 @@ class OrderController
         try {
             $this->orderService->cancelOrder($id);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 404, 'ORDER_NOT_FOUND', 'Pedido não encontrado');
         } catch (\DomainException $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 409, 'ORDER_ALREADY_CANCELLED', $e->getMessage());
         }
         $payload = ['success' => true, 'message' => 'Order cancelled'];
         $response->getBody()->write(json_encode($payload));
@@ -155,8 +119,7 @@ class OrderController
 
         if (!$this->validator->validateOrderUpdate($data)) {
             $errors = $this->validator->errors();
-            $response->getBody()->write(json_encode(['error' => 'Validation failed', 'messages' => $errors]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'VALIDATION_FAILED', 'Validation failed', ['messages' => $errors]);
         }
 
         try {
@@ -165,19 +128,13 @@ class OrderController
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 404, 'ORDER_NOT_FOUND', 'Pedido não encontrado');
         } catch (\Illuminate\Database\QueryException $e) {
             if ($e->getCode() !== '23000') {
-                return $this->errorResponse($response, $e);
+                throw $e;
             }
             // Unique constraint violation — order_number already used for this business_date
-            $response->getBody()->write(json_encode([
-                'error' => 'Número da senha já utilizado hoje. Peça um novo número.'
-            ]));
-            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 409, 'ORDER_NUMBER_TAKEN', 'Número da senha já utilizado hoje. Peça um novo número.');
         }
     }
 
@@ -188,8 +145,7 @@ class OrderController
 
         if (!$this->validator->validateOrderItemAdd($data)) {
             $errors = $this->validator->errors();
-            $response->getBody()->write(json_encode(['error' => 'Validation failed', 'messages' => $errors]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'VALIDATION_FAILED', 'Validation failed', ['messages' => $errors]);
         }
 
         try {
@@ -198,14 +154,10 @@ class OrderController
             $response->getBody()->write(json_encode($payload));
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Pedido ou item de cardápio não encontrado']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 404, 'ORDER_OR_MENU_ITEM_NOT_FOUND', 'Pedido ou item de cardápio não encontrado');
         } catch (\DomainException $e) {
             // Unavailable menu item (spec 022) — bad input, not a conflict.
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 400, 'MENU_ITEM_UNAVAILABLE', $e->getMessage());
         }
     }
 
@@ -217,8 +169,7 @@ class OrderController
 
         if (!$this->validator->validateOrderItemUpdate($data)) {
             $errors = $this->validator->errors();
-            $response->getBody()->write(json_encode(['error' => 'Validation failed', 'messages' => $errors]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'VALIDATION_FAILED', 'Validation failed', ['messages' => $errors]);
         }
 
         try {
@@ -227,10 +178,7 @@ class OrderController
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Item não encontrado neste pedido']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 404, 'ORDER_ITEM_NOT_FOUND', 'Item não encontrado neste pedido');
         }
     }
 
@@ -245,13 +193,9 @@ class OrderController
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Item não encontrado neste pedido']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 404, 'ORDER_ITEM_NOT_FOUND', 'Item não encontrado neste pedido');
         } catch (\DomainException $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 409, 'LAST_ORDER_ITEM', $e->getMessage());
         }
     }
 
@@ -265,10 +209,7 @@ class OrderController
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 404, 'ORDER_NOT_FOUND', 'Pedido não encontrado');
         }
     }
 }

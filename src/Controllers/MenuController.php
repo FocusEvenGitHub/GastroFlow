@@ -6,33 +6,16 @@ namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Log\LoggerInterface;
+use App\ApiResponse;
 use App\Services\MenuService;
-use App\Settings;
 
 class MenuController
 {
     private MenuService $menuService;
-    private Settings $settings;
-    private LoggerInterface $logger;
 
-    public function __construct(MenuService $menuService, Settings $settings, LoggerInterface $logger)
+    public function __construct(MenuService $menuService)
     {
         $this->menuService = $menuService;
-        $this->settings = $settings;
-        $this->logger = $logger;
-    }
-
-    private function errorResponse(Response $response, \Throwable $e, int $status = 500): Response
-    {
-        $this->logger->error($e->getMessage(), ['exception' => get_class($e)]);
-
-        $payload = $this->settings->isDebug()
-            ? ['error' => $e->getMessage()]
-            : ['success' => false, 'error' => 'Erro interno do servidor.', 'code' => 'INTERNAL_ERROR'];
-
-        $response->getBody()->write(json_encode($payload));
-        return $response->withStatus($status)->withHeader('Content-Type', 'application/json');
     }
 
     // GET /api/menu
@@ -48,10 +31,7 @@ class MenuController
     {
         $data = $request->getParsedBody();
         if (!isset($data['name'], $data['price'], $data['category_name'])) {
-            $response->getBody()->write(json_encode([
-                'error' => 'Campos obrigatórios: name, price, category_name'
-            ]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'MISSING_REQUIRED_FIELDS', 'Campos obrigatórios: name, price, category_name');
         }
 
         try {
@@ -59,8 +39,9 @@ class MenuController
             $payload = ['success' => true, 'id' => $item->id, 'message' => 'Item adicionado'];
             $response->getBody()->write(json_encode($payload));
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // category_name doesn't match any existing category (MenuRepository::addItem()'s firstOrFail())
+            return ApiResponse::error($response, 404, 'CATEGORY_NOT_FOUND', 'Categoria não encontrada');
         }
     }
 
@@ -71,8 +52,7 @@ class MenuController
         $data = $request->getParsedBody();
 
         if (empty($data)) {
-            $response->getBody()->write(json_encode(['error' => 'Nenhum dado enviado']));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'EMPTY_PAYLOAD', 'Nenhum dado enviado');
         }
 
         try {
@@ -80,8 +60,8 @@ class MenuController
             $payload = ['success' => true, 'message' => 'Item atualizado'];
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::error($response, 404, 'MENU_ITEM_NOT_FOUND', 'Item não encontrado');
         }
     }
 
@@ -93,8 +73,8 @@ class MenuController
             $components = $this->menuService->getDishComponents($id);
             $response->getBody()->write(json_encode($components));
             return $response->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::error($response, 404, 'MENU_ITEM_NOT_FOUND', 'Item não encontrado');
         }
     }
 
@@ -105,8 +85,7 @@ class MenuController
         $data = $request->getParsedBody();
 
         if (!isset($data['components']) || !is_array($data['components'])) {
-            $response->getBody()->write(json_encode(['error' => 'Campo "components" obrigatório']));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'MISSING_REQUIRED_FIELDS', 'Campo "components" obrigatório');
         }
 
         try {
@@ -114,8 +93,8 @@ class MenuController
             $payload = ['success' => true, 'message' => 'Componentes atualizados'];
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::error($response, 404, 'MENU_ITEM_NOT_FOUND', 'Item não encontrado');
         }
     }
 
@@ -125,10 +104,7 @@ class MenuController
         $data = $request->getParsedBody();
 
         if (!isset($data['category_name']) || !isset($data['item_ids']) || !is_array($data['item_ids']) || empty($data['item_ids'])) {
-            $response->getBody()->write(json_encode([
-                'error' => 'Campos obrigatórios: category_name, item_ids (array não vazio)'
-            ]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'MISSING_REQUIRED_FIELDS', 'Campos obrigatórios: category_name, item_ids (array não vazio)');
         }
 
         try {
@@ -137,10 +113,7 @@ class MenuController
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Categoria não encontrada']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 404, 'CATEGORY_NOT_FOUND', 'Categoria não encontrada');
         }
     }
 
@@ -155,16 +128,10 @@ class MenuController
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            $response->getBody()->write(json_encode(['error' => 'Item não encontrado']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 404, 'MENU_ITEM_NOT_FOUND', 'Item não encontrado');
         } catch (\Illuminate\Database\QueryException $e) {
             // Foreign key constraint — item vinculado a pedidos existentes
-            $response->getBody()->write(json_encode([
-                'error' => 'Não é possível excluir este item, pois ele está vinculado a pedidos existentes.'
-            ]));
-            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
+            return ApiResponse::error($response, 409, 'MENU_ITEM_IN_USE', 'Não é possível excluir este item, pois ele está vinculado a pedidos existentes.');
         }
     }
 }

@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use App\ApiResponse;
 use App\Models\Ingredient;
 
 class IngredientController
@@ -22,8 +23,7 @@ class IngredientController
     {
         $data = $request->getParsedBody();
         if (empty($data['name']) || empty($data['unit'])) {
-            $response->getBody()->write(json_encode(['error' => 'Name and unit are required.']));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'MISSING_REQUIRED_FIELDS', 'Name and unit are required.');
         }
         $ingredient = Ingredient::create([
             'name' => $data['name'],
@@ -37,7 +37,11 @@ class IngredientController
     // PUT /api/admin/ingredients/{id}
     public function update(Request $request, Response $response, array $args): Response
     {
-        $ingredient = Ingredient::findOrFail((int)$args['id']);
+        try {
+            $ingredient = Ingredient::findOrFail((int)$args['id']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::error($response, 404, 'INGREDIENT_NOT_FOUND', 'Ingredient not found.');
+        }
         $data = $request->getParsedBody();
         $ingredient->update($data);
         $response->getBody()->write(json_encode($ingredient));
@@ -47,7 +51,11 @@ class IngredientController
     // DELETE /api/admin/ingredients/{id}
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $ingredient = Ingredient::findOrFail((int)$args['id']);
+        try {
+            $ingredient = Ingredient::findOrFail((int)$args['id']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::error($response, 404, 'INGREDIENT_NOT_FOUND', 'Ingredient not found.');
+        }
         $ingredient->delete();
         $response->getBody()->write(json_encode(['success' => true]));
         return $response->withHeader('Content-Type', 'application/json');

@@ -6,7 +6,7 @@ namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Log\LoggerInterface;
+use App\ApiResponse;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\PrintService;
@@ -17,20 +17,7 @@ class AdminController
     public function __construct(
         private readonly PrintService $printService,
         private readonly Settings $settings,
-        private readonly LoggerInterface $logger,
     ) {
-    }
-
-    private function errorResponse(Response $response, \Throwable $e, int $status = 500): Response
-    {
-        $this->logger->error($e->getMessage(), ['exception' => get_class($e)]);
-
-        $payload = $this->settings->isDebug()
-            ? ['error' => $e->getMessage()]
-            : ['success' => false, 'error' => 'Erro interno do servidor.', 'code' => 'INTERNAL_ERROR'];
-
-        $response->getBody()->write(json_encode($payload));
-        return $response->withStatus($status)->withHeader('Content-Type', 'application/json');
     }
 
     /**
@@ -39,13 +26,8 @@ class AdminController
      */
     public function testPrint(Request $request, Response $response): Response
     {
-        try {
-            $this->printService->printTestPage();
-            $payload = ['success' => true, 'message' => 'Teste enviado para a impressora.'];
-        } catch (\Throwable $e) {
-            return $this->errorResponse($response, $e);
-        }
-
+        $this->printService->printTestPage();
+        $payload = ['success' => true, 'message' => 'Teste enviado para a impressora.'];
         $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -73,10 +55,7 @@ class AdminController
         $settings = $data['settings'] ?? [];
 
         if (empty($settings) || !is_array($settings)) {
-            $response->getBody()->write(json_encode([
-                'error' => 'Envie um objeto "settings" com as chaves/valores.'
-            ]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'MISSING_REQUIRED_FIELDS', 'Envie um objeto "settings" com as chaves/valores.');
         }
 
         foreach ($settings as $key => $value) {
@@ -144,20 +123,14 @@ class AdminController
         $logoFile = $uploadedFiles['logo'] ?? null;
 
         if (!$logoFile || $logoFile->getError() !== UPLOAD_ERR_OK) {
-            $response->getBody()->write(json_encode([
-                'error' => 'Envie um arquivo de imagem válido no campo "logo".'
-            ]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'INVALID_UPLOAD', 'Envie um arquivo de imagem válido no campo "logo".');
         }
 
         $allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
         $fileType = $logoFile->getClientMediaType();
 
         if (!in_array($fileType, $allowedTypes, true)) {
-            $response->getBody()->write(json_encode([
-                'error' => 'Formato não suportado. Use PNG, JPG ou WebP.'
-            ]));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error($response, 400, 'UNSUPPORTED_FILE_TYPE', 'Formato não suportado. Use PNG, JPG ou WebP.');
         }
 
         $destDir = $this->settings->getPublicAssetsImgDir();

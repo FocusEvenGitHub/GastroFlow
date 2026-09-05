@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
+use App\ApiResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -24,11 +25,7 @@ class RoleMiddleware implements MiddlewareInterface
         $user = $request->getAttribute('user');
 
         if (!$user || !isset($user->role) || !in_array($user->role, $this->allowedRoles, true)) {
-            $response = new Response();
-            $response->getBody()->write(json_encode(['error' => 'Acesso negado.']));
-            return $response
-                ->withStatus(403)
-                ->withHeader('Content-Type', 'application/json');
+            return ApiResponse::error(new Response(), 403, 'FORBIDDEN', 'Acesso negado.');
         }
 
         return $handler->handle($request);
