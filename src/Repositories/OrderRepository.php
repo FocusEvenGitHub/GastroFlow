@@ -21,7 +21,11 @@ class OrderRepository
     public function getOrdersByStatus(string $status, ?string $date = null): array
     {
         $date = $date ?? date('Y-m-d');
-        $query = Order::with(['items.menuItem.category'])->whereDate('created_at', $date);
+        // business_date, not whereDate('created_at', ...) (spec 025): the
+        // latter wraps an indexed column in DATE(...), which MySQL can't use
+        // an index to satisfy — business_date is the same concept as a plain,
+        // already-indexed column (spec 019's uniq_order_number_per_day).
+        $query = Order::with(['items.menuItem.category'])->where('business_date', $date);
         if ($status === 'all') {
             $query->orderBy('created_at', 'desc');
         } else {

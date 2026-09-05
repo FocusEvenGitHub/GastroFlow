@@ -11,8 +11,9 @@ class KitchenService
     public function getFoodCategorySummary(?string $date = null): array
     {
         $date = $date ?? date('Y-m-d');
+        // business_date, not whereDate('created_at', ...) — sargable (spec 025).
         $pendingOrders = Order::where('status', 'pending')
-            ->whereDate('created_at', $date)
+            ->where('business_date', $date)
             ->with(['items.menuItem.components'])
             ->get();
 

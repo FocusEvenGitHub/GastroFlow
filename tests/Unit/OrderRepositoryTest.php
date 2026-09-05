@@ -215,4 +215,31 @@ class OrderRepositoryTest extends TestCase
         $this->expectException(\DomainException::class);
         $this->repo->addOrderItem($order->id, ['menu_item_id' => $unavailableId]);
     }
+
+    public function testGetOrdersByStatusFiltersByBusinessDateNotAdjacentDay(): void
+    {
+        // Spec 025: filtering by business_date (sargable), not
+        // whereDate('created_at', ...) — this proves the filter logic itself
+        // is still correct after that switch, not the query plan (which
+        // needs a real MySQL EXPLAIN — see specs/025-*.md's Validation evidence).
+        $today = $this->repo->createOrder($this->orderData());
+
+        $yesterday = (new \DateTime('yesterday'))->format('Y-m-d');
+        Db::table('orders')->insert([
+            'order_number'  => '1',
+            'business_date' => $yesterday,
+            'customer_name' => null,
+            'status'        => 'pending',
+            'created_at'    => $yesterday . ' 12:00:00',
+            'updated_at'    => $yesterday . ' 12:00:00',
+        ]);
+
+        $todayResults = $this->repo->getOrdersByStatus('pending', date('Y-m-d'));
+        $this->assertCount(1, $todayResults);
+        $this->assertSame($today->id, $todayResults[0]['id']);
+
+        $yesterdayResults = $this->repo->getOrdersByStatus('pending', $yesterday);
+        $this->assertCount(1, $yesterdayResults);
+        $this->assertNotSame($today->id, $yesterdayResults[0]['id']);
+    }
 }

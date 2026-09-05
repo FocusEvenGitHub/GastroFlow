@@ -17,8 +17,10 @@ class ReportService
      */
     public function getSalesByDay(string $dateFrom, string $dateTo): array
     {
+        // business_date, not DATE(orders.created_at)/whereDate (spec 025):
+        // sargable, uses the existing index instead of a full scan.
         $rows = Order::selectRaw(
-            "DATE(orders.created_at) as date,
+            "orders.business_date as date,
              COUNT(DISTINCT orders.id) as orders,
              COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost), 0) as revenue,
              COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost) / NULLIF(COUNT(DISTINCT orders.id), 0), 0) as avg_ticket,
@@ -26,9 +28,9 @@ class ReportService
         )
             ->join('order_items', 'order_items.order_id', '=', 'orders.id')
             ->where('orders.status', Order::STATUS_DONE)
-            ->whereDate('orders.created_at', '>=', $dateFrom)
-            ->whereDate('orders.created_at', '<=', $dateTo)
-            ->groupBy(DB::raw('DATE(orders.created_at)'))
+            ->where('orders.business_date', '>=', $dateFrom)
+            ->where('orders.business_date', '<=', $dateTo)
+            ->groupBy('orders.business_date')
             ->orderBy('date')
             ->get()
             ->toArray();
@@ -72,8 +74,8 @@ class ReportService
         )
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('orders.status', Order::STATUS_DONE)
-            ->whereDate('orders.created_at', '>=', $dateFrom)
-            ->whereDate('orders.created_at', '<=', $dateTo)
+            ->where('orders.business_date', '>=', $dateFrom)
+            ->where('orders.business_date', '<=', $dateTo)
             ->groupBy('order_items.menu_item_id')
             ->orderByDesc('total_qty')
             ->limit($limit)
@@ -100,8 +102,8 @@ class ReportService
         )
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('orders.status', Order::STATUS_DONE)
-            ->whereDate('orders.created_at', '>=', $dateFrom)
-            ->whereDate('orders.created_at', '<=', $dateTo)
+            ->where('orders.business_date', '>=', $dateFrom)
+            ->where('orders.business_date', '<=', $dateTo)
             ->groupBy('order_items.dining_option')
             ->orderByDesc('total_qty')
             ->get()
@@ -124,8 +126,8 @@ class ReportService
             "HOUR(orders.created_at) as hour,
              COUNT(*) as orders"
         )
-            ->whereDate('orders.created_at', '>=', $dateFrom)
-            ->whereDate('orders.created_at', '<=', $dateTo)
+            ->where('orders.business_date', '>=', $dateFrom)
+            ->where('orders.business_date', '<=', $dateTo)
             ->groupBy(DB::raw('HOUR(orders.created_at)'))
             ->orderBy('hour')
             ->get()
@@ -158,8 +160,8 @@ class ReportService
             "COALESCE(AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)), 0) as avg_minutes"
         )
             ->where('status', Order::STATUS_DONE)
-            ->whereDate('created_at', '>=', $dateFrom)
-            ->whereDate('created_at', '<=', $dateTo)
+            ->where('business_date', '>=', $dateFrom)
+            ->where('business_date', '<=', $dateTo)
             ->first()
             ->toArray();
 
@@ -167,14 +169,14 @@ class ReportService
 
         // By day within the period
         $byDay = Order::selectRaw(
-            "DATE(created_at) as date,
+            "business_date as date,
              COALESCE(AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)), 0) as avg_minutes,
              COUNT(*) as orders"
         )
             ->where('status', Order::STATUS_DONE)
-            ->whereDate('created_at', '>=', $dateFrom)
-            ->whereDate('created_at', '<=', $dateTo)
-            ->groupBy(DB::raw('DATE(created_at)'))
+            ->where('business_date', '>=', $dateFrom)
+            ->where('business_date', '<=', $dateTo)
+            ->groupBy('business_date')
             ->orderBy('date')
             ->get()
             ->toArray();
@@ -214,8 +216,8 @@ class ReportService
             )
                 ->join('order_items', 'order_items.order_id', '=', 'orders.id')
                 ->where('orders.status', Order::STATUS_DONE)
-                ->whereDate('orders.created_at', '>=', $from)
-                ->whereDate('orders.created_at', '<=', $to)
+                ->where('orders.business_date', '>=', $from)
+                ->where('orders.business_date', '<=', $to)
                 ->first()
                 ->toArray();
 
@@ -262,7 +264,7 @@ class ReportService
         )
             ->join('order_items', 'order_items.order_id', '=', 'orders.id')
             ->where('orders.status', Order::STATUS_DONE)
-            ->whereDate('orders.created_at', $date)
+            ->where('orders.business_date', $date)
             ->first()
             ->toArray();
 
