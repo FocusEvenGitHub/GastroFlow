@@ -89,7 +89,7 @@ class OrderService
     {
         $removed = $this->orderRepo->removeOrderItem($orderId, $itemId);
         if (!$removed) {
-            throw new \DomainException('Não é possível remover o último item do pedido. Exclua o pedido inteiro.');
+            throw new \DomainException('Não é possível remover o último item do pedido. Cancele o pedido inteiro.');
         }
         $this->triggerKitchenEvent('order.updated', $orderId);
     }

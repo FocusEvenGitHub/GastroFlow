@@ -24,6 +24,34 @@ class OrderValidatorTest extends TestCase
         $this->assertTrue($result);
     }
 
+    public function testCustomerNameOverLimitIsRejectedOnOrderCreation(): void
+    {
+        // Regression: validateOrderData() dropped this rule entirely during
+        // spec 022's rewrite (code review) — customer_name is still present
+        // in validateOrderUpdate() the whole time, which is what caught the
+        // asymmetry.
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderData([
+            'customer_name' => str_repeat('a', 101),
+            'items' => [['id' => 1, 'quantity' => 1]],
+        ]);
+
+        $this->assertFalse($result);
+    }
+
+    public function testCustomerNameAtLimitIsAcceptedOnOrderCreation(): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderData([
+            'customer_name' => str_repeat('a', 100),
+            'items' => [['id' => 1, 'quantity' => 1]],
+        ]);
+
+        $this->assertTrue($result);
+    }
+
     public function testMissingOrderNumberIsAccepted(): void
     {
         // order_number is optional (spec 019): omitting it lets the server

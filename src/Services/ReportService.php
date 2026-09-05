@@ -52,8 +52,21 @@ class ReportService
         // Grouped by menu_item_id (the stable identity), using the order-time
         // name snapshot (spec 023) — no menu_items join needed, and a rename
         // partway through the range doesn't split one item into two rows.
+        //
+        // The displayed name is the *most recently used* snapshot, not an
+        // alphabetical MAX() (code review fix, spec 023: MAX() picked
+        // whichever name sorted last lexicographically, which is unrelated to
+        // recency — e.g. a rename to an alphabetically-earlier name would
+        // have kept showing the stale one forever). GROUP_CONCAT orders by
+        // id DESC (most recent order_items row first) and SUBSTRING_INDEX
+        // takes just that first entry; this is safe even if the concatenated
+        // list is truncated by group_concat_max_len, since MySQL truncates
+        // from the end, never the beginning.
         $rows = OrderItem::selectRaw(
-            "MAX(order_items.item_name) as name,
+            "SUBSTRING_INDEX(
+                 GROUP_CONCAT(order_items.item_name ORDER BY order_items.id DESC SEPARATOR '\u{7}'),
+                 '\u{7}', 1
+             ) as name,
              SUM(order_items.quantity) as total_qty,
              SUM(order_items.unit_price * order_items.quantity) as total_revenue"
         )

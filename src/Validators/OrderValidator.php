@@ -23,6 +23,8 @@ class OrderValidator
         // next number for today, under a lock (see OrderRepository::allocateNextNumber()).
         $this->v->rule('optional', 'order_number');
         $this->v->rule('lengthMax', 'order_number', 50);
+        $this->v->rule('optional', 'customer_name');
+        $this->v->rule('lengthMax', 'customer_name', 100);
         $this->v->rule('required', 'items');
         $this->v->rule('array', 'items');
         // Each item must have a valid id/quantity/dining_option/notes.

@@ -69,9 +69,15 @@ class OrderRepository
     public function createOrder(array $data): Order
     {
         return DB::transaction(function () use ($data) {
+            // Locked (spec 023 code review): without this, a concurrent
+            // availability toggle in the gap between this check and the
+            // OrderItem inserts below (same transaction, but an unlocked read)
+            // could let an order reference an item that became unavailable a
+            // moment later. The lock blocks that concurrent update until this
+            // transaction commits or rolls back.
             $resolvedItems = [];
             foreach ($data['items'] as $item) {
-                $menuItem = MenuItem::find($item['id']);
+                $menuItem = MenuItem::where('id', $item['id'])->lockForUpdate()->first();
                 if (!$menuItem) {
                     throw new \DomainException("Item de cardápio não encontrado: #{$item['id']}");
                 }
@@ -132,45 +138,54 @@ class OrderRepository
 
     /**
      * Mark order as done. Throws DomainException if the order is cancelled
-     * (terminal — spec 020).
+     * (terminal — spec 020). Row-locked (spec 023 code review) so a
+     * concurrent cancel/complete/uncomplete on the same order can't read a
+     * stale pre-transition status and silently overwrite the other's result.
      */
     public function completeOrder(int $id): void
     {
-        $order = Order::findOrFail($id);
-        if ($order->status === Order::STATUS_CANCELLED) {
-            throw new \DomainException('Não é possível concluir um pedido cancelado.');
-        }
-        $order->status = Order::STATUS_DONE;
-        $order->save();
+        DB::transaction(function () use ($id) {
+            $order = Order::where('id', $id)->lockForUpdate()->firstOrFail();
+            if ($order->status === Order::STATUS_CANCELLED) {
+                throw new \DomainException('Não é possível concluir um pedido cancelado.');
+            }
+            $order->status = Order::STATUS_DONE;
+            $order->save();
+        });
     }
 
     /**
      * Reopen a completed order (undo "dar baixa"). Throws DomainException if
-     * the order is cancelled (terminal — spec 020).
+     * the order is cancelled (terminal — spec 020). Row-locked — see
+     * completeOrder().
      */
     public function uncompleteOrder(int $id): void
     {
-        $order = Order::findOrFail($id);
-        if ($order->status === Order::STATUS_CANCELLED) {
-            throw new \DomainException('Não é possível reabrir um pedido cancelado.');
-        }
-        $order->status = Order::STATUS_PENDING;
-        $order->save();
+        DB::transaction(function () use ($id) {
+            $order = Order::where('id', $id)->lockForUpdate()->firstOrFail();
+            if ($order->status === Order::STATUS_CANCELLED) {
+                throw new \DomainException('Não é possível reabrir um pedido cancelado.');
+            }
+            $order->status = Order::STATUS_PENDING;
+            $order->save();
+        });
     }
 
     /**
      * Cancel an order (replaces the old hard-delete-as-cancellation
      * behavior — spec 020). Preserves the row for history/audit. Throws
-     * DomainException if already cancelled.
+     * DomainException if already cancelled. Row-locked — see completeOrder().
      */
     public function cancelOrder(int $id): void
     {
-        $order = Order::findOrFail($id);
-        if ($order->status === Order::STATUS_CANCELLED) {
-            throw new \DomainException('Este pedido já está cancelado.');
-        }
-        $order->status = Order::STATUS_CANCELLED;
-        $order->save();
+        DB::transaction(function () use ($id) {
+            $order = Order::where('id', $id)->lockForUpdate()->firstOrFail();
+            if ($order->status === Order::STATUS_CANCELLED) {
+                throw new \DomainException('Este pedido já está cancelado.');
+            }
+            $order->status = Order::STATUS_CANCELLED;
+            $order->save();
+        });
     }
 
     /**
@@ -250,42 +265,51 @@ class OrderRepository
      */
     public function addOrderItem(int $orderId, array $data): array
     {
-        Order::findOrFail($orderId);
-        $menuItem = MenuItem::with('category')->findOrFail((int) $data['menu_item_id']);
-        if (!$menuItem->available) {
-            throw new \DomainException("Item indisponível: {$menuItem->name}");
-        }
+        return DB::transaction(function () use ($orderId, $data) {
+            Order::findOrFail($orderId);
+            // Locked (spec 023 code review) — same TOCTOU concern as
+            // createOrder(): without it, a concurrent availability toggle
+            // between this check and the OrderItem insert below could let an
+            // item be added right after it became unavailable.
+            $menuItem = MenuItem::with('category')
+                ->where('id', (int) $data['menu_item_id'])
+                ->lockForUpdate()
+                ->firstOrFail();
+            if (!$menuItem->available) {
+                throw new \DomainException("Item indisponível: {$menuItem->name}");
+            }
 
-        $quantity = (int) ($data['quantity'] ?? 1);
-        $diningOption = $data['dining_option'] ?? 'local';
-        $packagingCost = match ($diningOption) {
-            'viagem_simples' => Money::fromReais(1.0)->multipliedBy($quantity),
-            'viagem_vip'     => Money::fromReais(2.0)->multipliedBy($quantity),
-            default          => Money::zero(),
-        };
+            $quantity = (int) ($data['quantity'] ?? 1);
+            $diningOption = $data['dining_option'] ?? 'local';
+            $packagingCost = match ($diningOption) {
+                'viagem_simples' => Money::fromReais(1.0)->multipliedBy($quantity),
+                'viagem_vip'     => Money::fromReais(2.0)->multipliedBy($quantity),
+                default          => Money::zero(),
+            };
 
-        $item = OrderItem::create([
-            'order_id'       => $orderId,
-            'menu_item_id'   => $menuItem->id,
-            'item_name'      => $menuItem->name,
-            'quantity'       => $quantity,
-            'notes'          => $data['notes'] ?? '',
-            'dining_option'  => $diningOption,
-            'unit_price'     => Money::fromReais($menuItem->price)->toReais(),
-            'packaging_cost' => $packagingCost->toReais(),
-        ]);
+            $item = OrderItem::create([
+                'order_id'       => $orderId,
+                'menu_item_id'   => $menuItem->id,
+                'item_name'      => $menuItem->name,
+                'quantity'       => $quantity,
+                'notes'          => $data['notes'] ?? '',
+                'dining_option'  => $diningOption,
+                'unit_price'     => Money::fromReais($menuItem->price)->toReais(),
+                'packaging_cost' => $packagingCost->toReais(),
+            ]);
 
-        return [
-            'item_id'        => $item->id,
-            'name'           => $menuItem->name,
-            'description'    => $menuItem->description,
-            'quantity'       => (int) $item->quantity,
-            'notes'          => $item->notes ?? '',
-            'dining_option'  => $item->dining_option,
-            'unit_price'     => (float) $item->unit_price,
-            'packaging_cost' => (float) $item->packaging_cost,
-            'category_name'  => $menuItem->category->name ?? null,
-        ];
+            return [
+                'item_id'        => $item->id,
+                'name'           => $menuItem->name,
+                'description'    => $menuItem->description,
+                'quantity'       => (int) $item->quantity,
+                'notes'          => $item->notes ?? '',
+                'dining_option'  => $item->dining_option,
+                'unit_price'     => (float) $item->unit_price,
+                'packaging_cost' => (float) $item->packaging_cost,
+                'category_name'  => $menuItem->category->name ?? null,
+            ];
+        });
     }
 
     /**
