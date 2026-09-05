@@ -1,0 +1,119 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit;
+
+use App\Models\MenuItem;
+use App\Repositories\OrderRepository;
+use Illuminate\Database\Capsule\Manager as Db;
+use Illuminate\Database\QueryException;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Exercises OrderRepository's order_number allocation (spec 019) against a
+ * real in-memory SQLite database — sequential/single-process only, so this
+ * proves correctness, not true concurrency (see specs/019-*.md's Testing
+ * and validation strategy for the separate manual concurrency check).
+ */
+class OrderRepositoryTest extends TestCase
+{
+    private OrderRepository $repo;
+    private int $menuItemId;
+
+    protected function setUp(): void
+    {
+        $capsule = new Db();
+        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
+        $capsule->setAsGlobal();
+        $capsule->bootEloquent();
+
+        Db::schema()->create('order_number_counters', function ($table) {
+            $table->date('business_date')->primary();
+            $table->unsignedInteger('last_number')->default(0);
+        });
+
+        Db::schema()->create('menu_items', function ($table) {
+            $table->id();
+            $table->unsignedInteger('category_id')->nullable();
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->float('price')->default(0);
+            $table->boolean('available')->default(true);
+        });
+
+        Db::schema()->create('orders', function ($table) {
+            $table->id();
+            $table->string('order_number', 50);
+            $table->date('business_date');
+            $table->string('customer_name', 100)->nullable();
+            $table->string('status')->default('pending');
+            $table->timestamps();
+            $table->unique(['business_date', 'order_number']);
+        });
+
+        Db::schema()->create('order_items', function ($table) {
+            $table->id();
+            $table->unsignedBigInteger('order_id');
+            $table->unsignedInteger('menu_item_id');
+            $table->integer('quantity')->default(1);
+            $table->text('notes')->nullable();
+            $table->string('dining_option')->nullable();
+            $table->float('unit_price')->default(0);
+            $table->float('packaging_cost')->default(0);
+        });
+
+        $this->menuItemId = (int) MenuItem::create([
+            'name' => 'Prato Teste', 'price' => 10.0, 'available' => true,
+        ])->id;
+
+        $this->repo = new OrderRepository();
+    }
+
+    private function orderData(?string $orderNumber = null): array
+    {
+        $data = ['items' => [['id' => $this->menuItemId, 'quantity' => 1]]];
+        if ($orderNumber !== null) {
+            $data['order_number'] = $orderNumber;
+        }
+        return $data;
+    }
+
+    public function testAutoAllocationIsSequentialForTheSameDay(): void
+    {
+        $first = $this->repo->createOrder($this->orderData());
+        $second = $this->repo->createOrder($this->orderData());
+
+        $this->assertSame('1', $first->order_number);
+        $this->assertSame('2', $second->order_number);
+        $this->assertSame($first->business_date, $second->business_date);
+    }
+
+    public function testManualOverrideNeverAdvancesTheAutoCounter(): void
+    {
+        // A large manual value must not push the auto-assign counter forward.
+        $this->repo->createOrder($this->orderData('99'));
+        $auto = $this->repo->createOrder($this->orderData());
+
+        $this->assertSame('1', $auto->order_number);
+    }
+
+    public function testDuplicateManualOrderNumberOnSameDayFails(): void
+    {
+        $this->repo->createOrder($this->orderData('7'));
+
+        $this->expectException(QueryException::class);
+        $this->repo->createOrder($this->orderData('7'));
+    }
+
+    public function testGetNextNumberPreviewDoesNotConsumeAnything(): void
+    {
+        $first = $this->repo->getNextNumber();
+        $second = $this->repo->getNextNumber();
+
+        $this->assertSame($first, $second);
+
+        $order = $this->repo->createOrder($this->orderData());
+        $this->assertSame((string) $first, $order->order_number);
+    }
+}

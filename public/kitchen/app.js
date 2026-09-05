@@ -274,7 +274,7 @@ function kitchenApp() {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        table_number: this.editingOrder.table_number,
+                        order_number: this.editingOrder.order_number,
                         customer_name: this.editingOrder.customer_name
                     })
                 });

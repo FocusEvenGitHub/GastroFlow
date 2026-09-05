@@ -7,6 +7,7 @@ namespace App\Repositories;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\MenuItem;
+use App\Models\OrderNumberCounter;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class OrderRepository
@@ -44,7 +45,7 @@ class OrderRepository
 
             return [
                 'id'            => $order->id,
-                'table_number'  => $order->table_number,
+                'order_number'  => $order->order_number,
                 'customer_name' => $order->customer_name,
                 'status'        => $order->status,
                 'created_at'    => $order->created_at->toDateTimeString(),
@@ -68,8 +69,15 @@ class OrderRepository
                 }
             }
 
+            $businessDate = date('Y-m-d');
+            $manualOrderNumber = isset($data['order_number']) && $data['order_number'] !== ''
+                ? (string) $data['order_number']
+                : null;
+            $orderNumber = $manualOrderNumber ?? $this->allocateNextNumber($businessDate);
+
             $order = Order::create([
-                'table_number'  => $data['table_number'],
+                'order_number'  => $orderNumber,
+                'business_date' => $businessDate,
                 'customer_name' => $customerName,
                 'status'        => Order::STATUS_PENDING,
             ]);
@@ -120,14 +128,55 @@ class OrderRepository
     }
 
     /**
-     * table_number is a customer-facing pickup ticket ("Senha"), not a physical restaurant
-     * table; this MAX()+1 is not concurrency-safe — see docs/ROADMAP.md's v1.7.0 "Order number
-     * integrity" for the planned order_number rework.
+     * Non-consuming preview of what the next auto-assigned order_number for
+     * today would be. Does not lock or increment order_number_counters —
+     * actual allocation only happens inside createOrder()'s transaction, so
+     * calling this repeatedly without creating an order returns the same
+     * value each time (spec 019).
      */
     public function getNextNumber(): int
     {
-        $result = DB::select('SELECT COALESCE(MAX(CAST(table_number AS UNSIGNED)), 0) + 1 AS next FROM orders');
-        return (int) $result[0]->next;
+        $counter = OrderNumberCounter::where('business_date', date('Y-m-d'))->first();
+        return ($counter ? $counter->last_number : 0) + 1;
+    }
+
+    /**
+     * Atomically allocate the next order_number for $businessDate, under a
+     * row lock on its order_number_counters entry. Never called for a
+     * manually-overridden order_number — automatic generation is
+     * concurrency-safe and independent of manual overrides (spec 019).
+     *
+     * Locks the row directly instead of unconditionally upserting first:
+     * an unconditional INSERT ... IGNORE immediately followed by SELECT ...
+     * FOR UPDATE on the same, already-existing row (the common case, every
+     * day after the first order) makes every concurrent request take a
+     * shared lock (the IGNORE's duplicate check) and then try to upgrade to
+     * exclusive — a lock-upgrade cycle that MySQL reports as a deadlock
+     * under real concurrency (confirmed while validating this spec).
+     */
+    private function allocateNextNumber(string $businessDate): string
+    {
+        $counter = OrderNumberCounter::where('business_date', $businessDate)->lockForUpdate()->first();
+
+        if (!$counter) {
+            // First order of a new business_date: its counter row doesn't exist
+            // yet. A concurrent request racing to create the same row gets a
+            // duplicate-key error here, not a deadlock (neither side holds a
+            // lock on an existing row yet) — safe to ignore and re-read below.
+            try {
+                OrderNumberCounter::create(['business_date' => $businessDate, 'last_number' => 0]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                if ($e->getCode() !== '23000') {
+                    throw $e;
+                }
+            }
+            $counter = OrderNumberCounter::where('business_date', $businessDate)->lockForUpdate()->first();
+        }
+
+        $counter->last_number += 1;
+        $counter->save();
+
+        return (string) $counter->last_number;
     }
 
     /**
@@ -137,8 +186,8 @@ class OrderRepository
     {
         $order = Order::findOrFail($id);
 
-        if (isset($data['table_number'])) {
-            $order->table_number = $data['table_number'];
+        if (isset($data['order_number'])) {
+            $order->order_number = $data['order_number'];
         }
         if (array_key_exists('customer_name', $data)) {
             $trimmed = is_string($data['customer_name']) ? trim($data['customer_name']) : null;

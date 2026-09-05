@@ -64,6 +64,17 @@ class OrderController
             $payload = ['success' => true, 'id' => $order->id, 'message' => 'Order created'];
             $response->getBody()->write(json_encode($payload));
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() !== '23000') {
+                // Not a duplicate-key violation (e.g. a deadlock/lock-wait
+                // timeout under concurrency) — not this order_number's fault.
+                return $this->errorResponse($response, $e);
+            }
+            // Unique constraint violation — order_number already used for this business_date
+            $response->getBody()->write(json_encode([
+                'error' => 'Número da senha já utilizado hoje. Peça um novo número.'
+            ]));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
             return $this->errorResponse($response, $e);
         }
@@ -121,6 +132,15 @@ class OrderController
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             $response->getBody()->write(json_encode(['error' => 'Pedido não encontrado']));
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() !== '23000') {
+                return $this->errorResponse($response, $e);
+            }
+            // Unique constraint violation — order_number already used for this business_date
+            $response->getBody()->write(json_encode([
+                'error' => 'Número da senha já utilizado hoje. Peça um novo número.'
+            ]));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
             return $this->errorResponse($response, $e);
         }

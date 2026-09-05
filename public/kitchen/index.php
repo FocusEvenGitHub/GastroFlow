@@ -141,7 +141,7 @@
                                     <div class="card-header">
                                         <div class="d-flex align-items-center gap-2">
                                             <strong class="small" x-text="displayName(order)"></strong>
-                                            <span class="badge bg-primary badge-table"><i class="fas fa-hashtag me-1"></i><span x-text="order.table_number"></span></span>
+                                            <span class="badge bg-primary badge-table"><i class="fas fa-hashtag me-1"></i><span x-text="order.order_number"></span></span>
                                             <small class="text-muted" x-text="timeAgo(order.created_at)"></small>
                                         </div>
                                         <div class="d-flex align-items-center gap-1">
@@ -199,7 +199,7 @@
                                         <div class="card-header">
                                             <div class="d-flex align-items-center gap-2">
                                                 <strong class="small" x-text="displayName(order)"></strong>
-                                                <span class="badge bg-secondary badge-table"><i class="fas fa-hashtag me-1"></i><span x-text="order.table_number"></span></span>
+                                                <span class="badge bg-secondary badge-table"><i class="fas fa-hashtag me-1"></i><span x-text="order.order_number"></span></span>
                                                 <small class="text-muted" x-text="timeAgo(order.created_at)"></small>
                                             </div>
                                             <div class="d-flex align-items-center gap-1">
@@ -301,7 +301,7 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Senha</label>
-                                <input type="text" class="form-control" x-model="editingOrder.table_number">
+                                <input type="text" class="form-control" x-model="editingOrder.order_number">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Cliente</label>

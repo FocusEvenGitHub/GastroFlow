@@ -93,11 +93,25 @@ paths:
                     example: Order created
         "400":
           $ref: "#/components/responses/ValidationError"
+        "409":
+          description: Número da senha já utilizado para o dia de operação atual (business_date)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Número da senha já utilizado hoje. Peça um novo número.
 
   /api/orders/next-number:
     get:
       summary: Próximo número de pedido
-      description: Retorna o próximo número sequencial disponível para um pedido.
+      description: >-
+        Pré-visualiza o próximo número de senha para o dia de operação atual
+        (business_date). Não reserva nem consome o número — chamadas
+        repetidas sem criar um pedido retornam o mesmo valor; a alocação
+        real e concorrente só acontece em POST /api/orders.
       operationId: getNextOrderNumber
       tags:
         - Pedidos
@@ -743,9 +757,15 @@ components:
         id:
           type: integer
           example: 42
-        table_number:
+        order_number:
           type: string
+          description: Número da senha (ticket de retirada), único por business_date
           example: "5"
+        business_date:
+          type: string
+          format: date
+          description: Dia de operação ao qual este order_number pertence
+          example: "2026-09-04"
         customer_name:
           type: string
           nullable: true
@@ -776,12 +796,16 @@ components:
     CreateOrderInput:
       type: object
       required:
-        - table_number
         - items
       properties:
-        table_number:
+        order_number:
           type: string
-          description: Número da senha (ticket de retirada do pedido), não identifica uma mesa física
+          description: >-
+            Número da senha (ticket de retirada do pedido), não identifica uma
+            mesa física. Opcional: se omitido, o servidor aloca o próximo
+            número disponível para o dia de operação atual, de forma
+            concorrência-segura. Se informado manualmente, deve ser único
+            para o dia (uma colisão retorna 409).
           example: "5"
         customer_name:
           type: string
@@ -844,7 +868,7 @@ components:
                 items:
                   type: string
                 example:
-                  - O campo "table_number" é obrigatório
+                  - O campo "items" é obrigatório
                   - A lista "items" deve conter ao menos 1 item
 
   securitySchemes:

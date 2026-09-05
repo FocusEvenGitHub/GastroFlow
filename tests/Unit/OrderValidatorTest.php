@@ -14,7 +14,7 @@ class OrderValidatorTest extends TestCase
         $validator = new OrderValidator();
 
         $result = $validator->validateOrderData([
-            'table_number' => '5',
+            'order_number' => '5',
             'items' => [
                 ['id' => 1, 'quantity' => 2],
             ],
@@ -23,8 +23,10 @@ class OrderValidatorTest extends TestCase
         $this->assertTrue($result);
     }
 
-    public function testMissingTableNumberIsRejected(): void
+    public function testMissingOrderNumberIsAccepted(): void
     {
+        // order_number is optional (spec 019): omitting it lets the server
+        // auto-assign the next number for today under a lock.
         $validator = new OrderValidator();
 
         $result = $validator->validateOrderData([
@@ -33,8 +35,7 @@ class OrderValidatorTest extends TestCase
             ],
         ]);
 
-        $this->assertFalse($result);
-        $this->assertNotEmpty($validator->errors());
+        $this->assertTrue($result);
     }
 
     public function testMissingItemsIsRejected(): void
@@ -42,7 +43,7 @@ class OrderValidatorTest extends TestCase
         $validator = new OrderValidator();
 
         $result = $validator->validateOrderData([
-            'table_number' => '5',
+            'order_number' => '5',
         ]);
 
         $this->assertFalse($result);
@@ -54,7 +55,7 @@ class OrderValidatorTest extends TestCase
         $validator = new OrderValidator();
 
         $result = $validator->validateOrderData([
-            'table_number' => '5',
+            'order_number' => '5',
             'items' => [
                 ['id' => 1],
             ],
@@ -69,7 +70,7 @@ class OrderValidatorTest extends TestCase
         $validator = new OrderValidator();
 
         $result = $validator->validateOrderData([
-            'table_number' => '5',
+            'order_number' => '5',
             'items' => [
                 ['id' => 1, 'quantity' => 2, 'dining_option' => 'invalid_option'],
             ],

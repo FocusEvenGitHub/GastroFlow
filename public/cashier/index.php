@@ -98,8 +98,8 @@
             <!-- Senha + Cliente -->
             <div class="row mb-4 g-3">
                 <div class="col-md-6">
-                    <label for="tableNumber" class="form-label fw-bold">Número da Senha *</label>
-                    <input type="text" id="tableNumber" x-model="tableNumber"
+                    <label for="orderNumber" class="form-label fw-bold">Número da Senha *</label>
+                    <input type="text" id="orderNumber" x-model="orderNumber" @input="orderNumberAuto = false"
                            class="form-control form-control-lg" placeholder="Ex: 42">
                 </div>
                 <div class="col-md-6">
@@ -257,7 +257,7 @@
                             <strong class="h5 text-success">R$ <span x-text="total.toFixed(2)"></span></strong>
                         </div>
                         <button class="btn btn-success btn-lg w-100 mt-2" @click="submitOrder"
-                                :disabled="!tableNumber || selectedItems.length === 0 || submitting">
+                                :disabled="!orderNumber || selectedItems.length === 0 || submitting">
                             <span x-show="!submitting"><i class="fas fa-paper-plane me-2"></i>Enviar Pedido</span>
                             <span x-show="submitting"><span class="spinner-border spinner-border-sm me-2"></span>Enviando...</span>
                         </button>

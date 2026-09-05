@@ -36,7 +36,7 @@ class PrintServiceTest extends TestCase
     {
         $order = new Order();
         $order->id = 1;
-        $order->table_number = '5';
+        $order->order_number = '5';
         $order->created_at = Carbon::now();
         $order->setRelation('items', collect());
         return $order;

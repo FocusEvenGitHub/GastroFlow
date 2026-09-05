@@ -1,6 +1,7 @@
 function cashierApp() {
     return {
-        tableNumber: '',
+        orderNumber: '',
+        orderNumberAuto: true, // false once the cashier edits the suggested number by hand
         customerName: '',
         menu: [],               // array vindo da API
         categories: [],         // nomes únicos das categorias
@@ -30,7 +31,8 @@ function cashierApp() {
                 this.menu = this.sortMenuPratoDoDiaFirst(this.menu);
                 if (nextRes.ok) {
                     const data = await nextRes.json();
-                    this.tableNumber = String(data.next);
+                    this.orderNumber = String(data.next);
+                    this.orderNumberAuto = true;
                 }
             } catch (err) {
                 this.showMessage(err.message, 'danger');
@@ -136,14 +138,17 @@ function cashierApp() {
 
         // Envia o pedido para a API
         async submitOrder() {
-            if (!this.tableNumber) {
+            if (!this.orderNumber) {
                 this.showMessage('Informe o número da senha!', 'warning');
                 return;
             }
             this.submitting = true;
             try {
                 const payload = {
-                    table_number: this.tableNumber,
+                    // Omit order_number when the cashier hasn't edited the suggestion,
+                    // so the server auto-assigns it atomically (concurrency-safe) instead
+                    // of trusting a value that may have gone stale since the page loaded.
+                    order_number: this.orderNumberAuto ? undefined : this.orderNumber,
                     customer_name: this.customerName || undefined,
                     print_ticket: this.printTicket,
                     items: this.selectedItems.map(i => ({
@@ -170,7 +175,8 @@ function cashierApp() {
                     const nextRes = await fetch('/api/orders/next-number');
                     if (nextRes.ok) {
                         const nextData = await nextRes.json();
-                        this.tableNumber = String(nextData.next);
+                        this.orderNumber = String(nextData.next);
+                        this.orderNumberAuto = true;
                     }
                 } catch (_) {}
             } catch (err) {

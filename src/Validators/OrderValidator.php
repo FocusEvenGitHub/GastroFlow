@@ -13,8 +13,10 @@ class OrderValidator
     public function validateOrderData(array $data): bool
     {
         $this->v = new Validator($data);
-        $this->v->rule('required', 'table_number');
-        $this->v->rule('lengthMax', 'table_number', 50);
+        // order_number is optional: omitting it lets the server auto-assign the
+        // next number for today, under a lock (see OrderRepository::allocateNextNumber()).
+        $this->v->rule('optional', 'order_number');
+        $this->v->rule('lengthMax', 'order_number', 50);
         $this->v->rule('required', 'items');
         $this->v->rule('array', 'items');
         // customer_name is optional; if present, must be a string
@@ -41,8 +43,8 @@ class OrderValidator
     public function validateOrderUpdate(array $data): bool
     {
         $this->v = new Validator($data);
-        $this->v->rule('optional', 'table_number');
-        $this->v->rule('lengthMax', 'table_number', 50);
+        $this->v->rule('optional', 'order_number');
+        $this->v->rule('lengthMax', 'order_number', 50);
         $this->v->rule('optional', 'customer_name');
         $this->v->rule('lengthMax', 'customer_name', 100);
         return $this->v->validate();
