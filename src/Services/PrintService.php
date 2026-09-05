@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\Setting;
+use App\Money;
 use Mike42\Escpos\Printer;
 use Mike42\Escpos\EscposImage;
 use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
@@ -209,7 +210,7 @@ class PrintService
         $printer->setJustification(Printer::JUSTIFY_LEFT);
 
         $items = $order->items;
-        $total = 0.0;
+        $total = Money::zero();
 
         foreach ($items as $orderItem) {
             $menuItem = $orderItem->menuItem;
@@ -217,14 +218,15 @@ class PrintService
 
             $name = $menuItem->name;
             $qty = (int) $orderItem->quantity;
-            $price = (float) $orderItem->unit_price;
+            $price = Money::fromReais($orderItem->unit_price);
             $diningOption = $orderItem->dining_option ?? 'local';
             $notes = $orderItem->notes ?? '';
-            $packagingCost = (float) $orderItem->packaging_cost;
+            $packagingCost = Money::fromReais($orderItem->packaging_cost);
 
-            // Calculate item total with packaging
-            $itemTotal = ($price * $qty) + $packagingCost;
-            $total += $itemTotal;
+            // Calculate item total with packaging (exact integer-cent
+            // arithmetic — spec 021, avoids float drift across many items)
+            $itemTotal = $price->multipliedBy($qty)->plus($packagingCost);
+            $total = $total->plus($itemTotal);
             $packagingLabel = match ($diningOption) {
                 'viagem_simples' => ' [Simples]',
                 'viagem_vip'     => ' [VIP]',
@@ -238,7 +240,7 @@ class PrintService
             $lineName = mb_strlen($name) > $maxNameLen
                 ? mb_substr($name, 0, $maxNameLen - 1) . '…'
                 : $name;
-            $priceStr = 'R$ ' . number_format($itemTotal, 2, ',', '');
+            $priceStr = 'R$ ' . $itemTotal->format();
 
             // Build line with padding
             $itemLine = $qty . 'x ' . $lineName;
@@ -268,7 +270,7 @@ class PrintService
         $printer->setJustification(Printer::JUSTIFY_RIGHT);
         $printer->setEmphasis(true);
         $printer->selectPrintMode(Printer::MODE_DOUBLE_WIDTH);
-        $printer->text("TOTAL: R$ " . number_format($total, 2, ',', '') . "\n");
+        $printer->text("TOTAL: R$ " . $total->format() . "\n");
         $printer->selectPrintMode();
         $printer->setEmphasis(false);
 

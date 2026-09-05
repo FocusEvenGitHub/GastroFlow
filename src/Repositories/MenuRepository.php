@@ -6,6 +6,7 @@ namespace App\Repositories;
 
 use App\Models\Category;
 use App\Models\MenuItem;
+use App\Money;
 
 class MenuRepository
 {
@@ -53,7 +54,7 @@ class MenuRepository
             'category_id'  => $category->id,
             'name'         => $data['name'],
             'description'  => $data['description'] ?? '',
-            'price'        => $data['price'],
+            'price'        => Money::fromReais($data['price'])->toReais(),
             'available'    => $data['available'] ?? true,
         ]);
     }
@@ -77,7 +78,7 @@ class MenuRepository
             $item->description = $data['description'];
         }
         if (isset($data['price'])) {
-            $item->price = (float) $data['price'];
+            $item->price = Money::fromReais($data['price'])->toReais();
         }
         if (isset($data['available'])) {
             $item->available = (bool) $data['available'];

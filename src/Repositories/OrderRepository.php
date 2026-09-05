@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\MenuItem;
 use App\Models\OrderNumberCounter;
+use App\Money;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class OrderRepository
@@ -84,12 +85,13 @@ class OrderRepository
 
             foreach ($data['items'] as $item) {
                 $menuItem = MenuItem::find($item['id']);
-                $unitPrice = $menuItem ? (float) $menuItem->price : 0.0;
+                $unitPrice = $menuItem ? Money::fromReais($menuItem->price) : Money::zero();
                 $diningOption = $item['dining_option'] ?? 'local';
+                $quantity = (int) $item['quantity'];
                 $packagingCost = match ($diningOption) {
-                    'viagem_simples' => 1.0 * (int) $item['quantity'],
-                    'viagem_vip'     => 2.0 * (int) $item['quantity'],
-                    default          => 0.0,
+                    'viagem_simples' => Money::fromReais(1.0)->multipliedBy($quantity),
+                    'viagem_vip'     => Money::fromReais(2.0)->multipliedBy($quantity),
+                    default          => Money::zero(),
                 };
 
                 OrderItem::create([
@@ -98,8 +100,8 @@ class OrderRepository
                     'quantity'       => $item['quantity'],
                     'notes'          => $item['notes'] ?? '',
                     'dining_option'  => $diningOption,
-                    'unit_price'     => $unitPrice,
-                    'packaging_cost' => $packagingCost,
+                    'unit_price'     => $unitPrice->toReais(),
+                    'packaging_cost' => $packagingCost->toReais(),
                 ]);
             }
 
@@ -233,9 +235,9 @@ class OrderRepository
         $quantity = (int) ($data['quantity'] ?? 1);
         $diningOption = $data['dining_option'] ?? 'local';
         $packagingCost = match ($diningOption) {
-            'viagem_simples' => 1.0 * $quantity,
-            'viagem_vip'     => 2.0 * $quantity,
-            default          => 0.0,
+            'viagem_simples' => Money::fromReais(1.0)->multipliedBy($quantity),
+            'viagem_vip'     => Money::fromReais(2.0)->multipliedBy($quantity),
+            default          => Money::zero(),
         };
 
         $item = OrderItem::create([
@@ -244,8 +246,8 @@ class OrderRepository
             'quantity'       => $quantity,
             'notes'          => $data['notes'] ?? '',
             'dining_option'  => $diningOption,
-            'unit_price'     => (float) $menuItem->price,
-            'packaging_cost' => $packagingCost,
+            'unit_price'     => Money::fromReais($menuItem->price)->toReais(),
+            'packaging_cost' => $packagingCost->toReais(),
         ]);
 
         return [

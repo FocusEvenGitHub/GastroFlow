@@ -4,15 +4,47 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use App\Models\MenuItem;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Setting;
 use App\Services\PrintService;
 use App\Settings;
 use Carbon\Carbon;
 use Illuminate\Database\Capsule\Manager as Db;
+use Mike42\Escpos\PrintConnectors\PrintConnector;
 use Monolog\Handler\NullHandler;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
+
+/**
+ * Captures everything written to it as plain text, ignoring
+ * finalize()/read() -- Printer::close() finalizes the connector before
+ * PrintService::printOrder() returns, which would null out
+ * DummyPrintConnector's own buffer before a test could read it back.
+ */
+class CapturingPrintConnector implements PrintConnector
+{
+    public string $data = '';
+
+    public function __destruct()
+    {
+    }
+
+    public function finalize()
+    {
+    }
+
+    public function read($len)
+    {
+        return '';
+    }
+
+    public function write($data)
+    {
+        $this->data .= $data;
+    }
+}
 
 class PrintServiceTest extends TestCase
 {
@@ -40,6 +72,22 @@ class PrintServiceTest extends TestCase
         $order->created_at = Carbon::now();
         $order->setRelation('items', collect());
         return $order;
+    }
+
+    private function makeOrderItem(string $name, float $unitPrice, int $quantity, float $packagingCost = 0.0): OrderItem
+    {
+        $menuItem = new MenuItem();
+        $menuItem->name = $name;
+
+        $item = new OrderItem();
+        $item->quantity = $quantity;
+        $item->unit_price = $unitPrice;
+        $item->packaging_cost = $packagingCost;
+        $item->dining_option = 'local';
+        $item->notes = '';
+        $item->setRelation('menuItem', $menuItem);
+
+        return $item;
     }
 
     private function makeLogger(): Logger
@@ -70,5 +118,29 @@ class PrintServiceTest extends TestCase
         $service->printOrder($this->makeOrder());
 
         $this->addToAssertionCount(1);
+    }
+
+    public function testReceiptTotalIsExactAcrossManyItems(): void
+    {
+        // 10 items at R$0,10 each is the canonical float trap
+        // (0.1 + 0.1 + ... ten times is not exactly 1.0 in binary float),
+        // plus a fractional-price item to also exercise multiplication.
+        // Independently hand-computed in integer cents: 10*10 + 3*1990 = 100 + 5970 = 6070 -> "60,70".
+        $order = $this->makeOrder();
+        $items = collect();
+        for ($i = 0; $i < 10; $i++) {
+            $items->push($this->makeOrderItem('Item ' . $i, 0.10, 1));
+        }
+        $items->push($this->makeOrderItem('Prato do Dia', 19.90, 3));
+        $order->setRelation('items', $items);
+
+        $connector = new CapturingPrintConnector();
+        $service = new PrintService($this->makeLogger(), new Settings(), function () use ($connector) {
+            return $connector;
+        });
+
+        $service->printOrder($order);
+
+        $this->assertStringContainsString('TOTAL: R$ 60,70', $connector->data);
     }
 }

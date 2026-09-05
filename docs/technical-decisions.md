@@ -10,6 +10,7 @@ Decisions with a real trade-off, not a stack list. See [`docs/architecture.md`](
 | `public/.htaccess` bypass for cashier/kitchen/admin views, instead of routing everything through Slim | Those pages are static Alpine.js shells that only need to call the JSON API — no reason to pay framework overhead for them | Two separate request-handling paths to reason about; anything needing CORS/auth middleware has to live under `/api/*` |
 | Signal-file SSE instead of Redis/RabbitMQ for kitchen live updates | Zero extra infrastructure for a single-location deployment | Not safe under concurrent writes or multiple app instances — `docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality` phase ("Realtime reliability") plans to replace it |
 | DB-backed `jobs` table + `bin/worker`, not a message broker | Avoids adding Redis/RabbitMQ for one background job type (printing) | Needs a long-running worker process supervised separately — `docker compose up -d` alone does not run it |
+| `App\Money` (integer cents), not `bcmath`/a Composer money library | Avoided the proven binary-float drift in `PrintService`'s receipt totals with the smallest possible primitive — one small class, no new dependency, no schema change (`DECIMAL(10,2)` columns were already correct) | Not a general-purpose Money type — single currency (BRL), no allocation/split-cents helpers; would need extending if either becomes a real requirement |
 
 ## Open, not yet resolved
 
