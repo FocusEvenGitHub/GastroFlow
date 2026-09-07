@@ -27,6 +27,7 @@ class PrintService
     public function __construct(
         private readonly LoggerInterface $logger,
         private readonly Settings $settings,
+        private readonly PricingService $pricingService,
         ?callable $connectorFactory = null,
     ) {
         $this->connectorFactory = $connectorFactory;
@@ -210,7 +211,7 @@ class PrintService
         $printer->setJustification(Printer::JUSTIFY_LEFT);
 
         $items = $order->items;
-        $total = Money::zero();
+        $lineTotals = [];
 
         foreach ($items as $orderItem) {
             // item_name is the order-time snapshot (spec 023) — printing
@@ -223,10 +224,11 @@ class PrintService
             $notes = $orderItem->notes ?? '';
             $packagingCost = Money::fromReais($orderItem->packaging_cost);
 
-            // Calculate item total with packaging (exact integer-cent
-            // arithmetic — spec 021, avoids float drift across many items)
-            $itemTotal = $price->multipliedBy($qty)->plus($packagingCost);
-            $total = $total->plus($itemTotal);
+            // Item total with packaging, via PricingService (spec 026) —
+            // exact integer-cent arithmetic (spec 021, avoids float drift
+            // across many items).
+            $itemTotal = $this->pricingService->lineTotal($price, $qty, $packagingCost);
+            $lineTotals[] = $itemTotal;
             $packagingLabel = match ($diningOption) {
                 'viagem_simples' => ' [Simples]',
                 'viagem_vip'     => ' [VIP]',
@@ -267,6 +269,7 @@ class PrintService
         $printer->text(str_repeat('-', 32) . "\n");
 
         // --- Total ---
+        $total = $this->pricingService->orderTotal($lineTotals);
         $printer->setJustification(Printer::JUSTIFY_RIGHT);
         $printer->setEmphasis(true);
         $printer->selectPrintMode(Printer::MODE_DOUBLE_WIDTH);

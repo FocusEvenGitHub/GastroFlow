@@ -8,12 +8,16 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\MenuItem;
 use App\Models\OrderNumberCounter;
-use App\Money;
 use App\OrderCancelledException;
+use App\Services\PricingService;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class OrderRepository
 {
+    public function __construct(private readonly PricingService $pricingService)
+    {
+    }
+
     /**
      * Return orders with their items. Item name is the order-time snapshot
      * (spec 023); description/category_name are still live-joined from menu.
@@ -128,10 +132,10 @@ class OrderRepository
             foreach ($resolvedItems as $resolved) {
                 $item = $resolved['input'];
                 $menuItem = $resolved['menuItem'];
-                $unitPrice = Money::fromReais($menuItem->price);
+                $unitPrice = $this->pricingService->unitPriceFor($menuItem);
                 $diningOption = $item['dining_option'] ?? 'local';
                 $quantity = (int) $item['quantity'];
-                $packagingCost = self::packagingCostFor($diningOption, $quantity);
+                $packagingCost = $this->pricingService->packagingFeeFor($diningOption, $quantity);
 
                 OrderItem::create([
                     'order_id'       => $order->id,
@@ -319,7 +323,7 @@ class OrderRepository
 
             $quantity = (int) ($data['quantity'] ?? 1);
             $diningOption = $data['dining_option'] ?? 'local';
-            $packagingCost = self::packagingCostFor($diningOption, $quantity);
+            $packagingCost = $this->pricingService->packagingFeeFor($diningOption, $quantity);
 
             $item = OrderItem::create([
                 'order_id'       => $orderId,
@@ -328,7 +332,7 @@ class OrderRepository
                 'quantity'       => $quantity,
                 'notes'          => $data['notes'] ?? '',
                 'dining_option'  => $diningOption,
-                'unit_price'     => Money::fromReais($menuItem->price)->toReais(),
+                'unit_price'     => $this->pricingService->unitPriceFor($menuItem)->toReais(),
                 'packaging_cost' => $packagingCost->toReais(),
             ]);
 
@@ -387,19 +391,5 @@ class OrderRepository
 
         $item->delete();
         return true;
-    }
-
-    /**
-     * Packaging fee for one order item, by dining option. Extracted (code
-     * review fix) from two identical copies in createOrder() and
-     * addOrderItem() — a future fee change only needs to happen once.
-     */
-    private static function packagingCostFor(string $diningOption, int $quantity): Money
-    {
-        return match ($diningOption) {
-            'viagem_simples' => Money::fromReais(1.0)->multipliedBy($quantity),
-            'viagem_vip'     => Money::fromReais(2.0)->multipliedBy($quantity),
-            default          => Money::zero(),
-        };
     }
 }

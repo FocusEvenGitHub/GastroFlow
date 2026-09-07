@@ -11,10 +11,14 @@ use App\Controllers\MenuController;
 use App\Controllers\OrderController;
 use App\Controllers\AuthController;
 use App\Controllers\KitchenController;
-use App\Controllers\AdminController;
+use App\Controllers\IngredientController;
+use App\Controllers\LogController;
+use App\Controllers\PrinterController;
 use App\Controllers\ReportController;
+use App\Controllers\SettingsController;
 use App\Middleware\JwtMiddleware;
 use App\Middleware\RoleMiddleware;
+use App\Validators\AuthValidator;
 
 class Routes
 {
@@ -45,12 +49,12 @@ class Routes
         });
 
         $app->post('/api/login', function ($request, $response) use ($secret) {
-            $controller = new AuthController($secret);
+            $controller = new AuthController($secret, new AuthValidator());
             return $controller->login($request, $response);
         });
 
         $app->patch('/api/admin/account/password', function ($request, $response) use ($secret) {
-            $controller = new AuthController($secret);
+            $controller = new AuthController($secret, new AuthValidator());
             return $controller->changePassword($request, $response);
         })->add($jwt);
 
@@ -64,11 +68,15 @@ class Routes
             $group->get('/items/{id}/components', [MenuController::class, 'getComponents'])->add($adminOrManager());
             $group->put('/items/{id}/components', [MenuController::class, 'updateComponents'])->add($adminOrManager());
             $group->delete('/items/{id}', [MenuController::class, 'delete'])->add($adminOrManager());
-            $group->get('/settings', [AdminController::class, 'getSettings'])->add($adminOnly());
-            $group->put('/settings', [AdminController::class, 'updateSettings'])->add($adminOnly());
-            $group->post('/settings/logo', [AdminController::class, 'uploadLogo'])->add($adminOnly());
-            $group->get('/logs', [AdminController::class, 'getLogs'])->add($adminOnly());
-            $group->post('/settings/test-print', [AdminController::class, 'testPrint'])->add($adminOnly());
+            $group->get('/ingredients', [IngredientController::class, 'index'])->add($adminOrManager());
+            $group->post('/ingredients', [IngredientController::class, 'store'])->add($adminOrManager());
+            $group->put('/ingredients/{id}', [IngredientController::class, 'update'])->add($adminOrManager());
+            $group->delete('/ingredients/{id}', [IngredientController::class, 'destroy'])->add($adminOrManager());
+            $group->get('/settings', [SettingsController::class, 'getSettings'])->add($adminOnly());
+            $group->put('/settings', [SettingsController::class, 'updateSettings'])->add($adminOnly());
+            $group->post('/settings/logo', [SettingsController::class, 'uploadLogo'])->add($adminOnly());
+            $group->get('/logs', [LogController::class, 'getLogs'])->add($adminOnly());
+            $group->post('/settings/test-print', [PrinterController::class, 'testPrint'])->add($adminOnly());
             $group->get('/reports/sales',          [ReportController::class, 'sales'])->add($adminOrManager());
             $group->get('/reports/top-items',      [ReportController::class, 'topItems'])->add($adminOrManager());
             $group->get('/reports/dining-options', [ReportController::class, 'diningOptions'])->add($adminOrManager());

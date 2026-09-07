@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Models\Job;
 use App\Models\Order;
+use App\Services\PricingService;
 use App\Services\PrintService;
 use App\Settings;
 use Monolog\Logger;
@@ -45,7 +46,7 @@ class PrintOrderJob
             ];
         }
 
-        $printService = new PrintService($logger, $settings);
+        $printService = new PrintService($logger, $settings, new PricingService());
         $printService->printOrder($order, $jobContext);
     }
 }

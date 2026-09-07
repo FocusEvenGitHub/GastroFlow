@@ -7,6 +7,7 @@ namespace Tests\Unit;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Setting;
+use App\Services\PricingService;
 use App\Services\PrintService;
 use App\Settings;
 use Carbon\Carbon;
@@ -97,7 +98,7 @@ class PrintServiceTest extends TestCase
 
     public function testConnectionFailurePropagatesToCaller(): void
     {
-        $service = new PrintService($this->makeLogger(), new Settings(), function () {
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService(), function () {
             throw new \RuntimeException('Cannot initialise NetworkPrintConnector: Connection timed out');
         });
 
@@ -109,7 +110,7 @@ class PrintServiceTest extends TestCase
 
     public function testSuccessfulPrintDoesNotThrow(): void
     {
-        $service = new PrintService($this->makeLogger(), new Settings(), function ($ip, $port) {
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService(), function ($ip, $port) {
             return new \Mike42\Escpos\PrintConnectors\DummyPrintConnector();
         });
 
@@ -133,7 +134,7 @@ class PrintServiceTest extends TestCase
         $order->setRelation('items', $items);
 
         $connector = new CapturingPrintConnector();
-        $service = new PrintService($this->makeLogger(), new Settings(), function () use ($connector) {
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService(), function () use ($connector) {
             return $connector;
         });
 

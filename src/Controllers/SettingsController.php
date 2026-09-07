@@ -8,28 +8,15 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\ApiResponse;
 use App\Models\Setting;
-use App\Models\User;
-use App\Services\PrintService;
 use App\Settings;
+use App\Validators\SettingsValidator;
 
-class AdminController
+class SettingsController
 {
     public function __construct(
-        private readonly PrintService $printService,
         private readonly Settings $settings,
+        private readonly SettingsValidator $settingsValidator,
     ) {
-    }
-
-    /**
-     * POST /api/admin/settings/test-print
-     * Imprime um cupom de teste.
-     */
-    public function testPrint(Request $request, Response $response): Response
-    {
-        $this->printService->printTestPage();
-        $payload = ['success' => true, 'message' => 'Teste enviado para a impressora.'];
-        $response->getBody()->write(json_encode($payload));
-        return $response->withHeader('Content-Type', 'application/json');
     }
 
     /**
@@ -57,6 +44,10 @@ class AdminController
         if (empty($settings) || !is_array($settings)) {
             return ApiResponse::error($response, 400, 'MISSING_REQUIRED_FIELDS', 'Envie um objeto "settings" com as chaves/valores.');
         }
+        if (!$this->settingsValidator->validate($settings)) {
+            $errors = $this->settingsValidator->errors();
+            return ApiResponse::error($response, 400, 'VALIDATION_FAILED', 'Validation failed', ['messages' => $errors]);
+        }
 
         foreach ($settings as $key => $value) {
             Setting::setValue($key, $value);
@@ -66,49 +57,6 @@ class AdminController
             'success' => true,
             'message' => 'Configurações salvas com sucesso!'
         ]));
-        return $response->withHeader('Content-Type', 'application/json');
-    }
-
-    /**
-     * GET /api/admin/logs
-     * Retorna as últimas N linhas do arquivo de log.
-     */
-    public function getLogs(Request $request, Response $response): Response
-    {
-        $params = $request->getQueryParams();
-        $lines = min(max((int)($params['lines'] ?? 200), 10), 5000);
-
-        $logFile = $this->settings->getLogFile();
-
-        if (!file_exists($logFile)) {
-            $payload = ['success' => true, 'lines' => [], 'file' => 'app.log'];
-            $response->getBody()->write(json_encode($payload));
-            return $response->withHeader('Content-Type', 'application/json');
-        }
-
-        $content = file_get_contents($logFile);
-        if ($content === false || $content === '') {
-            $payload = ['success' => true, 'lines' => [], 'file' => 'app.log'];
-            $response->getBody()->write(json_encode($payload));
-            return $response->withHeader('Content-Type', 'application/json');
-        }
-
-        $allLines = explode("\n", $content);
-        // Remove trailing empty line
-        if (end($allLines) === '') {
-            array_pop($allLines);
-        }
-        $lastLines = array_slice($allLines, -$lines);
-        // Reverse so newest appears first
-        $lastLines = array_reverse($lastLines);
-
-        $payload = [
-            'success' => true,
-            'lines'   => $lastLines,
-            'total'   => count($allLines),
-            'file'    => 'app.log',
-        ];
-        $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json');
     }
 

@@ -6,14 +6,21 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\ApiResponse;
-use App\Models\Ingredient;
+use App\Services\IngredientService;
+use App\Validators\IngredientValidator;
 
 class IngredientController
 {
+    public function __construct(
+        private readonly IngredientService $ingredientService,
+        private readonly IngredientValidator $validator,
+    ) {
+    }
+
     // GET /api/admin/ingredients
     public function index(Request $request, Response $response): Response
     {
-        $ingredients = Ingredient::orderBy('category')->orderBy('name')->get();
+        $ingredients = $this->ingredientService->getAll();
         $response->getBody()->write(json_encode($ingredients));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -22,14 +29,11 @@ class IngredientController
     public function store(Request $request, Response $response): Response
     {
         $data = $request->getParsedBody();
-        if (empty($data['name']) || empty($data['unit'])) {
-            return ApiResponse::error($response, 400, 'MISSING_REQUIRED_FIELDS', 'Name and unit are required.');
+        if (!$this->validator->validateCreate($data)) {
+            $errors = $this->validator->errors();
+            return ApiResponse::error($response, 400, 'VALIDATION_FAILED', 'Validation failed', ['messages' => $errors]);
         }
-        $ingredient = Ingredient::create([
-            'name' => $data['name'],
-            'unit' => $data['unit'],
-            'category' => $data['category'] ?? null,
-        ]);
+        $ingredient = $this->ingredientService->create($data);
         $response->getBody()->write(json_encode($ingredient));
         return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
     }
@@ -38,12 +42,19 @@ class IngredientController
     public function update(Request $request, Response $response, array $args): Response
     {
         try {
-            $ingredient = Ingredient::findOrFail((int)$args['id']);
+            $this->ingredientService->findOrFail((int)$args['id']);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return ApiResponse::error($response, 404, 'INGREDIENT_NOT_FOUND', 'Ingredient not found.');
         }
         $data = $request->getParsedBody();
-        $ingredient->update($data);
+        if (empty($data)) {
+            return ApiResponse::error($response, 400, 'EMPTY_PAYLOAD', 'Nenhum dado enviado');
+        }
+        if (!$this->validator->validateUpdate($data)) {
+            $errors = $this->validator->errors();
+            return ApiResponse::error($response, 400, 'VALIDATION_FAILED', 'Validation failed', ['messages' => $errors]);
+        }
+        $ingredient = $this->ingredientService->update((int)$args['id'], $data);
         $response->getBody()->write(json_encode($ingredient));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -52,11 +63,10 @@ class IngredientController
     public function destroy(Request $request, Response $response, array $args): Response
     {
         try {
-            $ingredient = Ingredient::findOrFail((int)$args['id']);
+            $this->ingredientService->delete((int)$args['id']);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return ApiResponse::error($response, 404, 'INGREDIENT_NOT_FOUND', 'Ingredient not found.');
         }
-        $ingredient->delete();
         $response->getBody()->write(json_encode(['success' => true]));
         return $response->withHeader('Content-Type', 'application/json');
     }

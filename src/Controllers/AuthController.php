@@ -7,22 +7,26 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\ApiResponse;
 use App\Models\User;
+use App\Validators\AuthValidator;
 use Firebase\JWT\JWT;
 
 class AuthController
 {
     private string $secret;
+    private AuthValidator $validator;
 
-    public function __construct(string $secret)
+    public function __construct(string $secret, AuthValidator $validator)
     {
         $this->secret = $secret;
+        $this->validator = $validator;
     }
 
     public function login(Request $request, Response $response): Response
     {
         $data = $request->getParsedBody();
-        if (!isset($data['username'], $data['password'])) {
-            return ApiResponse::error($response, 400, 'MISSING_CREDENTIALS', 'Usuário e senha obrigatórios.');
+        if (!$this->validator->validateLogin($data)) {
+            $errors = $this->validator->errors();
+            return ApiResponse::error($response, 400, 'VALIDATION_FAILED', 'Validation failed', ['messages' => $errors]);
         }
 
         $user = User::where('username', $data['username'])->first();
@@ -54,12 +58,9 @@ class AuthController
     public function changePassword(Request $request, Response $response): Response
     {
         $data = $request->getParsedBody();
-        if (!isset($data['current_password'], $data['new_password'])) {
-            return ApiResponse::error($response, 400, 'MISSING_REQUIRED_FIELDS', 'Senha atual e nova senha são obrigatórias.');
-        }
-
-        if (strlen((string) $data['new_password']) < 8) {
-            return ApiResponse::error($response, 400, 'PASSWORD_TOO_SHORT', 'A nova senha deve ter ao menos 8 caracteres.');
+        if (!$this->validator->validatePasswordChange($data)) {
+            $errors = $this->validator->errors();
+            return ApiResponse::error($response, 400, 'VALIDATION_FAILED', 'Validation failed', ['messages' => $errors]);
         }
 
         $decoded = $request->getAttribute('user');

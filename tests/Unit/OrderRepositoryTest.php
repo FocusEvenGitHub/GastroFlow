@@ -7,6 +7,7 @@ namespace Tests\Unit;
 use App\Models\MenuItem;
 use App\OrderCancelledException;
 use App\Repositories\OrderRepository;
+use App\Services\PricingService;
 use Illuminate\Database\Capsule\Manager as Db;
 use Illuminate\Database\QueryException;
 use PHPUnit\Framework\TestCase;
@@ -70,7 +71,7 @@ class OrderRepositoryTest extends TestCase
             'name' => 'Prato Teste', 'price' => 10.0, 'available' => true,
         ])->id;
 
-        $this->repo = new OrderRepository();
+        $this->repo = new OrderRepository(new PricingService());
     }
 
     private function orderData(?string $orderNumber = null): array

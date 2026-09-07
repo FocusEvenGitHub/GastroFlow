@@ -75,14 +75,14 @@ Coverage is real but uneven — this reflects what's actually implemented, not a
 
 | Layer | What exists | Gap |
 |---|---|---|
-| `Controllers/` | 8: Admin, Auth, Dish, Ingredient, Kitchen, Menu, Order, Report | `Dish`/`Ingredient` have **no route registered anywhere** in `src/Routes.php` (confirmed by grep, spec 024) — both are entirely unreachable dead code today, not just under-layered |
-| `Services/` | 6: Job, Kitchen, Menu, Order, Print, Report | — |
-| `Repositories/` | 2: Menu, Order | `Dish`/`Ingredient` controllers call Eloquent models directly — no repository layer for them (moot while unreachable, above) |
-| `Validators/` | 1: `OrderValidator` (wraps `vlucas/valitron`) | No validator for menu items, ingredients, or settings |
+| `Controllers/` | 10: Auth, Dish, Ingredient, Kitchen, Log, Menu, Order, Printer, Report, Settings | `Dish` has **no route registered anywhere** in `src/Routes.php` — entirely unreachable dead code (confirmed by grep, spec 027). `Ingredient` was the same until spec 027 wired `/api/admin/ingredients*` up. `AdminController` (formerly Settings+Printer+Log combined) was split into `Settings`/`Printer`/`Log` controllers in spec 028, per the roadmap's own worked example |
+| `Services/` | 8: Ingredient, Job, Kitchen, Menu, Order, Pricing, Print, Report | `PricingService` (spec 026) centralizes pricing policy previously embedded in `OrderRepository`/`PrintService`; `IngredientService` (spec 029) is a thin pass-through to `IngredientRepository`, mirroring `MenuService` |
+| `Repositories/` | 3: Ingredient, Menu, Order | `Dish` controller still calls the Eloquent model directly — moot while unreachable (dead code, not fixed by spec 029, which only covers reachable `Ingredient`) |
+| `Validators/` | 5: `OrderValidator`, `MenuItemValidator`, `IngredientValidator`, `SettingsValidator`, `AuthValidator` (all wrap `vlucas/valitron`) — spec 027 | — |
 | `Middleware/` | 4 (PSR-15): Cors, JsonBodyParser, Jwt, Role | `Jwt`/`Role` apply only to the `/api/admin` route group |
 | `Models/` | 9 Eloquent models: User, Category, MenuItem, Ingredient, Order, OrderItem, OrderNumberCounter, Setting, Job | — |
 
-Extending `Repositories/`/`Validators/` to cover the remaining domains is tracked in `docs/ROADMAP.md`'s `v1.7.0 — Domain & Architecture` phase ("Controller responsibilities", "Persistence boundaries"), not assumed to already be done.
+Every subsection `docs/ROADMAP.md`'s `v1.7.0 — Domain & Architecture` phase names has a corresponding `Verified` spec as of spec 029 (specs 019–029) — whether that satisfies the phase's own Exit Gate is `docs/ROADMAP.md`'s determination to make, not asserted here. `Dish` remains dead code, untouched by any of these (no route references it — reintroducing it, if ever wanted, is new scope).
 
 ## Real-time kitchen updates (SSE)
 
