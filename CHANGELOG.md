@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.7.0 (2026-09-07) — Domain & Architecture
+
+Fecha o milestone `v1.7.0 — Domain & Architecture` do `ROADMAP.md`: torna explícitas, previsíveis e testáveis as regras de negócio críticas de pedidos, preços e permissões, e resolve as duas últimas lacunas arquiteturais nomeadas no roadmap (responsabilidade de controllers, limites de persistência).
+
+### Novidades
+- **Numeração de pedidos**: `order_number` agora é gerado de forma segura sob concorrência, por dia de operação (`business_date`), com unicidade garantida no banco (spec 019)
+- **Ciclo de vida do pedido**: máquina de estados explícita (`pending → preparing → ready → done`), com cancelamento suave (soft cancellation) e reabertura como operações de negócio explícitas; transições inválidas falham de forma previsível (spec 020)
+- **Validação de pedidos**: pedidos sem itens, com item de cardápio inexistente/indisponível, quantidade inválida ou opção de refeição inválida são rejeitados antes da persistência (spec 022)
+- **Padronização de erros da API**: todo controller agora retorna o mesmo formato `{"success": false, "error": ..., "code": ...}` (spec 024)
+- **Domínio de precificação**: `PricingService` centraliza o cálculo de subtotal, embalagem e total do pedido, antes espalhado entre `OrderRepository` e `PrintService` (spec 026)
+- **Validação de entrada**: novos validadores para itens de cardápio, ingredientes, configurações e autenticação; rotas `/api/admin/ingredients*` (antes inexistentes) agora estão registradas e funcionais (spec 027)
+- **Favicon**: novo favicon e ícones do GastroFlow (`favicon.ico`, PNGs, apple-touch-icon, android-chrome, `site.webmanifest`) aplicados a todas as páginas (admin, caixa, cozinha, docs da API)
+
+### Correções
+- **Dinheiro exato**: cálculos financeiros agora usam `App\Money` (aritmética em centavos), eliminando erros de ponto flutuante (spec 021)
+- **Histórico de pedidos**: nome do item, preço unitário e custo de embalagem são gravados no momento da venda — pedidos antigos não mudam de valor quando o cardápio muda (spec 023)
+- **Desempenho de consultas**: filtros de data em pedidos agora usam a coluna sargable `business_date`, evitando full scans (spec 025)
+
+### Infraestrutura / Arquitetura
+- **Responsabilidade de controllers**: `AdminController` dividido em `SettingsController`, `PrinterController` e `LogController`, cada um com apenas as dependências que usa (spec 028)
+- **Limites de persistência**: `IngredientController` agora passa por `IngredientService`/`IngredientRepository` em vez de chamar o Eloquent diretamente, fechando a última lacuna de camadas do roadmap `v1.7.0` (spec 029)
+- **Documentação**: `docs/architecture.md` sincronizado com o estado real das camadas (`Controllers/`, `Services/`, `Repositories/`, `Validators/`) após as mudanças acima
+
 ## v1.6.0 (2026-09-03) — Baseline & Security
 
 Fecha o milestone `v1.6.0 — Baseline & Security` do `ROADMAP.md`: remove os últimos defaults inseguros conhecidos (senha de admin, credenciais de banco), adiciona RBAC aos endpoints administrativos e sincroniza a documentação com o comportamento real da aplicação.
