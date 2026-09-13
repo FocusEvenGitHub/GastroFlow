@@ -30,4 +30,10 @@ class OrderItem extends Model
     {
         return $this->belongsTo(MenuItem::class, 'menu_item_id');
     }
+
+    /** Add-ons chosen for a build-your-own dish (spec 030); empty otherwise. */
+    public function components()
+    {
+        return $this->hasMany(OrderItemComponent::class, 'order_item_id');
+    }
 }

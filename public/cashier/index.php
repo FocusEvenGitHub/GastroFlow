@@ -31,6 +31,17 @@
         .view-list .menu-item-card .card-body { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; }
         .view-list .menu-item-card .card-body .item-desc { display: none; }
         .view-list .menu-item-card .card-body .item-footer { margin-left: auto; }
+        /* Monte Seu Prato (spec 030) */
+        .build-card { border: 2px dashed var(--primary); background: linear-gradient(135deg, var(--primary-light) 0%, var(--surface) 70%); }
+        .build-components { list-style: none; padding-left: 0.25rem; margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--text-muted); }
+        .builder-group-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 0.35rem; margin-bottom: 0.5rem; }
+        .builder-addon { background: var(--surface); transition: border-color 0.15s, background 0.15s; min-height: 3.6rem; }
+        .builder-addon .addon-name { cursor: pointer; flex: 1; min-width: 0; }
+        .builder-addon.selected { border-color: var(--primary) !important; background: var(--primary-light); }
+        .builder-chip { display: inline-block; font-size: 0.8rem; background: var(--primary-light); border: 1px solid var(--primary); border-radius: 999px; padding: 0.1rem 0.55rem; margin: 0 0.25rem 0.25rem 0; }
+        [data-theme="dark"] .build-card { background: linear-gradient(135deg, rgba(225,112,85,0.18) 0%, var(--surface) 70%); }
+        [data-theme="dark"] .builder-addon.selected,
+        [data-theme="dark"] .builder-chip { background: rgba(225,112,85,0.18); }
     </style>
     <script>
         if (localStorage.getItem('gastroflow_darkMode') === 'true') {
@@ -156,23 +167,37 @@
                                      @dragstart="dragStart(category, index)"
                                      @dragover.prevent
                                      @drop.prevent="dragDrop(category, index)">
-                                    <div class="card menu-item-card h-100" :class="{ 'reorder-card': reorderMode, 'opacity-50': item.available === false }" @click="!reorderMode && item.available !== false && addItem(item)">
+                                    <div class="card menu-item-card h-100" :class="{ 'reorder-card': reorderMode, 'opacity-50': item.available === false, 'build-card': item.is_customizable && !reorderMode }" @click="!reorderMode && item.available !== false && addItem(item)">
                                         <div class="card-body">
-                                            <h6 class="card-title" x-text="item.name"></h6>
+                                            <h6 class="card-title">
+                                                <i class="fas fa-magic me-1 text-primary" x-show="item.is_customizable"></i>
+                                                <span x-text="item.name"></span>
+                                            </h6>
                                             <span class="badge bg-secondary" x-show="item.available === false">Indisponível</span>
                                             <template x-if="category.category_name !== 'Pratos Principais'">
                                                 <p class="card-text text-muted small item-desc" x-text="item.description || 'Sem descrição'"></p>
                                             </template>
-                                            <template x-if="category.category_name === 'Pratos Principais'">
+                                            <template x-if="category.category_name === 'Pratos Principais' && !item.is_customizable">
                                                 <p class="card-text text-muted small item-desc">
                                                     <i class="fas fa-layer-group me-1 text-primary"></i>
                                                     <span x-text="(item.components || []).map(c => c.name + ' x' + c.quantity).join(', ')"></span>
                                                 </p>
                                             </template>
+                                            <template x-if="item.is_customizable">
+                                                <p class="card-text text-muted small item-desc">
+                                                    <i class="fas fa-hand-pointer me-1 text-primary"></i>Escolha os adicionais do prato
+                                                </p>
+                                            </template>
                                             <div class="d-flex justify-content-between align-items-center item-footer">
-                                                <span class="h5 text-success mb-0">R$ <span x-text="item.price.toFixed(2)"></span></span>
-                                                <button class="btn btn-sm btn-outline-primary" @click.stop="addItem(item)" x-show="!reorderMode" :disabled="item.available === false">
+                                                <span class="h5 text-success mb-0">
+                                                    <small class="text-muted fw-normal" style="font-size:0.7rem" x-show="item.is_customizable">a partir de</small>
+                                                    R$ <span x-text="item.price.toFixed(2)"></span>
+                                                </span>
+                                                <button class="btn btn-sm btn-outline-primary" @click.stop="addItem(item)" x-show="!reorderMode && !item.is_customizable" :disabled="item.available === false">
                                                     <i class="fas fa-plus"></i> Adicionar
+                                                </button>
+                                                <button class="btn btn-sm btn-primary" @click.stop="addItem(item)" x-show="!reorderMode && item.is_customizable" :disabled="item.available === false">
+                                                    <i class="fas fa-utensils"></i> Montar
                                                 </button>
                                                 <span class="text-muted" x-show="reorderMode" title="Arraste para reorganizar"><i class="fas fa-grip-lines"></i></span>
                                             </div>
@@ -195,7 +220,7 @@
                 <div class="card-body">
                     <div x-show="selectedItems.length === 0" class="text-muted">Nenhum item selecionado</div>
 
-                    <template x-for="(item, index) in selectedItems" :key="item.id">
+                    <template x-for="(item, index) in selectedItems" :key="item.uid">
                         <div class="selected-item mb-2 p-2 border rounded">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -219,6 +244,19 @@
                                     <button class="btn btn-sm btn-outline-danger ms-2" @click="removeItem(index)"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
+                            <!-- Adicionais escolhidos (Monte Seu Prato) -->
+                            <template x-if="item.components">
+                                <div>
+                                    <ul class="build-components">
+                                        <template x-for="c in item.components" :key="c.id">
+                                            <li>+ <span x-text="c.quantity + 'x ' + c.name"></span></li>
+                                        </template>
+                                    </ul>
+                                    <button class="btn btn-link btn-sm p-0" @click="editBuiltItem(index)">
+                                        <i class="fas fa-utensils"></i> Editar montagem
+                                    </button>
+                                </div>
+                            </template>
                             <!-- Seletor de onde comer (só para Pratos Principais e Adicionais) -->
                             <div x-show="item.category_name === 'Pratos Principais' || item.category_name === 'Adicionais'"
                                  class="btn-group btn-group-sm mt-1">
@@ -272,6 +310,72 @@
             </div>
         </div>
     </div> <!-- /container -->
+
+    <!-- Modal: Monte Seu Prato (spec 030) -->
+    <div class="modal fade" id="buildDishModal" tabindex="-1" data-bs-backdrop="static"
+         x-effect="(() => { const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('buildDishModal')); builder.open ? modal.show() : modal.hide(); })()">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-0"><i class="fas fa-utensils text-primary me-2"></i><span x-text="builder.dish ? builder.dish.name : ''"></span></h5>
+                        <small class="text-muted">
+                            Escolha os adicionais do prato
+                            <template x-if="builder.dish && builder.dish.price > 0">
+                                <span>· base R$ <span x-text="builder.dish.price.toFixed(2)"></span></span>
+                            </template>
+                        </small>
+                    </div>
+                    <button type="button" class="btn-close" @click="closeBuilder()"></button>
+                </div>
+                <div class="modal-body">
+                    <div x-show="addonGroups.length === 0" class="text-muted text-center py-4">Nenhum adicional disponível.</div>
+                    <template x-for="group in addonGroups" :key="group.key">
+                        <div class="mb-3">
+                            <div class="builder-group-title" x-text="group.label"></div>
+                            <div class="row g-2">
+                                <template x-for="addon in group.items" :key="addon.id">
+                                    <div class="col-sm-6">
+                                        <div class="builder-addon d-flex align-items-center gap-2 p-2 border rounded"
+                                             :class="{ 'selected': builderQty(addon.id) > 0 }">
+                                            <div class="addon-name" @click="stepAddon(addon.id, 1)">
+                                                <div class="fw-semibold text-truncate" x-text="addon.name"></div>
+                                                <small class="text-success">+ R$ <span x-text="parseFloat(addon.price).toFixed(2)"></span></small>
+                                            </div>
+                                            <div class="btn-group btn-group-sm align-items-center">
+                                                <button class="btn btn-outline-secondary quantity-btn" @click="stepAddon(addon.id, -1)" :disabled="builderQty(addon.id) === 0">−</button>
+                                                <span class="mx-2 fw-bold" style="min-width:1rem; text-align:center" x-text="builderQty(addon.id)"></span>
+                                                <button class="btn btn-outline-primary quantity-btn" @click="stepAddon(addon.id, 1)" :disabled="builderQty(addon.id) >= MAX_ADDON_QTY">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <div class="modal-footer d-block">
+                    <div class="mb-2" x-show="builderLines.length > 0">
+                        <template x-for="line in builderLines" :key="line.id">
+                            <span class="builder-chip" x-text="line.quantity + 'x ' + line.name"></span>
+                        </template>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                        <div>
+                            <div class="small text-muted" x-text="builderCount + ' adicional(is)'"></div>
+                            <div class="h4 text-success mb-0">R$ <span x-text="builderUnitPrice.toFixed(2)"></span></div>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-secondary me-2" @click="closeBuilder()">Cancelar</button>
+                            <button class="btn btn-success" @click="confirmBuilder()" :disabled="builderCount === 0">
+                                <i class="fas fa-check me-1"></i><span x-text="builder.editIndex === null ? 'Adicionar ao pedido' : 'Salvar montagem'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div> <!-- /x-data -->
 
 <!-- Alpine.js -->

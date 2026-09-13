@@ -794,6 +794,12 @@ components:
         available:
           type: boolean
           example: true
+        is_customizable:
+          type: boolean
+          description: >-
+            Prato montável ("Monte Seu Prato"): o preço final é o preço base
+            mais os adicionais escolhidos em POST /api/orders (items[].components).
+          example: false
         ingredients:
           type: array
           items:
@@ -864,6 +870,29 @@ components:
                 type: integer
               notes:
                 type: string
+              unit_price:
+                type: number
+                format: float
+                description: Preço unitário gravado no pedido (para prato montado, base + adicionais)
+              components:
+                type: array
+                description: Adicionais escolhidos (prato montado); vazio para os demais itens
+                items:
+                  type: object
+                  properties:
+                    menu_item_id:
+                      type: integer
+                      example: 16
+                    name:
+                      type: string
+                      example: Filé de Frango
+                    quantity:
+                      type: integer
+                      example: 2
+                    unit_price:
+                      type: number
+                      format: float
+                      example: 13.00
         created_at:
           type: string
           format: date-time
@@ -907,6 +936,28 @@ components:
                 type: string
                 description: Observações para o item
                 example: Sem cebola
+              components:
+                type: array
+                maxItems: 30
+                description: >-
+                  Adicionais do prato montado. Obrigatório (ao menos 1) quando o
+                  item tem is_customizable = true; proibido nos demais itens.
+                  Cada adicional deve existir, estar disponível e pertencer à
+                  categoria Adicionais (senão 400 INVALID_ORDER_ITEM).
+                items:
+                  type: object
+                  required:
+                    - id
+                    - quantity
+                  properties:
+                    id:
+                      type: integer
+                      example: 16
+                    quantity:
+                      type: integer
+                      minimum: 1
+                      maximum: 10
+                      example: 2
 
     LoginResponse:
       type: object

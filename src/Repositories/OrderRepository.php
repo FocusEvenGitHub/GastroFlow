@@ -6,6 +6,7 @@ namespace App\Repositories;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderItemComponent;
 use App\Models\MenuItem;
 use App\Models\OrderNumberCounter;
 use App\OrderCancelledException;
@@ -14,6 +15,9 @@ use Illuminate\Database\Capsule\Manager as DB;
 
 class OrderRepository
 {
+    // Category whose items can be chosen as build-your-own dish add-ons (spec 030).
+    private const ADDON_CATEGORY = 'Adicionais';
+
     public function __construct(private readonly PricingService $pricingService)
     {
     }
@@ -30,7 +34,7 @@ class OrderRepository
         // latter wraps an indexed column in DATE(...), which MySQL can't use
         // an index to satisfy — business_date is the same concept as a plain,
         // already-indexed column (spec 019's uniq_order_number_per_day).
-        $query = Order::with(['items.menuItem.category'])->where('business_date', $date);
+        $query = Order::with(['items.menuItem.category', 'items.components'])->where('business_date', $date);
         if ($status === 'all') {
             $query->orderBy('created_at', 'desc');
         } else {
@@ -51,6 +55,12 @@ class OrderRepository
                     'unit_price'     => (float) $item->unit_price,
                     'packaging_cost' => (float) $item->packaging_cost,
                     'category_name'  => $item->menuItem->category->name ?? null,
+                    'components'     => $item->components->map(fn($c) => [
+                        'menu_item_id' => (int) $c->menu_item_id,
+                        'name'         => $c->item_name,
+                        'quantity'     => (int) $c->quantity,
+                        'unit_price'   => (float) $c->unit_price,
+                    ])->values()->all(),
                 ];
             })->all();
 
@@ -92,7 +102,17 @@ class OrderRepository
             // classic lock-ordering deadlock — two orders locking the same
             // two menu items in opposite sequence (e.g. [20,10] vs [10,20])
             // would otherwise each hold one lock while waiting on the other.
-            $itemIds = array_values(array_unique(array_map(fn($item) => (int) $item['id'], $data['items'])));
+            //
+            // Build-your-own dish add-ons (spec 030) are locked in the same
+            // single sorted query, so the lock-ordering guarantee still holds.
+            $itemIds = [];
+            foreach ($data['items'] as $item) {
+                $itemIds[] = (int) $item['id'];
+                foreach ($item['components'] ?? [] as $component) {
+                    $itemIds[] = (int) $component['id'];
+                }
+            }
+            $itemIds = array_values(array_unique($itemIds));
             sort($itemIds);
             $menuItemsById = MenuItem::whereIn('id', $itemIds)->lockForUpdate()->orderBy('id')->get()->keyBy('id');
 
@@ -105,7 +125,11 @@ class OrderRepository
                 if (!$menuItem->available) {
                     throw new \DomainException("Item indisponível: {$menuItem->name}");
                 }
-                $resolvedItems[] = ['input' => $item, 'menuItem' => $menuItem];
+                $resolvedItems[] = [
+                    'input'      => $item,
+                    'menuItem'   => $menuItem,
+                    'components' => $this->resolveComponents($menuItem, $item['components'] ?? [], $menuItemsById),
+                ];
             }
 
             $customerName = null;
@@ -132,12 +156,16 @@ class OrderRepository
             foreach ($resolvedItems as $resolved) {
                 $item = $resolved['input'];
                 $menuItem = $resolved['menuItem'];
-                $unitPrice = $this->pricingService->unitPriceFor($menuItem);
+                $components = $resolved['components'];
+                $unitPrice = $this->pricingService->composedUnitPrice(
+                    $this->pricingService->unitPriceFor($menuItem),
+                    array_map(fn($c) => ['price' => $c['price'], 'quantity' => $c['quantity']], $components)
+                );
                 $diningOption = $item['dining_option'] ?? 'local';
                 $quantity = (int) $item['quantity'];
                 $packagingCost = $this->pricingService->packagingFeeFor($diningOption, $quantity);
 
-                OrderItem::create([
+                $orderItem = OrderItem::create([
                     'order_id'       => $order->id,
                     'menu_item_id'   => $item['id'],
                     'item_name'      => $menuItem->name,
@@ -147,10 +175,68 @@ class OrderRepository
                     'unit_price'     => $unitPrice->toReais(),
                     'packaging_cost' => $packagingCost->toReais(),
                 ]);
+
+                foreach ($components as $component) {
+                    OrderItemComponent::create([
+                        'order_item_id' => $orderItem->id,
+                        'menu_item_id'  => $component['menuItem']->id,
+                        'item_name'     => $component['menuItem']->name,
+                        'quantity'      => $component['quantity'],
+                        'unit_price'    => $component['price']->toReais(),
+                    ]);
+                }
             }
 
             return $order;
         });
+    }
+
+    /**
+     * Resolve a build-your-own dish's chosen add-ons (spec 030) against the
+     * already-locked menu items. A customizable dish needs at least one
+     * add-on; any other dish accepts none. Each add-on must exist, be
+     * available, and belong to the Adicionais category. Repeated ids are
+     * merged by summing their quantities.
+     *
+     * @return list<array{menuItem: MenuItem, quantity: int, price: \App\Money}>
+     */
+    private function resolveComponents(MenuItem $dish, array $inputComponents, $menuItemsById): array
+    {
+        if (!$dish->is_customizable) {
+            if (count($inputComponents) > 0) {
+                throw new \DomainException("{$dish->name} não aceita adicionais.");
+            }
+            return [];
+        }
+        if (count($inputComponents) === 0) {
+            throw new \DomainException("Escolha ao menos um adicional para {$dish->name}.");
+        }
+
+        $quantities = [];
+        foreach ($inputComponents as $input) {
+            $id = (int) $input['id'];
+            $quantities[$id] = ($quantities[$id] ?? 0) + (int) $input['quantity'];
+        }
+
+        $resolved = [];
+        foreach ($quantities as $id => $quantity) {
+            $component = $menuItemsById->get($id);
+            if (!$component) {
+                throw new \DomainException("Adicional não encontrado: #{$id}");
+            }
+            if (!$component->available) {
+                throw new \DomainException("Adicional indisponível: {$component->name}");
+            }
+            if ($component->is_customizable || ($component->category->name ?? null) !== self::ADDON_CATEGORY) {
+                throw new \DomainException("{$component->name} não é um adicional.");
+            }
+            $resolved[] = [
+                'menuItem' => $component,
+                'quantity' => $quantity,
+                'price'    => $this->pricingService->unitPriceFor($component),
+            ];
+        }
+        return $resolved;
     }
 
     /**
@@ -320,6 +406,11 @@ class OrderRepository
             if (!$menuItem->available) {
                 throw new \DomainException("Item indisponível: {$menuItem->name}");
             }
+            // This endpoint carries no add-on list, so a build-your-own dish
+            // can't be priced or prepared from it (spec 030).
+            if ($menuItem->is_customizable) {
+                throw new \DomainException("{$menuItem->name} só pode ser montado pelo Caixa.");
+            }
 
             $quantity = (int) ($data['quantity'] ?? 1);
             $diningOption = $data['dining_option'] ?? 'local';
@@ -346,6 +437,7 @@ class OrderRepository
                 'unit_price'     => (float) $item->unit_price,
                 'packaging_cost' => (float) $item->packaging_cost,
                 'category_name'  => $menuItem->category->name ?? null,
+                'components'     => [],
             ];
         });
     }

@@ -229,4 +229,43 @@ class OrderValidatorTest extends TestCase
 
         $this->assertFalse($result);
     }
+
+    public function testItemWithValidComponentsPasses(): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderData([
+            'items' => [
+                ['id' => 1, 'quantity' => 1, 'components' => [['id' => 14, 'quantity' => 2], ['id' => 23, 'quantity' => 1]]],
+            ],
+        ]);
+
+        $this->assertTrue($result);
+    }
+
+    public static function invalidComponentsProvider(): array
+    {
+        return [
+            'not an array'          => ['abc'],
+            'entry missing id'      => [[['quantity' => 1]]],
+            'entry missing qty'     => [[['id' => 1]]],
+            'non-numeric id'        => [[['id' => 'x', 'quantity' => 1]]],
+            'zero quantity'         => [[['id' => 1, 'quantity' => 0]]],
+            'quantity above max'    => [[['id' => 1, 'quantity' => 11]]],
+            'fractional quantity'   => [[['id' => 1, 'quantity' => 1.5]]],
+            'too many entries'      => [array_fill(0, 31, ['id' => 1, 'quantity' => 1])],
+        ];
+    }
+
+    #[DataProvider('invalidComponentsProvider')]
+    public function testInvalidComponentsAreRejected($components): void
+    {
+        $validator = new OrderValidator();
+
+        $result = $validator->validateOrderData([
+            'items' => [['id' => 1, 'quantity' => 1, 'components' => $components]],
+        ]);
+
+        $this->assertFalse($result);
+    }
 }
