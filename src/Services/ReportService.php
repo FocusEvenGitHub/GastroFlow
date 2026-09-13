@@ -11,6 +11,55 @@ use Illuminate\Database\Capsule\Manager as DB;
 
 class ReportService
 {
+    private const MAIN_DISH_CATEGORY = 'Pratos Principais';
+
+    /**
+     * Main dishes sold within a date range (spec 032): every dish whose
+     * current menu category is Pratos Principais, completed orders only.
+     * Revenue excludes packaging (same as getTopItems()).
+     * Returns { total_qty, total_revenue, items: [{ menu_item_id, name, total_qty, total_revenue, share }] }.
+     */
+    public function getMainDishSales(string $dateFrom, string $dateTo): array
+    {
+        $rows = OrderItem::selectRaw(
+            "order_items.menu_item_id,
+             MAX(order_items.id) as last_item_id,
+             SUM(order_items.quantity) as total_qty,
+             SUM(order_items.unit_price * order_items.quantity) as total_revenue"
+        )
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('menu_items', 'menu_items.id', '=', 'order_items.menu_item_id')
+            ->join('categories', 'categories.id', '=', 'menu_items.category_id')
+            ->where('orders.status', Order::STATUS_DONE)
+            ->where('orders.business_date', '>=', $dateFrom)
+            ->where('orders.business_date', '<=', $dateTo)
+            ->where('categories.name', self::MAIN_DISH_CATEGORY)
+            ->groupBy('order_items.menu_item_id')
+            ->get()
+            ->toArray();
+
+        // Display name = most recent order-time snapshot (spec 023), resolved
+        // by the latest order_items.id instead of MySQL-only GROUP_CONCAT.
+        $names = OrderItem::whereIn('id', array_column($rows, 'last_item_id'))->pluck('item_name', 'id');
+
+        $totalQty = (int) array_sum(array_column($rows, 'total_qty'));
+        $items = array_map(fn($r) => [
+            'menu_item_id'  => (int) $r['menu_item_id'],
+            'name'          => (string) ($names[$r['last_item_id']] ?? ''),
+            'total_qty'     => (int) $r['total_qty'],
+            'total_revenue' => round((float) $r['total_revenue'], 2),
+            'share'         => $totalQty > 0 ? round((int) $r['total_qty'] / $totalQty * 100, 1) : 0.0,
+        ], $rows);
+
+        usort($items, fn($a, $b) => [$b['total_qty'], $a['name']] <=> [$a['total_qty'], $b['name']]);
+
+        return [
+            'total_qty'     => $totalQty,
+            'total_revenue' => round(array_sum(array_column($items, 'total_revenue')), 2),
+            'items'         => $items,
+        ];
+    }
+
     /**
      * Sales grouped by day within a date range.
      * Returns array of { date, orders, revenue, avg_ticket }.

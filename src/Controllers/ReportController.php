@@ -24,6 +24,16 @@ class ReportController
         return $this->json($response, ['success' => true, 'data' => $data]);
     }
 
+    public function mainDishes(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $dateFrom = $params['date_from'] ?? date('Y-m-d');
+        $dateTo   = $params['date_to'] ?? date('Y-m-d');
+
+        $data = $this->reportService->getMainDishSales($dateFrom, $dateTo);
+        return $this->json($response, ['success' => true, 'data' => $data]);
+    }
+
     public function topItems(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();

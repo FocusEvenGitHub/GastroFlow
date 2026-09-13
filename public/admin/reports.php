@@ -19,6 +19,12 @@
         .stat-card .stat-value { font-size: 1.8rem; font-weight: 700; }
         .stat-card .stat-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
         .chart-container { position: relative; height: 300px; width: 100%; }
+        /* Pratos Principais Vendidos (spec 032) */
+        .main-dish-total { background: var(--primary); color: #fff; }
+        .main-dish-total-count { font-size: 3rem; font-weight: 800; line-height: 1; }
+        .dish-share { height: 0.6rem; }
+        .dish-share .progress-bar { background: var(--primary); }
+        [data-theme="dark"] .dish-share { background: rgba(255,255,255,0.08); }
     </style>
     <script>
         if (localStorage.getItem('gastroflow_darkMode') === 'true') {
@@ -180,6 +186,61 @@
                     <div class="card-body">
                         <div class="chart-container">
                             <canvas x-ref="salesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pratos Principais Vendidos (spec 032) -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-utensils me-2"></i>Pratos Principais Vendidos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div x-show="mainDishes.total_qty === 0" class="text-center text-muted py-4">
+                            Nenhum prato principal vendido no período.
+                        </div>
+                        <div x-show="mainDishes.total_qty > 0" class="row g-4 align-items-start">
+                            <div class="col-md-3">
+                                <div class="main-dish-total rounded p-4 text-center">
+                                    <div class="main-dish-total-count" x-text="mainDishes.total_qty"></div>
+                                    <div class="text-uppercase small fw-semibold">pratos vendidos</div>
+                                    <div class="mt-2 fw-bold" x-text="'R$ ' + mainDishes.total_revenue.toFixed(2)"></div>
+                                    <div class="small opacity-75" x-text="mainDishes.items.length + ' prato(s) diferente(s)'"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Prato</th>
+                                                <th class="text-center">Qtd</th>
+                                                <th style="width:30%">% do total</th>
+                                                <th class="text-end">Receita</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-for="(dish, idx) in mainDishes.items" :key="dish.menu_item_id">
+                                                <tr>
+                                                    <td class="text-muted" x-text="idx + 1"></td>
+                                                    <td class="fw-semibold" x-text="dish.name"></td>
+                                                    <td class="text-center fw-bold" x-text="dish.total_qty"></td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="progress dish-share flex-grow-1" role="progressbar" :aria-valuenow="dish.share" aria-valuemin="0" aria-valuemax="100">
+                                                                <div class="progress-bar" :style="'width:' + dish.share + '%'"></div>
+                                                            </div>
+                                                            <small class="text-muted text-nowrap" style="min-width:3rem" x-text="dish.share.toFixed(1) + '%'"></small>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end" x-text="'R$ ' + dish.total_revenue.toFixed(2)"></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
