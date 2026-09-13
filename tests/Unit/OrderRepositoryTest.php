@@ -375,6 +375,21 @@ class OrderRepositoryTest extends TestCase
         $this->assertSame(35.0, $listed[0]['items'][0]['unit_price']);
     }
 
+    public function testListedOrdersExposeCreatedAtWithTimezoneOffset(): void
+    {
+        // Spec 031: created_at has no offset (local time); created_at_iso must
+        // carry one so clients don't misread local time as UTC.
+        $order = $this->repo->createOrder($this->orderData());
+
+        $listed = $this->repo->getOrdersByStatus('pending', date('Y-m-d'));
+
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/', $listed[0]['created_at_iso']);
+        $this->assertSame(
+            $order->fresh()->created_at->getTimestamp(),
+            (new \DateTimeImmutable($listed[0]['created_at_iso']))->getTimestamp()
+        );
+    }
+
     public function testRegularItemsListAnEmptyComponentsArray(): void
     {
         $this->repo->createOrder($this->orderData());

@@ -70,6 +70,9 @@ class OrderRepository
                 'customer_name' => $order->customer_name,
                 'status'        => $order->status,
                 'created_at'    => $order->created_at->toDateTimeString(),
+                // Same instant with its UTC offset (e.g. "...T12:00:00-03:00") — created_at
+                // is local time with no offset, which the kitchen used to misread as UTC (spec 031).
+                'created_at_iso' => $order->created_at->toIso8601String(),
                 'updated_at'    => $order->updated_at->toDateTimeString(),
                 'items'         => $items,
             ];

@@ -29,7 +29,13 @@
         }
         .compact-card .card-body { padding: 0.75rem 1.5rem 1rem; }
         .item-row { font-size: 1.6rem; line-height: 1.4; }
-        .item-note { font-size: 1rem; color: var(--text-muted); font-style: italic; }
+        /* Observação do item: vermelho chamativo; --danger já muda no tema escuro (spec 031) */
+        .item-note {
+            display: inline-block; margin: 0.15rem 0 0.35rem 2.4rem; padding: 0.2rem 0.7rem;
+            font-size: 1.15rem; font-weight: 700; color: var(--danger);
+            background: rgba(214, 48, 49, 0.05)!important; border-left: 4px solid var(--danger); border-radius: 0.35rem;
+        }
+        [data-theme="dark"] .item-note { background: rgba(248, 81, 73, 0.16); }
         .btn-sm-icon { padding: 0.5rem 1rem; font-size: 1.4rem; border-radius: 0.5rem; }
         /* ── Resumo de ingredientes ── */
         .summary-card .cat-protein { border-left: 6px solid #dc3545; }
@@ -156,7 +162,7 @@
                                         <div class="d-flex align-items-center gap-2">
                                             <strong class="small" x-text="displayName(order)"></strong>
                                             <span class="badge bg-primary badge-table"><i class="fas fa-hashtag me-1"></i><span x-text="order.order_number"></span></span>
-                                            <small class="text-muted" x-text="timeAgo(order.created_at)"></small>
+                                            <small class="text-muted" x-text="timeAgo(order)"></small>
                                         </div>
                                         <div class="d-flex align-items-center gap-1">
                                             <button class="btn btn-outline-secondary btn-sm-icon" @click="reprintOrder(order.id)" :disabled="reprinting === order.id" title="Reimprimir nota">
@@ -222,7 +228,7 @@
                                             <div class="d-flex align-items-center gap-2">
                                                 <strong class="small" x-text="displayName(order)"></strong>
                                                 <span class="badge bg-secondary badge-table"><i class="fas fa-hashtag me-1"></i><span x-text="order.order_number"></span></span>
-                                                <small class="text-muted" x-text="timeAgo(order.created_at)"></small>
+                                                <small class="text-muted" x-text="timeAgo(order)"></small>
                                             </div>
                                             <div class="d-flex align-items-center gap-1">
                                                 <button class="btn btn-outline-secondary btn-sm-icon" @click="reprintOrder(order.id)" :disabled="reprinting === order.id" title="Reimprimir nota">

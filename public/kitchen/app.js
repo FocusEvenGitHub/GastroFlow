@@ -387,9 +387,12 @@ function kitchenApp() {
             return 'Pedido #' + order.id;
         },
 
-        timeAgo(dateStr) {
-            if (!dateStr) return '';
-            const date = new Date(dateStr.replace(' ', 'T') + 'Z');
+        // Recebe o pedido inteiro: usa created_at_iso (com offset do servidor). O antigo
+        // created_at + 'Z' tratava horário local (UTC-3) como UTC e somava 3h (spec 031).
+        timeAgo(order) {
+            const iso = order && order.created_at_iso;
+            if (!iso) return '';
+            const date = new Date(iso);
             const now = new Date();
             const diffMs = now - date;
             const diffMin = Math.floor(diffMs / 60000);
