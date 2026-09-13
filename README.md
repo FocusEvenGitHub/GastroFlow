@@ -106,7 +106,7 @@ flowchart LR
     Layers --> DB[("MySQL 8.0")]
 ```
 
-- `src/` follows Controllers → Services → Repositories/Models, but coverage is uneven by design-so-far: `Repositories/` exists for Menu and Order, not yet for Ingredient; `Validators/` covers only order input. This is the real current state, not smoothed over — full breakdown in [`docs/architecture.md`](docs/architecture.md).
+- `src/` follows Controllers → Services → Repositories/Models, and as of `v1.7.0` this is real coverage, not aspirational: `Repositories/` (Ingredient, Menu, Order), `Validators/` (Auth, Ingredient, MenuItem, Order, Settings). The one remaining gap is `Dish` — a controller with no registered route, unreachable dead code that still calls Eloquent directly. This is the real current state, not smoothed over — full breakdown in [`docs/architecture.md`](docs/architecture.md).
 - Kitchen live updates run over Server-Sent Events backed by a signal file, not a queue — fine for one instance, a known limit past that.
 - Printing (ESC/POS) and order creation both go through an async DB-backed job queue (`bin/worker`), so a print failure never fails the order.
 
@@ -119,7 +119,7 @@ Full request lifecycle, the annotated project-structure tree, and the current li
 - **Specs before non-trivial code.** Features, fixes and improvements go through a spec file under [`specs/`](specs/) — problem, proposed behavior, acceptance criteria, then an implementation log and validation evidence as work happens. `specs/000-project-baseline.md` is a code-verified snapshot of the whole system, written before any feature spec.
 - **A defined lifecycle**, not just a folder of markdown: `Draft → Approved → In Progress → Implemented → Verified` (or `Cancelled`), per [`specs/README.md`](specs/README.md). `Verified` requires recorded evidence tied to acceptance criteria — it isn't granted on trust.
 - **Persistent, written project rules.** [`CLAUDE.md`](CLAUDE.md) documents the confirmed stack, the actual code layering, the commands that really exist, and explicit security rules — a checked-in artifact, not tribal knowledge.
-- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.6.0`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
+- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.7.0`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
 
 ```mermaid
 flowchart LR
@@ -163,7 +163,7 @@ What that means in practice:
 | PHP >= 8.1 (`php:8.2-apache` in Docker) | Backend language and runtime |
 | Slim 4 + `php-di/slim-bridge` | Routing, PSR-15 middleware, DI container |
 | Eloquent (`illuminate/database`, via `Capsule\Manager`) | ORM / query builder, without the rest of Laravel |
-| `vlucas/valitron` | Input validation (`OrderValidator`) |
+| `vlucas/valitron` | Input validation (`OrderValidator`, `MenuItemValidator`, `IngredientValidator`, `SettingsValidator`, `AuthValidator`) |
 | `firebase/php-jwt` | JWT issuance/verification for the admin area |
 | `monolog/monolog` | Application logging (`logs/app.log`, viewable from the admin panel) |
 | `mike42/escpos-php` | ESC/POS thermal receipt printing over the network |
@@ -197,14 +197,15 @@ Five picks that best represent how this project trades things off — full table
 - Foundation cleanup: `declare(strict_types=1)` everywhere, configurable CORS origin, hardcoded JWT fallback removed, filesystem paths centralized in `Settings` (see `docs/ROADMAP.md`'s Current Baseline section)
 - Automated tests + CI: PHPUnit smoke test + unit tests, GitHub Actions running the suite on every push/PR (see `docs/ROADMAP.md`'s Current Baseline section)
 - **`v1.6.0` — Baseline & Security**: default admin/DB credentials removed (`bin/create-admin` now required), role-based authorization (`admin`/`manager`/`cashier`/`kitchen`) enforced on `/api/admin/*`, sanitized production error responses, `.env` no longer baked into Docker images, `composer.lock` tracked for reproducible builds, `table_number` terminology corrected (it's a pickup ticket, never a physical table) — full detail in [`CHANGELOG.md`](CHANGELOG.md)
+- **`v1.7.0` — Domain & Architecture**: concurrency-safe `order_number` generation, explicit order lifecycle (`pending ⇄ done`, soft cancellation, invalid transitions rejected), `App\Money`-based exact pricing, historical order/receipt snapshots, order input validation, standardized API error format, `AdminController` split into `Settings`/`Printer`/`Log` controllers, `IngredientController` moved behind a Service+Repository, sargable date filters on reports — full detail in [`CHANGELOG.md`](CHANGELOG.md)
 
 **In progress**
 
 - Nothing right now — the working tree is clean. What follows is queued next, not started.
 
-**Next up** (`docs/ROADMAP.md`'s `v1.7.0 — Domain & Architecture`)
+**Next up** (`docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality`)
 
-- Controller/service refactors: split `AdminController`, move `Dish`/`Ingredient` behind a Service+Repository, standardized error-response format, paginated order listing
+- Static analysis (PHPStan) and code style tooling, integration/E2E tests, job-queue reliability (atomic claiming, stale-reservation recovery, failed-state tracking), printing/realtime reliability, structured logging, health checks, backup & restore
 
 **Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
 

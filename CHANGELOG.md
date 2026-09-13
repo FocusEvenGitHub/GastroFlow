@@ -6,7 +6,7 @@ Fecha o milestone `v1.7.0 — Domain & Architecture` do `ROADMAP.md`: torna expl
 
 ### Novidades
 - **Numeração de pedidos**: `order_number` agora é gerado de forma segura sob concorrência, por dia de operação (`business_date`), com unicidade garantida no banco (spec 019)
-- **Ciclo de vida do pedido**: máquina de estados explícita (`pending → preparing → ready → done`), com cancelamento suave (soft cancellation) e reabertura como operações de negócio explícitas; transições inválidas falham de forma previsível (spec 020)
+- **Ciclo de vida do pedido**: máquina de estados explícita e minimalista (`pending ⇄ done`, `pending → cancelled`, `done → cancelled`, `cancelled` terminal) — os valores `preparing`/`ready` do enum, nunca usados por nenhum fluxo real, foram removidos em vez de mantidos por completude teórica; cancelamento suave (soft cancellation, `POST /api/orders/{id}/cancel`) substitui o antigo `DELETE` físico, preservando o registro para histórico/relatórios; transições inválidas falham de forma previsível com `409` (spec 020)
 - **Validação de pedidos**: pedidos sem itens, com item de cardápio inexistente/indisponível, quantidade inválida ou opção de refeição inválida são rejeitados antes da persistência (spec 022)
 - **Padronização de erros da API**: todo controller agora retorna o mesmo formato `{"success": false, "error": ..., "code": ...}` (spec 024)
 - **Domínio de precificação**: `PricingService` centraliza o cálculo de subtotal, embalagem e total do pedido, antes espalhado entre `OrderRepository` e `PrintService` (spec 026)

@@ -1,7 +1,8 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.6.0
+> **Current version:** v1.7.0
 > **Target:** v2.0.0
+> **Current milestone:** v1.8.0 — Reliability & Quality
 > **Edition:** GastroFlow Community
 > **Scope:** Self-hosted restaurant management for a single restaurant/location.
 
@@ -456,6 +457,8 @@ v1.6 is complete when:
 
 # v1.7.0 — Domain & Architecture
 
+**Status: Complete.** Tagged `v1.7.0`, documented in `CHANGELOG.md`. Per-subsection status is noted inline below (specs 019-029).
+
 ## Objective
 
 Make critical restaurant business rules explicit, predictable and testable.
@@ -484,6 +487,8 @@ behavior without concurrency protection.
 Enforce the approved uniqueness rule at database level.
 
 Add concurrency-focused tests.
+
+**Status (spec 019)**: Verified — `order_number` is generated safely under concurrency, scoped per business day (`business_date`), with uniqueness enforced by a database-level unique index rather than an unsafe `MAX(order_number) + 1`. Concurrency tests added.
 
 ---
 
@@ -517,6 +522,8 @@ should not happen unless explicitly supported.
 
 Statuses that are not actually used should not remain merely for theoretical completeness.
 
+**Status (spec 020)**: Verified — the real, minimal state machine is `pending ⇄ done`, `pending → cancelled`, `done → cancelled`, `cancelled` terminal; the unused `preparing`/`ready` enum values (no real kitchen workflow ever implemented them) were dropped rather than kept for theoretical completeness. Soft cancellation (`POST /api/orders/{id}/cancel`) replaced the old hard `DELETE /api/orders/{id}`, preserving the row for history/reporting instead of destroying it. Every transition is guarded: an invalid one (out of `cancelled`) fails with `409`, and a nonexistent order returns `404` consistently.
+
 ---
 
 ## Pricing domain
@@ -542,6 +549,8 @@ Pricing should explicitly calculate:
 
 Repositories should persist values, not decide restaurant pricing policy.
 
+**Status (spec 026)**: Verified — `PricingService` now centralizes subtotal/packaging/total calculation, previously spread across `OrderRepository` and `PrintService`.
+
 ---
 
 ## Money representation
@@ -559,6 +568,8 @@ MySQL may continue using appropriate `DECIMAL` fields.
 
 Financial rules require dedicated tests.
 
+**Status (spec 021)**: Verified — financial calculations now use `App\Money` (integer cents), eliminating binary floating-point arithmetic for money.
+
 ---
 
 ## Historical order snapshots
@@ -574,6 +585,8 @@ packaging value
 ```
 
 Reports and receipts for old orders should not depend on current menu prices.
+
+**Status (spec 023)**: Verified — item name, unit price and packaging cost are captured at sale time; historical orders/receipts no longer change value when the menu changes later.
 
 ---
 
@@ -591,6 +604,8 @@ Orders should be rejected before persistence when:
 * notes exceed defined limits.
 
 An invalid menu item must never silently become a zero-price item.
+
+**Status (spec 022)**: Verified — orders with no items, a nonexistent/unavailable menu item, invalid quantity, or an invalid dining option are rejected before persistence. **Known gap, not covered by spec 022**: `order_number` (the manually-typed "Senha") only enforces `lengthMax: 50` — it accepts any string (`"ABC"`, `"999-TESTE"`), even though the cashier UI and the printed/kitchen-facing ticket assume a plain number. Tighten `OrderValidator` to a numeric-only rule and constrain the cashier's `<input type="text" id="orderNumber">` (`public/cashier/index.php`) accordingly — small, self-contained fix, deferred rather than bundled here.
 
 ---
 
@@ -610,6 +625,8 @@ Example:
 
 Avoid each controller inventing its own error response shape.
 
+**Status (spec 024)**: Verified — every controller now returns the same `{"success": false, "error": ..., "code": ...}` shape.
+
 ---
 
 ## Input validation
@@ -628,6 +645,8 @@ Priority domains:
 Validators validate input shape.
 
 Services enforce business rules.
+
+**Status (spec 027)**: Verified — dedicated validators added for menu items, ingredients, settings and authentication (`MenuItemValidator`, `IngredientValidator`, `SettingsValidator`, `AuthValidator`, joining the existing `OrderValidator` — 5 total, all wrapping `vlucas/valitron`); `/api/admin/ingredients*` routes, previously unwired, are now registered and functional.
 
 ---
 
@@ -649,6 +668,8 @@ LogController
 
 Do not split merely to increase the number of files.
 
+**Status (spec 028)**: Verified — the former `AdminController` was split into `SettingsController`, `PrinterController` and `LogController`, each depending only on what it actually uses.
+
 ---
 
 ## Persistence boundaries
@@ -669,6 +690,8 @@ Repositories should exist when they provide a useful persistence/domain boundary
 
 Do not introduce empty abstraction layers only for architectural symmetry.
 
+**Status (spec 029)**: Verified — `IngredientController` now goes through `IngredientService`/`IngredientRepository` instead of calling Eloquent directly, closing the last persistence-boundary gap this milestone named. `Dish` remains unreachable dead code (no route references it anywhere) and was intentionally left untouched — reintroducing it, if ever wanted, is new scope, not a gap in this item.
+
 ---
 
 ## Query performance
@@ -688,6 +711,8 @@ jobs.status
 Add indexes based on real query patterns.
 
 Avoid speculative optimization.
+
+**Status (spec 025)**: Implemented — investigation found `orders.order_number`, `order_items.order_id` and the `jobs` queue's real filter columns were already adequately indexed; the actual gap was every date filter being written as a non-sargable `whereDate(created_at, ...)`/`DATE(created_at)`, which no index (existing or new) could serve. Fixed by switching every such filter to a direct `business_date` comparison (already indexed since spec 019) — confirmed via a real `EXPLAIN`: full table scan before, index lookup after. No new index or migration was needed.
 
 ---
 
@@ -714,6 +739,8 @@ Suggested metadata:
 
 Operational kitchen views may use status/date filtering instead when that better fits the workflow.
 
+**Status (spec 025)**: Investigated, not implemented — no endpoint in the app currently has a reachable code path to an unbounded result set (orders/kitchen views are always scoped to one business day; report endpoints return one row per day/hour or use an explicit `limit`; menu/ingredient lists are small, operator-curated data). Adding `?page=&per_page=` today would be exactly the speculative optimization this milestone's own "Query performance" item warns against. Deferred to the `v2.1.0` Admin Order History feature's own spec, if that feature removes today's implicit one-day bound.
+
 ---
 
 # v1.7 Exit Gate
@@ -721,6 +748,8 @@ Operational kitchen views may use status/date filtering instead when that better
 v1.7 is complete when:
 
 > Critical rules involving orders, money and permissions are explicit, testable and no longer depend on incidental controller or repository behavior.
+
+**Met.** Order numbering, lifecycle, pricing, money representation, historical snapshots, input validation and error-format standardization are all now explicit and covered by specs 019-029 (all `Verified`); controller/persistence-boundary cleanup and the query-performance/pagination investigation closed the milestone's remaining architectural items. See `CHANGELOG.md`'s `v1.7.0` entry.
 
 ---
 
@@ -828,17 +857,31 @@ The database-backed queue may remain part of GastroFlow Community.
 
 Improve it before replacing it.
 
+**Known failure mode (high priority for this milestone):** `JobService::processNext()` sets `reserved_at = now()` before executing the job, and the claiming query only pulls `whereNull('reserved_at')`. If the worker process dies between reservation and completion — crash, OOM, container killed — the job keeps `reserved_at` set forever. It is claimed but never finishes and is never retried: a silently stuck job with no operator-visible signal.
+
 Jobs should support:
 
 * atomic claiming;
 * attempt count;
 * retries;
 * backoff;
+* **stale reservation recovery** — a job reserved longer than a defined timeout must become eligible for re-claiming again (e.g. `reserved_at < now() - N minutes`, or an explicit `reserved_until` column checked by the claiming query instead of a hardcoded window);
 * failed state;
 * last error information;
 * timestamps;
 * safe worker execution;
 * idempotency where critical.
+
+The `jobs` table itself is currently missing fields needed to observe and diagnose the above; add:
+
+```text
+status          (e.g. pending / reserved / failed / completed)
+last_error
+failed_at
+completed_at
+```
+
+Reserving without a recovery path is a classic hand-rolled-queue defect — this is precisely what this milestone's reliability objective exists to close before v2.0.
 
 ---
 
