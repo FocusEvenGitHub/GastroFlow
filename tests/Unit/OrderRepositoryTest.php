@@ -43,6 +43,23 @@ class OrderRepositoryTest extends TestCase
             $table->text('description')->nullable();
             $table->float('price')->default(0);
             $table->boolean('available')->default(true);
+            $table->boolean('is_customizable')->default(false);
+            $table->string('food_category', 30)->nullable();
+        });
+
+        Db::schema()->create('categories', function ($table) {
+            $table->id();
+            $table->string('name');
+            $table->string('type')->default('food');
+        });
+
+        Db::schema()->create('order_item_components', function ($table) {
+            $table->id();
+            $table->unsignedBigInteger('order_item_id');
+            $table->unsignedInteger('menu_item_id');
+            $table->string('item_name', 100)->default('');
+            $table->unsignedInteger('quantity')->default(1);
+            $table->float('unit_price')->default(0);
         });
 
         Db::schema()->create('orders', function ($table) {
@@ -297,5 +314,154 @@ class OrderRepositoryTest extends TestCase
 
         $this->expectException(OrderCancelledException::class);
         $this->repo->removeOrderItem($order->id, $itemId);
+    }
+
+    /**
+     * Spec 030 fixture: a customizable "Monte Seu Prato" (base R$5,00) plus
+     * two Adicionais and one non-Adicional item.
+     *
+     * @return array{dish: int, frango: int, arroz: int, bebida: int}
+     */
+    private function seedBuildYourOwnDish(): array
+    {
+        $pratos = (int) Db::table('categories')->insertGetId(['name' => 'Pratos Principais']);
+        $adicionais = (int) Db::table('categories')->insertGetId(['name' => 'Adicionais']);
+        $bebidas = (int) Db::table('categories')->insertGetId(['name' => 'Bebidas']);
+
+        return [
+            'dish'   => (int) Db::table('menu_items')->insertGetId(['category_id' => $pratos, 'name' => 'Monte Seu Prato', 'price' => 5.0, 'available' => true, 'is_customizable' => true]),
+            'frango' => (int) Db::table('menu_items')->insertGetId(['category_id' => $adicionais, 'name' => 'Filé de Frango', 'price' => 13.0, 'available' => true, 'food_category' => 'protein']),
+            'arroz'  => (int) Db::table('menu_items')->insertGetId(['category_id' => $adicionais, 'name' => 'Arroz Branco', 'price' => 4.0, 'available' => true, 'food_category' => 'grain']),
+            'bebida' => (int) Db::table('menu_items')->insertGetId(['category_id' => $bebidas, 'name' => 'Coca-Cola', 'price' => 5.0, 'available' => true]),
+        ];
+    }
+
+    public function testBuildYourOwnDishIsPricedFromBasePlusAddOnsAndSnapshotsThem(): void
+    {
+        $ids = $this->seedBuildYourOwnDish();
+
+        // Repeated add-on ids are merged: frango 1 + 1 = 2.
+        $order = $this->repo->createOrder(['items' => [[
+            'id' => $ids['dish'], 'quantity' => 2, 'dining_option' => 'viagem_simples',
+            'components' => [
+                ['id' => $ids['frango'], 'quantity' => 1],
+                ['id' => $ids['arroz'], 'quantity' => 1],
+                ['id' => $ids['frango'], 'quantity' => 1],
+            ],
+        ]]]);
+
+        // Unit price: 5,00 + 2 x 13,00 + 1 x 4,00 = 35,00; packaging stays per plate (2 x 1,00).
+        $item = Db::table('order_items')->where('order_id', $order->id)->first();
+        $this->assertEqualsWithDelta(35.0, (float) $item->unit_price, 0.001);
+        $this->assertEqualsWithDelta(2.0, (float) $item->packaging_cost, 0.001);
+
+        $components = Db::table('order_item_components')->where('order_item_id', $item->id)->orderBy('menu_item_id')->get();
+        $this->assertCount(2, $components);
+        $this->assertSame('Filé de Frango', $components[0]->item_name);
+        $this->assertSame(2, (int) $components[0]->quantity);
+        $this->assertEqualsWithDelta(13.0, (float) $components[0]->unit_price, 0.001);
+        $this->assertSame('Arroz Branco', $components[1]->item_name);
+
+        // Renaming/repricing the add-on afterward must not change the snapshot or the listing.
+        Db::table('menu_items')->where('id', $ids['frango'])->update(['name' => 'Outro Nome', 'price' => 99.0]);
+        $listed = $this->repo->getOrdersByStatus('pending', date('Y-m-d'));
+        $this->assertSame(
+            [
+                ['menu_item_id' => $ids['frango'], 'name' => 'Filé de Frango', 'quantity' => 2, 'unit_price' => 13.0],
+                ['menu_item_id' => $ids['arroz'], 'name' => 'Arroz Branco', 'quantity' => 1, 'unit_price' => 4.0],
+            ],
+            $listed[0]['items'][0]['components']
+        );
+        $this->assertSame(35.0, $listed[0]['items'][0]['unit_price']);
+    }
+
+    public function testListedOrdersExposeCreatedAtWithTimezoneOffset(): void
+    {
+        // Spec 031: created_at has no offset (local time); created_at_iso must
+        // carry one so clients don't misread local time as UTC.
+        $order = $this->repo->createOrder($this->orderData());
+
+        $listed = $this->repo->getOrdersByStatus('pending', date('Y-m-d'));
+
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/', $listed[0]['created_at_iso']);
+        $this->assertSame(
+            $order->fresh()->created_at->getTimestamp(),
+            (new \DateTimeImmutable($listed[0]['created_at_iso']))->getTimestamp()
+        );
+    }
+
+    public function testRegularItemsListAnEmptyComponentsArray(): void
+    {
+        $this->repo->createOrder($this->orderData());
+
+        $listed = $this->repo->getOrdersByStatus('pending', date('Y-m-d'));
+        $this->assertSame([], $listed[0]['items'][0]['components']);
+    }
+
+    public function testBuildYourOwnDishWithoutAddOnsIsRejected(): void
+    {
+        $ids = $this->seedBuildYourOwnDish();
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Escolha ao menos um adicional');
+        $this->repo->createOrder(['items' => [['id' => $ids['dish'], 'quantity' => 1]]]);
+    }
+
+    public function testAddOnsOnARegularDishAreRejected(): void
+    {
+        $ids = $this->seedBuildYourOwnDish();
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('não aceita adicionais');
+        $this->repo->createOrder(['items' => [[
+            'id' => $this->menuItemId, 'quantity' => 1,
+            'components' => [['id' => $ids['arroz'], 'quantity' => 1]],
+        ]]]);
+    }
+
+    public function testNonAdicionalComponentIsRejectedAndPersistsNothing(): void
+    {
+        $ids = $this->seedBuildYourOwnDish();
+
+        try {
+            $this->repo->createOrder(['items' => [[
+                'id' => $ids['dish'], 'quantity' => 1,
+                'components' => [['id' => $ids['bebida'], 'quantity' => 1]],
+            ]]]);
+            $this->fail('Expected DomainException was not thrown.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('não é um adicional', $e->getMessage());
+        }
+
+        $this->assertSame(0, Db::table('orders')->count());
+        $this->assertSame(0, Db::table('order_item_components')->count());
+    }
+
+    public function testUnavailableOrMissingAddOnIsRejected(): void
+    {
+        $ids = $this->seedBuildYourOwnDish();
+        Db::table('menu_items')->where('id', $ids['arroz'])->update(['available' => false]);
+
+        foreach ([$ids['arroz'], $ids['arroz'] + 999] as $componentId) {
+            try {
+                $this->repo->createOrder(['items' => [[
+                    'id' => $ids['dish'], 'quantity' => 1,
+                    'components' => [['id' => $componentId, 'quantity' => 1]],
+                ]]]);
+                $this->fail('Expected DomainException was not thrown.');
+            } catch (\DomainException $e) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function testBuildYourOwnDishCannotBeAddedThroughAddOrderItem(): void
+    {
+        $ids = $this->seedBuildYourOwnDish();
+        $order = $this->repo->createOrder($this->orderData());
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('só pode ser montado pelo Caixa');
+        $this->repo->addOrderItem($order->id, ['menu_item_id' => $ids['dish']]);
     }
 }

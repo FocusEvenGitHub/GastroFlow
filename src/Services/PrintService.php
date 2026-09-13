@@ -252,6 +252,15 @@ class PrintService
 
             $printer->text($itemLine . "\n");
 
+            // Build-your-own dish add-ons (spec 030). An unsaved OrderItem
+            // (never persisted) has no rows to lazy-load.
+            $components = ($orderItem->exists || $orderItem->relationLoaded('components'))
+                ? $orderItem->components
+                : collect();
+            foreach ($components as $component) {
+                $printer->text("   + " . (int) $component->quantity . "x " . $component->item_name . "\n");
+            }
+
             // Dining option label
             if ($packagingLabel) {
                 $printer->text("   " . $packagingLabel . "\n");

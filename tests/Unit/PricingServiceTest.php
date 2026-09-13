@@ -60,6 +60,25 @@ class PricingServiceTest extends TestCase
         $this->assertSame(22.0, $lineTotal->toReais());
     }
 
+    public function testComposedUnitPriceAddsEachAddOnTimesItsQuantityToTheBase(): void
+    {
+        // Spec 030: base 5,00 + 2 x 13,00 + 1 x 4,00 + 3 x 0,10 = 35,30 (hand-computed in cents: 500 + 2600 + 400 + 30).
+        $price = $this->pricing->composedUnitPrice(Money::fromReais(5.0), [
+            ['price' => Money::fromReais(13.0), 'quantity' => 2],
+            ['price' => Money::fromReais(4.0), 'quantity' => 1],
+            ['price' => Money::fromReais(0.1), 'quantity' => 3],
+        ]);
+
+        $this->assertSame(3530, $price->getCents());
+    }
+
+    public function testComposedUnitPriceWithNoAddOnsIsTheBase(): void
+    {
+        $price = $this->pricing->composedUnitPrice(Money::fromReais(20.0), []);
+
+        $this->assertSame(2000, $price->getCents());
+    }
+
     public function testOrderTotalSumsLineTotals(): void
     {
         $lineTotals = [

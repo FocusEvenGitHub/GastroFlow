@@ -37,6 +37,22 @@ class PricingService
     }
 
     /**
+     * Unit price for one build-your-own dish ("Monte Seu Prato", spec 030):
+     * the dish's own base price plus each chosen add-on's unit price times
+     * its quantity.
+     *
+     * @param iterable<array{price: Money, quantity: int}> $components
+     */
+    public function composedUnitPrice(Money $basePrice, iterable $components): Money
+    {
+        $total = $basePrice;
+        foreach ($components as $component) {
+            $total = $total->plus($component['price']->multipliedBy($component['quantity']));
+        }
+        return $total;
+    }
+
+    /**
      * Line total for one order item: unit price times quantity, plus its
      * packaging fee.
      */

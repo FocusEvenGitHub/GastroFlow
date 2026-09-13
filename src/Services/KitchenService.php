@@ -14,7 +14,7 @@ class KitchenService
         // business_date, not whereDate('created_at', ...) — sargable (spec 025).
         $pendingOrders = Order::where('status', 'pending')
             ->where('business_date', $date)
-            ->with(['items.menuItem.components'])
+            ->with(['items.menuItem.components', 'items.components.menuItem'])
             ->get();
 
         $summary = [];
@@ -26,7 +26,24 @@ class KitchenService
 
                 $qty = (int) $orderItem->quantity;
 
-                if ($menuItem->components->isNotEmpty()) {
+                if ($orderItem->components->isNotEmpty()) {
+                    // Build-your-own dish (spec 030): count the add-ons chosen
+                    // for this order item, not the menu item's fixed recipe.
+                    foreach ($orderItem->components as $chosen) {
+                        $component = $chosen->menuItem;
+                        if (!$component || !$component->food_category) continue;
+                        $key = $component->food_category . '::' . $component->id;
+                        if (!isset($summary[$key])) {
+                            $summary[$key] = [
+                                'id'             => $component->id,
+                                'name'           => $component->name,
+                                'food_category'  => $component->food_category,
+                                'total_quantity' => 0,
+                            ];
+                        }
+                        $summary[$key]['total_quantity'] += $qty * (int) $chosen->quantity;
+                    }
+                } elseif ($menuItem->components->isNotEmpty()) {
                     foreach ($menuItem->components as $component) {
                         if (!$component->food_category) continue;
                         $compQty = $qty * ($component->pivot->quantity ?? 1);

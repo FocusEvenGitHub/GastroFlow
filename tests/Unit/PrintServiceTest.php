@@ -142,4 +142,31 @@ class PrintServiceTest extends TestCase
 
         $this->assertStringContainsString('TOTAL: R$ 60,70', $connector->data);
     }
+
+    public function testBuildYourOwnDishPrintsItsAddOnsUnderTheItem(): void
+    {
+        // Spec 030: unit_price is already the composed price (base + add-ons),
+        // so the line total is unchanged; add-ons are listed for the kitchen/customer.
+        $dish = $this->makeOrderItem('Monte Seu Prato', 30.0, 1);
+        $dish->setRelation('components', collect([
+            new \App\Models\OrderItemComponent(['item_name' => 'Filé de Frango', 'quantity' => 2, 'unit_price' => 13.0]),
+            new \App\Models\OrderItemComponent(['item_name' => 'Arroz Branco', 'quantity' => 1, 'unit_price' => 4.0]),
+        ]));
+        $order = $this->makeOrder();
+        $order->setRelation('items', collect([$dish]));
+
+        $connector = new CapturingPrintConnector();
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService(), function () use ($connector) {
+            return $connector;
+        });
+
+        $service->printOrder($order);
+
+        // Assert on ASCII-only fragments: escpos-php re-encodes accented
+        // characters to the printer's code page (e.g. "é" -> CP850 0x82).
+        $this->assertStringContainsString('+ 2x Fil', $connector->data);
+        $this->assertStringContainsString(' de Frango', $connector->data);
+        $this->assertStringContainsString('+ 1x Arroz Branco', $connector->data);
+        $this->assertStringContainsString('TOTAL: R$ 30,00', $connector->data);
+    }
 }

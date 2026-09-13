@@ -18,6 +18,7 @@ function reportsApp() {
         summary: { orders: 0, revenue: 0, avg_ticket: 0, items_sold: 0 },
         salesData: [],
         topItems: [],
+        mainDishes: { total_qty: 0, total_revenue: 0, items: [] }, // spec 032
         diningOptions: [],
         peakHours: [],
         prepTime: { avg_minutes: 0, by_day: [] },
@@ -94,9 +95,10 @@ function reportsApp() {
             try {
                 const headers = { 'Authorization': 'Bearer ' + this.token };
 
-                const [salesRes, topRes, diningRes, peakRes, prepRes, monthRes] = await Promise.all([
+                const [salesRes, topRes, mainDishesRes, diningRes, peakRes, prepRes, monthRes] = await Promise.all([
                     fetch(`/api/admin/reports/sales?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
                     fetch(`/api/admin/reports/top-items?date_from=${this.dateFrom}&date_to=${this.dateTo}&limit=10`, { headers }),
+                    fetch(`/api/admin/reports/main-dishes?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
                     fetch(`/api/admin/reports/dining-options?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
                     fetch(`/api/admin/reports/peak-hours?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
                     fetch(`/api/admin/reports/prep-time?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
@@ -124,6 +126,9 @@ function reportsApp() {
 
                 const topData = await topRes.json();
                 if (topData.success) this.topItems = topData.data || [];
+
+                const mainDishesData = await mainDishesRes.json();
+                if (mainDishesData.success) this.mainDishes = mainDishesData.data || { total_qty: 0, total_revenue: 0, items: [] };
 
                 const diningData = await diningRes.json();
                 if (diningData.success) this.diningOptions = diningData.data || [];

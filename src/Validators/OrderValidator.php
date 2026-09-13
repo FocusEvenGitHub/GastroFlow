@@ -13,6 +13,9 @@ class OrderValidator
     private const MAX_ITEM_QUANTITY = 50;
     private const MAX_NOTES_LENGTH = 500;
     private const DINING_OPTIONS = ['local', 'viagem_simples', 'viagem_vip'];
+    // Build-your-own dish add-ons (spec 030).
+    private const MAX_COMPONENTS = 30;
+    private const MAX_COMPONENT_QUANTITY = 10;
 
     private Validator $v;
 
@@ -56,6 +59,9 @@ class OrderValidator
                         return false;
                     }
                 }
+                if (isset($item['components']) && !$this->validComponentsShape($item['components'])) {
+                    return false;
+                }
             }
             return true;
         }, 'items');
@@ -98,6 +104,25 @@ class OrderValidator
         $this->v->rule('optional', 'notes');
         $this->v->rule('lengthMax', 'notes', self::MAX_NOTES_LENGTH);
         return $this->v->validate();
+    }
+
+    /**
+     * Shape of a build-your-own dish's add-on list (spec 030): a list of
+     * {id, quantity}. Whether the dish accepts add-ons, and whether each
+     * add-on exists/is available/is an Adicional, is DB state checked in
+     * OrderRepository::createOrder().
+     */
+    private function validComponentsShape(mixed $components): bool
+    {
+        if (!is_array($components) || count($components) > self::MAX_COMPONENTS) return false;
+        foreach ($components as $component) {
+            if (!is_array($component) || !isset($component['id'], $component['quantity'])) return false;
+            if (!is_numeric($component['id']) || !is_numeric($component['quantity'])) return false;
+            $quantity = $component['quantity'];
+            if ((int) $quantity != $quantity) return false;
+            if ((int) $quantity < 1 || (int) $quantity > self::MAX_COMPONENT_QUANTITY) return false;
+        }
+        return true;
     }
 
     public function errors(): array

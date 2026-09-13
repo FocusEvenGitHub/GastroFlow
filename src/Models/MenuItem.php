@@ -12,7 +12,9 @@ class MenuItem extends Model
     public $timestamps = false;
 
     protected $fillable = ['category_id', 'name', 'description', 'price', 'available'];
-    protected $casts = ['available' => 'boolean', 'price' => 'float'];
+    // is_customizable: a build-your-own dish ("Monte Seu Prato") whose price
+    // is its base price plus the add-ons chosen per order item (spec 030).
+    protected $casts = ['available' => 'boolean', 'price' => 'float', 'is_customizable' => 'boolean'];
 
     public function category()
     {

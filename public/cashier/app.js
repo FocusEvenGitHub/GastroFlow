@@ -17,6 +17,16 @@ function cashierApp() {
         reorderMode: false,
         dragSource: null, // { categoryName, index }
         reordering: false,
+        nextUid: 1,             // chave única por linha do pedido (x-for)
+        // Monte Seu Prato (spec 030): dish = item do cardápio, quantities = { addonId: qtd },
+        // editIndex = índice em selectedItems quando editando uma montagem existente
+        builder: { open: false, dish: null, quantities: {}, editIndex: null },
+        MAX_ADDON_QTY: 10,
+        ADDON_CATEGORY: 'Adicionais',
+        FOOD_CATEGORY_LABELS: {
+            protein: 'Proteínas', grain: 'Grãos', vegetable: 'Vegetais',
+            sauce: 'Molhos', side: 'Acompanhamentos', other: 'Outros'
+        },
 
         async init() {
             this.applyTheme();
@@ -58,11 +68,16 @@ function cashierApp() {
         // Adiciona item ao pedido (padrão: Local)
         addItem(item) {
             if (item.available === false) return;
-            const existing = this.selectedItems.find(i => i.id === item.id);
+            if (item.is_customizable) {
+                this.openBuilder(item);
+                return;
+            }
+            const existing = this.selectedItems.find(i => i.id === item.id && !i.components);
             if (existing) {
                 existing.quantity++;
             } else {
                 this.selectedItems.push({
+                    uid: this.nextUid++,
                     id: item.id,
                     name: item.name,
                     price: parseFloat(item.price),
@@ -75,6 +90,104 @@ function cashierApp() {
             }
             // Limpa a busca para facilitar a próxima seleção
             this.searchQuery = '';
+        },
+
+        // ── Monte Seu Prato (spec 030) ──
+
+        // Adicionais disponíveis, agrupados por food_category
+        get addonGroups() {
+            const category = this.menu.find(c => c.category_name === this.ADDON_CATEGORY);
+            const groups = {};
+            for (const addon of (category ? category.items : [])) {
+                if (addon.available === false || addon.is_customizable) continue;
+                const key = addon.food_category || 'other';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(addon);
+            }
+            const order = Object.keys(this.FOOD_CATEGORY_LABELS);
+            return Object.keys(groups)
+                .sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99))
+                .map(key => ({ key, label: this.FOOD_CATEGORY_LABELS[key] || 'Outros', items: groups[key] }));
+        },
+
+        // Adicionais escolhidos na montagem atual, na ordem do cardápio
+        get builderLines() {
+            return this.addonGroups
+                .flatMap(g => g.items)
+                .filter(a => this.builderQty(a.id) > 0)
+                .map(a => ({ id: a.id, name: a.name, price: parseFloat(a.price), quantity: this.builderQty(a.id) }));
+        },
+
+        get builderCount() {
+            return this.builderLines.reduce((sum, l) => sum + l.quantity, 0);
+        },
+
+        // Preço de um prato montado: base + Σ(preço do adicional × qtd), somado em centavos
+        get builderUnitPrice() {
+            if (!this.builder.dish) return 0;
+            const cents = this.builderLines.reduce(
+                (sum, l) => sum + Math.round(l.price * 100) * l.quantity,
+                Math.round(parseFloat(this.builder.dish.price) * 100)
+            );
+            return cents / 100;
+        },
+
+        builderQty(addonId) {
+            return this.builder.quantities[addonId] || 0;
+        },
+
+        stepAddon(addonId, delta) {
+            const qty = Math.min(this.MAX_ADDON_QTY, Math.max(0, this.builderQty(addonId) + delta));
+            this.builder.quantities = { ...this.builder.quantities, [addonId]: qty };
+        },
+
+        openBuilder(dish, editIndex = null) {
+            const quantities = {};
+            if (editIndex !== null) {
+                for (const c of this.selectedItems[editIndex].components) quantities[c.id] = c.quantity;
+            }
+            this.builder = {
+                open: true,
+                dish: { id: dish.id, name: dish.name, price: parseFloat(dish.price), category_name: dish.category_name },
+                quantities,
+                editIndex
+            };
+        },
+
+        editBuiltItem(index) {
+            const item = this.selectedItems[index];
+            this.openBuilder({ id: item.id, name: item.name, price: item.basePrice, category_name: item.category_name }, index);
+        },
+
+        closeBuilder() {
+            this.builder = { open: false, dish: null, quantities: {}, editIndex: null };
+            this.searchQuery = '';
+        },
+
+        confirmBuilder() {
+            if (!this.builder.dish || this.builderCount === 0) return;
+            const components = this.builderLines;
+            const price = this.builderUnitPrice;
+            if (this.builder.editIndex !== null) {
+                const item = this.selectedItems[this.builder.editIndex];
+                item.components = components;
+                item.price = price;
+            } else {
+                this.selectedItems.push({
+                    uid: this.nextUid++,
+                    id: this.builder.dish.id,
+                    name: this.builder.dish.name,
+                    basePrice: this.builder.dish.price,
+                    price,
+                    quantity: 1,
+                    notes: '',
+                    showNotes: false,
+                    category_name: this.builder.dish.category_name || '',
+                    diningOption: 'local',
+                    components
+                });
+            }
+            this.closeBuilder();
         },
 
         // Altera a opção de onde comer (local / viagem_simples / viagem_vip)
@@ -156,7 +269,10 @@ function cashierApp() {
                         id: i.id,
                         quantity: i.quantity,
                         notes: i.notes,
-                        dining_option: i.diningOption
+                        dining_option: i.diningOption,
+                        components: i.components
+                            ? i.components.map(c => ({ id: c.id, quantity: c.quantity }))
+                            : undefined
                     }))
                 };
                 const res = await fetch('/api/orders', {

@@ -21,6 +21,8 @@ function kitchenApp() {
         addingItem: false,
         removingItemId: null,
         KITCHEN_CATEGORIES: ['Pratos Principais', 'Adicionais'],
+        // 'ingredients' | 'dishes' — qual resumo mostrar no painel lateral (spec 030)
+        summaryMode: localStorage.getItem('kitchenSummaryMode') === 'dishes' ? 'dishes' : 'ingredients',
 
         _today() {
             return new Date().toISOString().split('T')[0];
@@ -42,9 +44,10 @@ function kitchenApp() {
             }
         },
 
-        // Cardápio achatado (sem agrupar por categoria) para o seletor "Adicionar item"
+        // Cardápio achatado (sem agrupar por categoria) para o seletor "Adicionar item".
+        // Pratos montáveis ficam de fora: só o Caixa escolhe os adicionais (spec 030).
         allMenuItems() {
-            return this.menu.flatMap(cat => (cat.items || []).map(i => ({
+            return this.menu.flatMap(cat => (cat.items || []).filter(i => !i.is_customizable).map(i => ({
                 id: i.id,
                 name: i.name,
                 category_name: cat.category_name
@@ -168,6 +171,46 @@ function kitchenApp() {
                 if (!sorted[key]) sorted[key] = groups[key];
             }
             return sorted;
+        },
+
+        setSummaryMode(mode) {
+            this.summaryMode = mode;
+            localStorage.setItem('kitchenSummaryMode', mode);
+        },
+
+        // Resumo de pratos (spec 030): pratos principais dos pedidos pendentes da
+        // data selecionada, somados por nome. Pratos montados são detalhados por
+        // combinação de adicionais.
+        dishSummary() {
+            const byName = {};
+            let total = 0;
+            for (const order of this.orders) {
+                for (const item of (order.items || [])) {
+                    if (item.category_name !== 'Pratos Principais') continue;
+                    const qty = Number(item.quantity) || 0;
+                    total += qty;
+                    if (!byName[item.name]) byName[item.name] = { name: item.name, quantity: 0, variants: {} };
+                    const dish = byName[item.name];
+                    dish.quantity += qty;
+                    if (item.components && item.components.length) {
+                        const label = [...item.components]
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map(c => c.quantity + 'x ' + c.name)
+                            .join(', ');
+                        dish.variants[label] = (dish.variants[label] || 0) + qty;
+                    }
+                }
+            }
+            const dishes = Object.values(byName)
+                .map(d => ({
+                    name: d.name,
+                    quantity: d.quantity,
+                    variants: Object.entries(d.variants)
+                        .map(([label, quantity]) => ({ label, quantity }))
+                        .sort((a, b) => b.quantity - a.quantity)
+                }))
+                .sort((a, b) => b.quantity - a.quantity || a.name.localeCompare(b.name));
+            return { total, dishes };
         },
 
         async completeOrder(orderId) {
@@ -344,9 +387,12 @@ function kitchenApp() {
             return 'Pedido #' + order.id;
         },
 
-        timeAgo(dateStr) {
-            if (!dateStr) return '';
-            const date = new Date(dateStr.replace(' ', 'T') + 'Z');
+        // Recebe o pedido inteiro: usa created_at_iso (com offset do servidor). O antigo
+        // created_at + 'Z' tratava horário local (UTC-3) como UTC e somava 3h (spec 031).
+        timeAgo(order) {
+            const iso = order && order.created_at_iso;
+            if (!iso) return '';
+            const date = new Date(iso);
             const now = new Date();
             const diffMs = now - date;
             const diffMin = Math.floor(diffMs / 60000);
