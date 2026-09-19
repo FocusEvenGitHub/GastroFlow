@@ -57,6 +57,32 @@ class Settings
         return $this->get('APP_TIMEZONE', date_default_timezone_get());
     }
 
+    /**
+     * How long (in seconds) a worker may hold a job reservation before the job is
+     * considered abandoned and becomes claimable again.
+     *
+     * Defaults to 300s: far above a print job's real duration (seconds), far below a
+     * shift, so a worker killed mid-job is recovered within five minutes without a
+     * healthy slow job ever being stolen from the worker still running it.
+     */
+    public function getQueueReservationTimeout(): int
+    {
+        $value = (int) $this->get('QUEUE_RESERVATION_TIMEOUT', 300);
+        return $value > 0 ? $value : 300;
+    }
+
+    /**
+     * How many days a completed job is kept before being pruned.
+     *
+     * Defaults to 7. Failed jobs are never pruned by this setting — they are the
+     * diagnostic record.
+     */
+    public function getQueueRetentionDays(): int
+    {
+        $value = (int) $this->get('QUEUE_RETENTION_DAYS', 7);
+        return $value > 0 ? $value : 7;
+    }
+
     public function getBasePath(): string
     {
         return $this->basePath;

@@ -77,6 +77,8 @@ if (function_exists('pcntl_signal')) {
 }
 
 $processed = 0;
+// Retention runs in-process (no pcntl, no cron dependency). --once never prunes.
+$lastPruneAt = time();
 
 while ($running) {
     $count = $jobService->processAll($queue, 10);
@@ -84,6 +86,14 @@ while ($running) {
 
     if ($count > 0) {
         echo date('H:i:s') . " — Processed {$count} job(s) [total: {$processed}]\n";
+    }
+
+    if (time() - $lastPruneAt >= 3600) {
+        $lastPruneAt = time();
+        $pruned = $jobService->pruneCompleted();
+        if ($pruned > 0) {
+            echo date('H:i:s') . " — Pruned {$pruned} completed job(s)\n";
+        }
     }
 
     // Sleep 2 seconds before checking again

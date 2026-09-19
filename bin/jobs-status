@@ -1,0 +1,89 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * GastroFlow Queue Status
+ *
+ * Lista os jobs que precisam de atenção: falhas permanentes e reservas expiradas
+ * (worker encerrado no meio da execução). Somente leitura — não altera nada.
+ *
+ * Uso:
+ *   php bin/jobs-status [queue]
+ *
+ * Exemplos:
+ *   php bin/jobs-status                # todas as filas
+ *   php bin/jobs-status print          # apenas a fila 'print'
+ */
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use App\Models\Job;
+use App\Services\JobService;
+use App\Settings;
+use App\Database as DB;
+use Carbon\Carbon;
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
+
+$settings = new Settings();
+DB::boot($settings);
+
+$queue = null;
+for ($i = 1; $i < $argc; $i++) {
+    if ($argv[$i][0] !== '-') {
+        $queue = $argv[$i];
+    }
+}
+
+$jobService = new JobService(null, $settings);
+$jobs = $jobService->getJobsNeedingAttention($queue);
+
+echo "=== GastroFlow — Jobs com problema ===\n";
+echo 'Queue: ' . ($queue ?? 'todas') . "\n";
+echo str_repeat('-', 100) . "\n";
+
+if ($jobs->isEmpty()) {
+    echo "✔ Nenhum job falho ou travado.\n";
+    exit(0);
+}
+
+printf("%-8s %-10s %-10s %-10s %-12s %s\n", 'ID', 'QUEUE', 'STATUS', 'TENTAT.', 'IDADE', 'ÚLTIMO ERRO');
+
+$failed = 0;
+$stale  = 0;
+
+foreach ($jobs as $job) {
+    $isStale = $job->status === Job::STATUS_RESERVED;
+    $isStale ? $stale++ : $failed++;
+
+    // Age since the event that matters: when it failed, or when it was created.
+    $reference = $job->failed_at ?? $job->created_at;
+    $age = $reference ? Carbon::parse($reference)->diffForHumans(null, true) : '—';
+
+    $error = (string) ($job->last_error ?? '');
+    if (mb_strlen($error) > 60) {
+        $error = mb_substr($error, 0, 59) . '…';
+    }
+
+    printf(
+        "%-8s %-10s %-10s %-10s %-12s %s\n",
+        '#' . $job->id,
+        $job->queue,
+        $isStale ? 'travado' : $job->status,
+        $job->attempts . '/' . $job->max_attempts,
+        $age,
+        $error !== '' ? $error : '—'
+    );
+}
+
+echo str_repeat('-', 100) . "\n";
+echo "Total: {$jobs->count()} — {$failed} com falha permanente, {$stale} com reserva expirada.\n";
+
+if ($stale > 0) {
+    echo "Reservas expiradas voltam para a fila (ou viram falha) na próxima execução do worker.\n";
+}
+
+exit(0);

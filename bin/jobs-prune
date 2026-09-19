@@ -1,0 +1,50 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * GastroFlow Queue Prune
+ *
+ * Remove jobs concluídos mais antigos que N dias. Jobs com falha NUNCA são removidos
+ * aqui — eles são o registro de diagnóstico.
+ *
+ * Uso:
+ *   php bin/jobs-prune [--days=N]
+ *
+ * Sem --days, usa QUEUE_RETENTION_DAYS (padrão: 7).
+ */
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use App\Services\JobService;
+use App\Settings;
+use App\Database as DB;
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
+
+$settings = new Settings();
+DB::boot($settings);
+
+$days = null;
+for ($i = 1; $i < $argc; $i++) {
+    if (str_starts_with($argv[$i], '--days=')) {
+        $days = (int) substr($argv[$i], 7);
+        if ($days < 1) {
+            fwrite(STDERR, "--days deve ser um inteiro maior que zero.\n");
+            exit(1);
+        }
+    }
+}
+
+$effectiveDays = $days ?? $settings->getQueueRetentionDays();
+
+$jobService = new JobService(null, $settings);
+$pruned = $jobService->pruneCompleted($days);
+
+echo "=== GastroFlow — Limpeza da fila ===\n";
+echo "Retenção: {$effectiveDays} dia(s)\n";
+echo "Jobs concluídos removidos: {$pruned}\n";
+
+exit(0);
