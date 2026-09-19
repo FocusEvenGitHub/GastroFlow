@@ -1,6 +1,6 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.7.0
+> **Current version:** v1.7.1
 > **Target:** v2.0.0
 > **Current milestone:** v1.8.0 — Reliability & Quality
 > **Edition:** GastroFlow Community
@@ -750,6 +750,16 @@ v1.7 is complete when:
 > Critical rules involving orders, money and permissions are explicit, testable and no longer depend on incidental controller or repository behavior.
 
 **Met.** Order numbering, lifecycle, pricing, money representation, historical snapshots, input validation and error-format standardization are all now explicit and covered by specs 019-029 (all `Verified`); controller/persistence-boundary cleanup and the query-performance/pagination investigation closed the milestone's remaining architectural items. See `CHANGELOG.md`'s `v1.7.0` entry.
+
+---
+
+# v1.7.1 — client work, outside the milestones
+
+**Status: Released.** Tagged `v1.7.1`, documented in `CHANGELOG.md`.
+
+Not part of any milestone above or below — client-requested features and fixes that landed on `master` between `v1.7.0` and the start of `v1.8.0`: "Monte Seu Prato" (dish assembled at the cashier from the Adicionais, priced server-side, snapshotted per order item), the kitchen side-panel *Ingredientes | Pratos* toggle, the *Pratos Principais Vendidos* report (`GET /api/admin/reports/main-dishes`), and the kitchen order-age timezone fix (specs 030-032, all `Implemented`).
+
+Numbered `v1.7.1` rather than the strict-SemVer `v1.8.0` that its `feat` commits would imply, so that `v1.8.0` stays reserved for the milestone below. Milestone numbers take precedence over the SemVer bump table for out-of-milestone work.
 
 ---
 

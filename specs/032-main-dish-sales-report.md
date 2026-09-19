@@ -7,7 +7,7 @@
 - Updated: 2026-09-13
 - Owner: Henry
 - Related issue: Not applicable (client request)
-- Related branch: master (working tree, not committed)
+- Related branch: merged to `master` via PR #1 — released in `v1.7.1`
 
 ## Context
 

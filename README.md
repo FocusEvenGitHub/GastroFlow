@@ -119,7 +119,7 @@ Full request lifecycle, the annotated project-structure tree, and the current li
 - **Specs before non-trivial code.** Features, fixes and improvements go through a spec file under [`specs/`](specs/) — problem, proposed behavior, acceptance criteria, then an implementation log and validation evidence as work happens. `specs/000-project-baseline.md` is a code-verified snapshot of the whole system, written before any feature spec.
 - **A defined lifecycle**, not just a folder of markdown: `Draft → Approved → In Progress → Implemented → Verified` (or `Cancelled`), per [`specs/README.md`](specs/README.md). `Verified` requires recorded evidence tied to acceptance criteria — it isn't granted on trust.
 - **Persistent, written project rules.** [`CLAUDE.md`](CLAUDE.md) documents the confirmed stack, the actual code layering, the commands that really exist, and explicit security rules — a checked-in artifact, not tribal knowledge.
-- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.7.0`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
+- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.7.1`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
 
 ```mermaid
 flowchart LR
@@ -198,6 +198,7 @@ Five picks that best represent how this project trades things off — full table
 - Automated tests + CI: PHPUnit smoke test + unit tests, GitHub Actions running the suite on every push/PR (see `docs/ROADMAP.md`'s Current Baseline section)
 - **`v1.6.0` — Baseline & Security**: default admin/DB credentials removed (`bin/create-admin` now required), role-based authorization (`admin`/`manager`/`cashier`/`kitchen`) enforced on `/api/admin/*`, sanitized production error responses, `.env` no longer baked into Docker images, `composer.lock` tracked for reproducible builds, `table_number` terminology corrected (it's a pickup ticket, never a physical table) — full detail in [`CHANGELOG.md`](CHANGELOG.md)
 - **`v1.7.0` — Domain & Architecture**: concurrency-safe `order_number` generation, explicit order lifecycle (`pending ⇄ done`, soft cancellation, invalid transitions rejected), `App\Money`-based exact pricing, historical order/receipt snapshots, order input validation, standardized API error format, `AdminController` split into `Settings`/`Printer`/`Log` controllers, `IngredientController` moved behind a Service+Repository, sargable date filters on reports — full detail in [`CHANGELOG.md`](CHANGELOG.md)
+- **`v1.7.1`** (client work, outside the roadmap milestones): "Monte Seu Prato" — a dish assembled at the cashier from the Adicionais, priced server-side and snapshotted per order item; kitchen side panel toggle between the ingredient summary and a per-dish count; `GET /api/admin/reports/main-dishes` + a "Pratos Principais Vendidos" report section; kitchen order-age timezone fix and highlighted item notes — full detail in [`CHANGELOG.md`](CHANGELOG.md)
 
 **In progress**
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.7.1 (2026-09-19) — Monte Seu Prato, cozinha e relatórios
+
+Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`**: montagem de prato no Caixa, ajustes na tela da Cozinha e um novo recorte de relatório. Pela tabela SemVer do `docs/COMMIT_CONVENTION.md`, commits `feat` pediriam um bump MINOR (`v1.8.0`), mas `v1.8.0` está reservado para o milestone `v1.8.0 — Reliability & Quality` — por isso esta release sai como `v1.7.1`. Desvio consciente, registrado aqui em vez de silencioso.
+
+### Novidades
+- **Monte Seu Prato**: novo item montável no Caixa a partir dos Adicionais (modal com quantidades e preço ao vivo). O preço é autoritativo no servidor (`PricingService::composedUnitPrice()` — base + Σ adicional × quantidade), cada adicional é gravado em `order_item_components` no momento da venda, aparece sob o prato no cupom impresso (`+ 2x Filé de Frango`) e é contado no resumo de ingredientes da Cozinha. Item montável não pode ser adicionado pela tela da Cozinha (spec 030)
+- **Resumo de pratos na Cozinha**: o painel lateral agora alterna entre *Ingredientes* e *Pratos* (preferência salva no navegador) — total de pratos pendentes e contagem por prato, com quebra por combinação de adicionais nos pratos montados (spec 030)
+- **Relatório de pratos principais**: nova seção *Pratos Principais Vendidos* na página de Relatórios, servida por `GET /api/admin/reports/main-dishes` (JWT + `admin`/`manager`) — total do período e quantidade, receita e participação por prato, sem o limite de 10 itens de *Itens Mais Vendidos* (spec 032)
+
+### Correções
+- **Idade do pedido na Cozinha**: `created_at` passou a expor o offset de fuso horário (`created_at_iso`) — os cards apareciam 3 h mais velhos porque o horário local do servidor era interpretado como UTC no navegador (spec 031)
+- **Observações do item**: agora destacadas em vermelho nos temas claro e escuro (spec 031)
+
+### Infraestrutura
+- **Migração `015_build_your_own_dish.sql`**: adiciona `menu_items.is_customizable`, insere o item "Monte Seu Prato" uma única vez e cria a tabela `order_item_components`. Instalações existentes precisam rodar `bin/migrate` ao atualizar; reexecutar a migração é no-op
+
 ## v1.7.0 (2026-09-07) — Domain & Architecture
 
 Fecha o milestone `v1.7.0 — Domain & Architecture` do `ROADMAP.md`: torna explícitas, previsíveis e testáveis as regras de negócio críticas de pedidos, preços e permissões, e resolve as duas últimas lacunas arquiteturais nomeadas no roadmap (responsabilidade de controllers, limites de persistência).
