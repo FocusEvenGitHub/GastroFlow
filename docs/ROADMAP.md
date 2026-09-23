@@ -893,6 +893,8 @@ completed_at
 
 Reserving without a recovery path is a classic hand-rolled-queue defect — this is precisely what this milestone's reliability objective exists to close before v2.0.
 
+**Status (spec 033)**: Verified — the known failure mode above is closed. A claim now stamps an explicit `reserved_until` deadline, and a sweep before every claim returns an expired reservation to the queue (or marks it `failed` when no attempt remains), without refunding the attempt already consumed, so a job that reliably kills its worker cannot loop forever. `status` (`pending`/`reserved`/`completed`/`failed`), `last_error`, `failed_at` and `completed_at` were added by migration `016`; successful jobs are no longer deleted, and are pruned by retention instead (`QUEUE_RETENTION_DAYS`, default 7). `bin/jobs-status` gives the operator-visible signal this item asked for, and job failures now reach `logs/app.log` via Monolog — so they appear in the Admin log viewer, which the previous `error_log()` call never did. Two corrections to this item's own wording: **atomic claiming was already satisfied** before the spec (`DB::transaction` + `lockForUpdate()`), so no work was needed there; and **idempotency where critical is explicitly not done** — it is deferred to `v2.1.0`'s fiscal issuance job, which carries its own duplicate-prevention acceptance criteria, since reprinting a ticket twice is cosmetic while issuing an NFC-e twice is not. Also still open: concurrent claiming by two workers remains untested, because `lockForUpdate()` is a no-op under the SQLite used by the unit suite — that belongs to this milestone's "Integration tests" item.
+
 ---
 
 ## Printing reliability

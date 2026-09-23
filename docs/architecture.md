@@ -90,7 +90,22 @@ The kitchen's "real-time" update is a signal file, not a message queue: `OrderSe
 
 ## Background jobs and printing
 
-`PrintService` builds an ESC/POS receipt (header, items, packaging labels, total, footer) via `mike42/escpos-php` over `NetworkPrintConnector`. Printing is dispatched asynchronously: `src/Jobs/PrintOrderJob.php` + `src/Services/JobService.php` write to a DB-backed `jobs` table (migration `common/migrations/007_jobs.sql`), processed by the long-running `bin/worker` CLI script — not started by `docker compose up -d` alone, it must be supervised separately. Print failures are logged via Monolog but intentionally never thrown: a receipt failing to print should not fail the order.
+`PrintService` builds an ESC/POS receipt (header, items, packaging labels, total, footer) via `mike42/escpos-php` over `NetworkPrintConnector`. Printing is dispatched asynchronously: `src/Jobs/PrintOrderJob.php` + `src/Services/JobService.php` write to a DB-backed `jobs` table (migrations `common/migrations/007_jobs.sql` and `016_job_reliability.sql`), processed by the long-running `bin/worker` CLI script, which runs as the `print-worker` service in `docker-compose.yml` (added by spec 008). A print failure propagates out of `PrintService` so the queue can retry it, but never fails the order itself — order creation and printing are decoupled.
+
+**Job state machine** (spec 033). `jobs.status` is the explicit state; every value is reachable by a real code path:
+
+```text
+pending ──claim──> reserved ──success──> completed ──prune (7d)──> deleted
+   ^                   │
+   │                   ├──throw, attempts < max──> pending (backoff 2^attempts)
+   │                   ├──throw, attempts = max──> failed
+   └──reservation expired, attempts left──┘
+                       └──reservation expired, no attempts left──> failed
+```
+
+Claiming is atomic (`DB::transaction` + `lockForUpdate()`), and a claim stamps `reserved_until = now + QUEUE_RESERVATION_TIMEOUT` (default 300s). Before each claim, `reclaimStaleReservations()` recovers jobs whose `reserved_until` has passed — this is what stops a worker that dies mid-job from leaving a row claimed forever. The attempt consumed at claim time is never refunded, so a job that reliably kills its worker exhausts `max_attempts` instead of looping.
+
+Successful jobs are kept as history (`completed_at`) and pruned after `QUEUE_RETENTION_DAYS` (default 7) by the worker hourly or by `bin/jobs-prune`. Failed jobs are never pruned automatically — they carry `last_error` and `failed_at` as the diagnostic record, and `bin/jobs-status [queue]` lists them alongside any expired reservations. Job failures are logged through Monolog to `logs/app.log`, so they appear in the Admin log viewer.
 
 ## Persistence
 

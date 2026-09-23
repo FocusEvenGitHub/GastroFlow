@@ -22,6 +22,8 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - `bin/migrate` — apply pending SQL migrations.
 - `bin/create-admin <username>` — create an administrator (prompts for a password, minimum 8 characters; no default credentials are seeded).
 - `bin/worker [--once] [queue]` — process the DB-backed job queue (e.g. print jobs).
+- `bin/jobs-status [queue]` — list jobs needing attention (permanent failures + expired reservations). Read-only.
+- `bin/jobs-prune [--days=N]` — delete completed jobs older than N days (default `QUEUE_RETENTION_DAYS`, 7). Never removes failed jobs.
 - `composer start` — `php -S 0.0.0.0:80 -t public` (only script in `composer.json`).
 - `docker compose exec web vendor/bin/phpunit` — run the PHPUnit suite (`phpunit.xml`, `tests/Smoke` + `tests/Unit`). No `composer test` alias exists — use the `vendor/bin/phpunit` invocation directly.
 - GitHub Actions (`.github/workflows/ci.yml`) runs this same suite against a real MySQL 8.0 service on every push/PR to `master`.
