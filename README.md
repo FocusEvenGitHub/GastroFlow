@@ -200,13 +200,13 @@ Five picks that best represent how this project trades things off — full table
 - **`v1.7.0` — Domain & Architecture**: concurrency-safe `order_number` generation, explicit order lifecycle (`pending ⇄ done`, soft cancellation, invalid transitions rejected), `App\Money`-based exact pricing, historical order/receipt snapshots, order input validation, standardized API error format, `AdminController` split into `Settings`/`Printer`/`Log` controllers, `IngredientController` moved behind a Service+Repository, sargable date filters on reports — full detail in [`CHANGELOG.md`](CHANGELOG.md)
 - **`v1.7.1`** (client work, outside the roadmap milestones): "Monte Seu Prato" — a dish assembled at the cashier from the Adicionais, priced server-side and snapshotted per order item; kitchen side panel toggle between the ingredient summary and a per-dish count; `GET /api/admin/reports/main-dishes` + a "Pratos Principais Vendidos" report section; kitchen order-age timezone fix and highlighted item notes — full detail in [`CHANGELOG.md`](CHANGELOG.md)
 
-**In progress**
+**In progress** (`docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality`, first item)
 
-- Nothing right now — the working tree is clean. What follows is queued next, not started.
+- **Job-queue reliability** (spec 033, branch `033`, not yet merged): a worker that died mid-job used to leave the job reserved forever, never retried and invisible; reservations now carry a deadline and are swept back into the queue, jobs have an explicit `status`/`last_error`/`failed_at`/`completed_at`, completed jobs are kept and pruned by retention, and `bin/jobs-status` plus Monolog logging give the operator a way to see failures
 
-**Next up** (`docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality`)
+**Next up** (same milestone)
 
-- Static analysis (PHPStan) and code style tooling, integration/E2E tests, job-queue reliability (atomic claiming, stale-reservation recovery, failed-state tracking), printing/realtime reliability, structured logging, health checks, backup & restore
+- Static analysis (PHPStan) and code style tooling, integration/E2E tests (including the two-worker concurrency case the unit suite can't cover), printing/realtime reliability, structured logging, health checks, backup & restore
 
 **Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
 
