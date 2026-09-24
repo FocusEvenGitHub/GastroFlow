@@ -18,9 +18,9 @@ class Order extends Model
         'status' => 'string',
     ];
 
-    const STATUS_PENDING = 'pending';
-    const STATUS_DONE = 'done';
-    const STATUS_CANCELLED = 'cancelled'; // terminal — no transition leads out of it (spec 020)
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_DONE = 'done';
+    public const STATUS_CANCELLED = 'cancelled'; // terminal — no transition leads out of it (spec 020)
 
     public function items()
     {

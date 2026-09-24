@@ -10,7 +10,7 @@ class Job extends Model
 {
     protected $table = 'jobs';
 
-    const UPDATED_AT = null;
+    public const UPDATED_AT = null;
 
     public const STATUS_PENDING   = 'pending';
     public const STATUS_RESERVED  = 'reserved';

@@ -12,7 +12,8 @@ class ReportController
 {
     public function __construct(
         private readonly ReportService $reportService
-    ) {}
+    ) {
+    }
 
     public function sales(Request $request, Response $response): Response
     {

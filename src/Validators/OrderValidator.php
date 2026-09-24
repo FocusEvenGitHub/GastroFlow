@@ -35,15 +35,27 @@ class OrderValidator
         // OrderRepository::createOrder() — that's DB state, not input shape
         // (CLAUDE.md: "Validators validate input shape. Services enforce
         // business rules.") — spec 022.
-        $this->v->rule(function($field, $value, $params, $fields) {
-            if (!is_array($value) || count($value) === 0) return false;
+        $this->v->rule(function ($field, $value, $params, $fields) {
+            if (!is_array($value) || count($value) === 0) {
+                return false;
+            }
             foreach ($value as $item) {
-                if (!isset($item['id'], $item['quantity'])) return false;
-                if (!is_numeric($item['id'])) return false;
-                if (!is_numeric($item['quantity'])) return false;
+                if (!isset($item['id'], $item['quantity'])) {
+                    return false;
+                }
+                if (!is_numeric($item['id'])) {
+                    return false;
+                }
+                if (!is_numeric($item['quantity'])) {
+                    return false;
+                }
                 $quantity = $item['quantity'];
-                if ((int) $quantity != $quantity) return false; // must be an integer value
-                if ((int) $quantity < 1 || (int) $quantity > self::MAX_ITEM_QUANTITY) return false;
+                if ((int) $quantity != $quantity) {
+                    return false;
+                } // must be an integer value
+                if ((int) $quantity < 1 || (int) $quantity > self::MAX_ITEM_QUANTITY) {
+                    return false;
+                }
                 if (isset($item['dining_option']) && !in_array($item['dining_option'], self::DINING_OPTIONS, true)) {
                     return false;
                 }
@@ -114,13 +126,23 @@ class OrderValidator
      */
     private function validComponentsShape(mixed $components): bool
     {
-        if (!is_array($components) || count($components) > self::MAX_COMPONENTS) return false;
+        if (!is_array($components) || count($components) > self::MAX_COMPONENTS) {
+            return false;
+        }
         foreach ($components as $component) {
-            if (!is_array($component) || !isset($component['id'], $component['quantity'])) return false;
-            if (!is_numeric($component['id']) || !is_numeric($component['quantity'])) return false;
+            if (!is_array($component) || !isset($component['id'], $component['quantity'])) {
+                return false;
+            }
+            if (!is_numeric($component['id']) || !is_numeric($component['quantity'])) {
+                return false;
+            }
             $quantity = $component['quantity'];
-            if ((int) $quantity != $quantity) return false;
-            if ((int) $quantity < 1 || (int) $quantity > self::MAX_COMPONENT_QUANTITY) return false;
+            if ((int) $quantity != $quantity) {
+                return false;
+            }
+            if ((int) $quantity < 1 || (int) $quantity > self::MAX_COMPONENT_QUANTITY) {
+                return false;
+            }
         }
         return true;
     }

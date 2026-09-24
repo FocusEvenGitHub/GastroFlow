@@ -98,7 +98,9 @@ while ($running) {
 
     // Sleep 2 seconds before checking again
     for ($i = 0; $i < 20; $i++) {
-        if (!$running) break 2;
+        if (!$running) {
+            break 2;
+        }
         usleep(100000); // 100ms
     }
 }

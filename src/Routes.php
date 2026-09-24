@@ -77,13 +77,13 @@ class Routes
             $group->post('/settings/logo', [SettingsController::class, 'uploadLogo'])->add($adminOnly());
             $group->get('/logs', [LogController::class, 'getLogs'])->add($adminOnly());
             $group->post('/settings/test-print', [PrinterController::class, 'testPrint'])->add($adminOnly());
-            $group->get('/reports/sales',          [ReportController::class, 'sales'])->add($adminOrManager());
-            $group->get('/reports/top-items',      [ReportController::class, 'topItems'])->add($adminOrManager());
-            $group->get('/reports/main-dishes',    [ReportController::class, 'mainDishes'])->add($adminOrManager());
+            $group->get('/reports/sales', [ReportController::class, 'sales'])->add($adminOrManager());
+            $group->get('/reports/top-items', [ReportController::class, 'topItems'])->add($adminOrManager());
+            $group->get('/reports/main-dishes', [ReportController::class, 'mainDishes'])->add($adminOrManager());
             $group->get('/reports/dining-options', [ReportController::class, 'diningOptions'])->add($adminOrManager());
-            $group->get('/reports/summary',        [ReportController::class, 'summary'])->add($adminOrManager());
-            $group->get('/reports/peak-hours',     [ReportController::class, 'peakHours'])->add($adminOrManager());
-            $group->get('/reports/prep-time',      [ReportController::class, 'prepTime'])->add($adminOrManager());
+            $group->get('/reports/summary', [ReportController::class, 'summary'])->add($adminOrManager());
+            $group->get('/reports/peak-hours', [ReportController::class, 'peakHours'])->add($adminOrManager());
+            $group->get('/reports/prep-time', [ReportController::class, 'prepTime'])->add($adminOrManager());
             $group->get('/reports/month-comparison', [ReportController::class, 'monthlyComparison'])->add($adminOrManager());
         })->add($jwt);
     }

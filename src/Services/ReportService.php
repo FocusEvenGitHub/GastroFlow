@@ -43,7 +43,7 @@ class ReportService
         $names = OrderItem::whereIn('id', array_column($rows, 'last_item_id'))->pluck('item_name', 'id');
 
         $totalQty = (int) array_sum(array_column($rows, 'total_qty'));
-        $items = array_map(fn($r) => [
+        $items = array_map(fn ($r) => [
             'menu_item_id'  => (int) $r['menu_item_id'],
             'name'          => (string) ($names[$r['last_item_id']] ?? ''),
             'total_qty'     => (int) $r['total_qty'],
@@ -51,7 +51,7 @@ class ReportService
             'share'         => $totalQty > 0 ? round((int) $r['total_qty'] / $totalQty * 100, 1) : 0.0,
         ], $rows);
 
-        usort($items, fn($a, $b) => [$b['total_qty'], $a['name']] <=> [$a['total_qty'], $b['name']]);
+        usort($items, fn ($a, $b) => [$b['total_qty'], $a['name']] <=> [$a['total_qty'], $b['name']]);
 
         return [
             'total_qty'     => $totalQty,
@@ -85,7 +85,7 @@ class ReportService
             ->toArray();
 
         // Cast numeric fields
-        return array_map(fn($r) => [
+        return array_map(fn ($r) => [
             'date'       => $r['date'],
             'orders'     => (int) $r['orders'],
             'revenue'    => (float) $r['revenue'],
@@ -131,7 +131,7 @@ class ReportService
             ->get()
             ->toArray();
 
-        return array_map(fn($r) => [
+        return array_map(fn ($r) => [
             'name'          => $r['name'],
             'total_qty'     => (int) $r['total_qty'],
             'total_revenue' => (float) $r['total_revenue'],
@@ -158,7 +158,7 @@ class ReportService
             ->get()
             ->toArray();
 
-        return array_map(fn($r) => [
+        return array_map(fn ($r) => [
             'dining_option'  => $r['dining_option'],
             'total_qty'      => (int) $r['total_qty'],
             'total_packaging' => (float) $r['total_packaging'],
@@ -232,7 +232,7 @@ class ReportService
 
         return [
             'avg_minutes' => $overallAvg,
-            'by_day'      => array_map(fn($r) => [
+            'by_day'      => array_map(fn ($r) => [
                 'date'        => $r['date'],
                 'avg_minutes' => round((float) $r['avg_minutes'], 1),
                 'orders'      => (int) $r['orders'],

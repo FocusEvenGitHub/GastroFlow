@@ -10,7 +10,7 @@ class Database
 {
     public static function boot(Settings $settings): void
     {
-        $capsule = new Capsule;
+        $capsule = new Capsule();
         $capsule->addConnection([
             'driver'    => 'mysql',
             'host'      => $settings->get('DB_HOST', 'db'),

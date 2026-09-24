@@ -30,7 +30,7 @@ class MenuRepository
                     'is_customizable' => (bool) $item->is_customizable,
                     'category_name' => $catName,
                     'components'    => $item->relationLoaded('components')
-                        ? $item->components->map(fn($c) => [
+                        ? $item->components->map(fn ($c) => [
                             'id'       => $c->id,
                             'name'     => $c->name,
                             'quantity' => $c->pivot->quantity,
@@ -96,7 +96,7 @@ class MenuRepository
     public function getDishComponents(int $dishId): array
     {
         $dish = MenuItem::with('components')->findOrFail($dishId);
-        return $dish->components->map(fn($c) => [
+        return $dish->components->map(fn ($c) => [
             'id'       => $c->id,
             'name'     => $c->name,
             'quantity' => $c->pivot->quantity,

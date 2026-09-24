@@ -247,7 +247,9 @@ class PrintService
             // Build line with padding
             $itemLine = $qty . 'x ' . $lineName;
             $padding = 32 - mb_strlen($itemLine) - mb_strlen($priceStr);
-            if ($padding < 1) $padding = 1;
+            if ($padding < 1) {
+                $padding = 1;
+            }
             $itemLine .= str_repeat(' ', $padding) . $priceStr;
 
             $printer->text($itemLine . "\n");

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers;
@@ -21,7 +22,7 @@ class DishController
             return ApiResponse::error($response, 404, 'DISH_NOT_FOUND', 'Dish not found.');
         }
         $data = $dish->toArray();
-        $data['ingredients'] = $dish->ingredients->map(fn($i) => [
+        $data['ingredients'] = $dish->ingredients->map(fn ($i) => [
             'ingredient_id' => $i->id,
             'name' => $i->name,
             'unit' => $i->unit,
