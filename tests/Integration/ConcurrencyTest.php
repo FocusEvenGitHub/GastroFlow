@@ -134,33 +134,19 @@ class ConcurrencyTest extends IntegrationTestCase
             'At most one worker may report a successful claim'
         );
 
-        // The defect below surfaces two ways: the worker dies with the deadlock on stderr,
-        // or — worse — processNext()'s catch swallows it and re-queues the job with the
-        // deadlock recorded in last_error. Check both, because the silent path leaves
-        // stderr empty and would otherwise look like an ordinary assertion failure.
-        $deadlockInRow = $fresh->last_error !== null
-            && (str_contains((string) $fresh->last_error, '1213')
-                || str_contains((string) $fresh->last_error, '40001'));
-
-        if ($this->hasDeadlock($results) || $deadlockInRow) {
-            $this->markTestIncomplete(
-                'KNOWN DEFECT, found by this test — JobService has no deadlock handling. '
-                . 'Under contention MySQL raises 1213/40001 on the UPDATE that marks '
-                . 'status=completed, i.e. AFTER the handler already did its work. '
-                . "processNext()'s catch treats that as a job failure and re-queues the job, "
-                . 'silently, with the deadlock left in last_error. The work is then done twice: '
-                . 'for print a duplicate ticket, and for the v2.1.0 fiscal job it would be a '
-                . 'duplicate NFC-e — the legal incident the roadmap warns about. '
-                . 'Observed status=' . $fresh->status . ', last_error=' . $fresh->last_error . '. '
-                . 'Fixing it is out of scope here (spec 035 changes no application code) and '
-                . 'needs its own spec.'
-            );
-        }
+        // Spec 037 regression: the job must never be back on the queue after its handler ran.
+        // Before that fix, a deadlock on the completion UPDATE silently re-queued it here.
+        $this->assertNotSame(
+            Job::STATUS_PENDING,
+            $fresh->status,
+            'A job whose handler already ran must never return to pending — '
+            . 'that is the duplicate-work defect. last_error=' . $fresh->last_error
+        );
 
         $this->assertSame(
             Job::STATUS_COMPLETED,
             $fresh->status,
-            'The single winner ran the handler to completion'
+            'The single winner ran the handler to completion. last_error=' . $fresh->last_error
         );
     }
 
