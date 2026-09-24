@@ -25,7 +25,8 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - `bin/jobs-status [queue]` — list jobs needing attention (permanent failures + expired reservations). Read-only.
 - `bin/jobs-prune [--days=N]` — delete completed jobs older than N days (default `QUEUE_RETENTION_DAYS`, 7). Never removes failed jobs.
 - `composer start` — `php -S 0.0.0.0:80 -t public` (only script in `composer.json`).
-- `docker compose exec web vendor/bin/phpunit` — run the PHPUnit suite (`phpunit.xml`, `tests/Smoke` + `tests/Unit`). No `composer test` alias exists — use the `vendor/bin/phpunit` invocation directly.
+- `docker compose exec web vendor/bin/phpunit` — run the PHPUnit suite (`phpunit.xml`: `tests/Smoke`, `tests/Unit`, `tests/Integration`). No `composer test` alias exists — use the `vendor/bin/phpunit` invocation directly.
+- `docker compose exec -e MYSQL_DATABASE_TEST=restaurant_test web vendor/bin/phpunit --testsuite Integration` — the MySQL-backed integration suite (spec 035). **Without `MYSQL_DATABASE_TEST` these tests skip themselves**, and if it equals `MYSQL_DATABASE` they fail on purpose — they write real rows and must never touch the development database. One-time setup: `CREATE DATABASE restaurant_test` plus a `GRANT` for `MYSQL_USER` (the app user cannot create databases).
 - GitHub Actions (`.github/workflows/ci.yml`) runs this same suite against a real MySQL 8.0 service on every push/PR to `master`.
 - `docker compose exec web vendor/bin/phpstan analyse` — static analysis (PHPStan level 5, config `phpstan.neon`, pre-existing findings frozen in `phpstan-baseline.neon`). Added by spec 034.
 - `docker compose exec web vendor/bin/php-cs-fixer fix --dry-run --diff` — check code style (PSR-12, config `.php-cs-fixer.dist.php`); drop `--dry-run --diff` to apply. Added by spec 034.
