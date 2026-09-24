@@ -96,6 +96,68 @@ class PrintServiceTest extends TestCase
         return $logger;
     }
 
+    /**
+     * Spec 038, AC1 — an unconfigured printer used to return normally here, so JobService
+     * marked the job completed and the order was recorded as printed with nothing printed.
+     */
+    public function testUnconfiguredPrinterFailsInsteadOfSilentlySucceeding(): void
+    {
+        Setting::setValue('printer_ip', '');
+
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService(), function () {
+            throw new \LogicException('O conector não deve ser criado sem IP configurado');
+        });
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage(PrintService::ERROR_NO_IP);
+
+        $service->printOrder($this->makeOrder());
+    }
+
+    /** Spec 038 — both print paths must answer an unconfigured printer the same way. */
+    public function testTestPageAndOrderPrintAgreeOnTheUnconfiguredMessage(): void
+    {
+        Setting::setValue('printer_ip', '');
+
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService());
+
+        $orderMessage = null;
+        try {
+            $service->printOrder($this->makeOrder());
+        } catch (\Throwable $e) {
+            $orderMessage = $e->getMessage();
+        }
+
+        $testMessage = null;
+        try {
+            $service->printTestPage();
+        } catch (\Throwable $e) {
+            $testMessage = $e->getMessage();
+        }
+
+        $this->assertSame(PrintService::ERROR_NO_IP, $orderMessage);
+        $this->assertSame($orderMessage, $testMessage, 'The two paths disagreed before spec 038');
+    }
+
+    public function testConfiguredAddressIsNullWhenNoIpIsSet(): void
+    {
+        Setting::setValue('printer_ip', '');
+
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService());
+
+        $this->assertNull($service->getConfiguredAddress());
+    }
+
+    public function testConfiguredAddressCombinesIpAndPort(): void
+    {
+        Setting::setValue('printer_ip', '10.0.0.5');
+        Setting::setValue('printer_port', '9100');
+
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService());
+
+        $this->assertSame('10.0.0.5:9100', $service->getConfiguredAddress());
+    }
+
     public function testConnectionFailurePropagatesToCaller(): void
     {
         $service = new PrintService($this->makeLogger(), new Settings(), new PricingService(), function () {

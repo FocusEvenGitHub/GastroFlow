@@ -383,7 +383,11 @@ function kitchenApp() {
                 const res = await fetch(`/api/orders/${orderId}/print`, { method: 'POST' });
                 const data = await res.json();
                 if (!res.ok || data.error) throw new Error(data.error || 'Erro ao reimprimir');
-                this.showMessage(`Pedido #${orderId} enviado para impressão!`, 'success');
+                // O endpoint só enfileira — ele retorna antes de qualquer byte chegar na
+                // impressora. Dizer "impresso" aqui era afirmar o que não se sabe: com a
+                // impressora fora do ar o operador via sucesso e nada nunca o corrigia.
+                // Falhas aparecem no visualizador de Logs do Admin e em bin/jobs-status (spec 038).
+                this.showMessage(`Pedido #${orderId} na fila de impressão`, 'info');
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {

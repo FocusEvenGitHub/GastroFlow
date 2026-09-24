@@ -15,6 +15,13 @@ use App\Settings;
 
 class PrintService
 {
+    /**
+     * Shared so printOrder() and printTestPage() answer an unconfigured printer with the
+     * same message — they used to disagree, one throwing and one silently returning
+     * (spec 038). Operator-facing, so Portuguese, per CLAUDE.md's language split.
+     */
+    public const ERROR_NO_IP = 'IP da impressora não configurado.';
+
     /** @var callable|null */
     private $connectorFactory;
 
@@ -47,6 +54,23 @@ class PrintService
     /**
      * Get printer connection settings.
      */
+    /**
+     * The configured printer as "ip:port", or null when no IP is set.
+     *
+     * Exposed so a controller can name the address in an operator-facing error without
+     * reaching into the raw exception message, which may carry internals (spec 038).
+     */
+    public function getConfiguredAddress(): ?string
+    {
+        $config = $this->getPrinterConfig();
+
+        if (empty($config['ip'])) {
+            return null;
+        }
+
+        return $config['ip'] . ':' . $config['port'];
+    }
+
     private function getPrinterConfig(): array
     {
         return [
@@ -70,9 +94,14 @@ class PrintService
 
         $ctx = $this->labelContext($context, $config);
 
+        // Returning here used to mark the job 'completed', so an order was recorded as
+        // printed when nothing was printed and bin/jobs-status showed nothing wrong.
+        // A ticket was asked for and not produced: that is a failure (spec 038). A
+        // restaurant deliberately running without a printer sends print_ticket=false,
+        // which never enqueues a job at all.
         if (empty($config['ip'])) {
-            $this->logger->warning('Impressão cancelada: IP da impressora não configurado.');
-            return;
+            $this->logger->error('Print failed' . $ctx . ' order=' . $order->id . ' ' . self::ERROR_NO_IP);
+            throw new \RuntimeException(self::ERROR_NO_IP);
         }
 
         try {
@@ -112,7 +141,7 @@ class PrintService
         $config = $this->getPrinterConfig();
 
         if (empty($config['ip'])) {
-            throw new \RuntimeException('IP da impressora não configurado.');
+            throw new \RuntimeException(self::ERROR_NO_IP);
         }
 
         $connector = $this->makeConnector($config['ip'], $config['port']);

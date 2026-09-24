@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use App\ApiResponse;
 use App\Services\PrintService;
 
 class PrinterController
@@ -21,9 +22,50 @@ class PrinterController
      */
     public function testPrint(Request $request, Response $response): Response
     {
-        $this->printService->printTestPage();
+        try {
+            $this->printService->printTestPage();
+        } catch (\Throwable $e) {
+            // Without this, the exception reached App.php's global handler as a 500 and, under
+            // APP_ENV=production, spec 012 sanitised it to "Erro interno do servidor" — so the
+            // one screen built to diagnose the printer could not say what was wrong with it
+            // (spec 038). 503: a dependency is unavailable, not a bad request or a server bug.
+            return ApiResponse::error(
+                $response,
+                503,
+                'PRINTER_UNAVAILABLE',
+                $this->describePrinterFailure($e)
+            );
+        }
+
         $payload = ['success' => true, 'message' => 'Teste enviado para a impressora.'];
         $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Turn a printing failure into something an operator can act on.
+     *
+     * Deliberately built from known facts rather than echoing the exception: the raw message
+     * can carry file paths and class names, and this response is intentionally more
+     * informative than the production error sanitiser would allow.
+     */
+    private function describePrinterFailure(\Throwable $e): string
+    {
+        if ($e->getMessage() === PrintService::ERROR_NO_IP) {
+            return PrintService::ERROR_NO_IP
+                . ' Defina o IP em Configurações antes de testar a impressão.';
+        }
+
+        $address = $this->printService->getConfiguredAddress();
+
+        if ($address === null) {
+            return PrintService::ERROR_NO_IP
+                . ' Defina o IP em Configurações antes de testar a impressão.';
+        }
+
+        return sprintf(
+            'Não foi possível imprimir em %s. Verifique se a impressora está ligada e na mesma rede.',
+            $address
+        );
     }
 }
