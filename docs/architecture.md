@@ -103,9 +103,17 @@ pending ──claim──> reserved ──success──> completed ──prune (
                        └──reservation expired, no attempts left──> failed
 ```
 
-Claiming is atomic (`DB::transaction` + `lockForUpdate()`), and a claim stamps `reserved_until = now + QUEUE_RESERVATION_TIMEOUT` (default 300s). Before each claim, `reclaimStaleReservations()` recovers jobs whose `reserved_until` has passed — this is what stops a worker that dies mid-job from leaving a row claimed forever. The attempt consumed at claim time is never refunded, so a job that reliably kills its worker exhausts `max_attempts` instead of looping.
+Claiming is atomic (`DB::transaction` + `lockForUpdate()`), and a claim stamps `reserved_until = now + QUEUE_RESERVATION_TIMEOUT` (default 300s). `reclaimStaleReservations()` recovers jobs whose `reserved_until` has passed — this is what stops a worker that dies mid-job from leaving a row claimed forever. The attempt consumed at claim time is never refunded, so a job that reliably kills its worker exhausts `max_attempts` instead of looping. The sweep runs at most once every 10s per process rather than on every claim (spec 037): its two unbounded `UPDATE`s over the same index ranges concurrent claims lock were **measured** to be what produced MySQL deadlocks under contention.
+
+**`processNext()` runs in two phases** (spec 037), and the split is the point. Phase 1 runs the handler; a failure there is the job's failure and takes the retry/backoff path. Phase 2 records the result and **can never return the job to `pending`** — before this, a deadlock on the completion `UPDATE` (i.e. *after* the handler had already done its work) was caught by the same `catch` and re-queued the job, so the work was done twice. If the result cannot be recorded even after deadlock-aware retries, the job is parked in `failed` with a `last_error` saying the handler already ran. The queue therefore guarantees **at-most-once dispatch**, not exactly-once printing.
 
 Successful jobs are kept as history (`completed_at`) and pruned after `QUEUE_RETENTION_DAYS` (default 7) by the worker hourly or by `bin/jobs-prune`. Failed jobs are never pruned automatically — they carry `last_error` and `failed_at` as the diagnostic record, and `bin/jobs-status [queue]` lists them alongside any expired reservations. Job failures are logged through Monolog to `logs/app.log`, so they appear in the Admin log viewer.
+
+**Printer failure handling** (specs 038, 039). An unconfigured `printer_ip` makes `printOrder()` throw, like `printTestPage()` already did — it used to return silently, which marked the job `completed` and recorded an order as printed when nothing was. `POST /api/admin/settings/test-print` answers a printing failure with `503 PRINTER_UNAVAILABLE` and a message built from known facts (the configured address, or "IP not configured"), never echoed from the exception, which can carry vendor paths.
+
+Three **permanently failed** print jobs in a row block printing globally. The counter lives in `settings` rather than being derived from the `jobs` table, because `bin/jobs-prune` deletes completed rows and keeps failed ones — after retention, a real `fail, fail, success, fail` sequence would read as three consecutive failures that never happened. Blocking is enforced **server-side** in `OrderService` (`createOrder()` and `printOrder()` skip the dispatch), not only in the UI, so an API client cannot keep piling up doomed jobs. **The order is still created and still returns `201`**: the roadmap's rule that a printer failure must never invalidate an order takes precedence over the block. Reactivation is manual, through `POST /api/printer/reset`, and touches no job.
+
+The kitchen and cashier screens poll `GET /api/printer/status` every 15s. Polling rather than SSE because the print worker runs in a **separate container** and the SSE mechanism below is a file in each container's own `sys_get_temp_dir()` — a failure emitted by the worker is invisible to the container serving the stream. The `jobs` table is the only state both see. Both endpoints are public for the same reason `/api/orders*` is (spec 018): neither screen has a login.
 
 ## Persistence
 
@@ -147,6 +155,8 @@ GastroFlow
 Named, not hidden — tracked in `specs/000-project-baseline.md` and `docs/ROADMAP.md`:
 
 - CORS defaults to `*` when `CORS_ALLOWED_ORIGIN` is unset; configurable per spec 001, but the permissive default is still an open gap (`docs/ROADMAP.md`'s `v1.6.0 — Baseline & Security` phase doesn't yet name a fix for the default itself).
-- No lint/static-analysis tooling (`docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality` phase: "Static analysis", "Code style"). The hardcoded JWT-secret fallback and the lack of a test suite/CI pipeline, both previously listed here, were fixed by specs 002, 004 and 005 (`v1.5.6`).
+- ~~No lint/static-analysis tooling~~ — closed by spec 034: PHPStan level 5 (`phpstan.neon`, findings frozen in `phpstan-baseline.neon`) and PHP-CS-Fixer (PSR-12, `.php-cs-fixer.dist.php`), both gating CI. The hardcoded JWT-secret fallback and the lack of a test suite/CI pipeline, also previously listed here, were fixed by specs 002, 004 and 005 (`v1.5.6`).
+- Concurrency between two workers is exercised by `tests/Integration/ConcurrencyTest.php` against real MySQL (spec 035), but the race is **not deterministic** — a green run proves it did not happen that time, not that it cannot.
+- The frontend has **no automated test coverage**. The browser check that found the Bootstrap/Alpine defect in spec 039 ran from a temporary directory and is not versioned.
 - Migrations are forward-only; no rollback mechanism.
 - Signal-file SSE and the DB-backed job queue both assume a single app instance.

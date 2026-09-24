@@ -128,7 +128,7 @@ Behind `JwtMiddleware` (`/api/admin/*`):
 - `bin/migrate` — runs pending `common/migrations/*.sql` via `MigrationRunner`.
 - `bin/worker [--once] [queue]` — processes the `jobs` table (e.g. print jobs); handles `SIGINT`/`SIGTERM`.
 - `composer start` — `php -S 0.0.0.0:80 -t public` (the only script in `composer.json`).
-- **No test or lint command exists** in `composer.json` — see Limitations below.
+- ~~**No test or lint command exists** in `composer.json`~~ — **corrected 2026-09-24**: `composer.json` now defines `analyse`, `style` and `style:fix` (spec 034), and the suites run through `vendor/bin/phpunit` (`tests/Smoke`, `tests/Unit`, `tests/Integration`).
 
 ## Proposed behavior
 
@@ -140,7 +140,7 @@ Not applicable in the feature-spec sense — the confirmed functional behavior i
 
 ## Non-functional requirements
 
-Not applicable as a forward-looking requirement list. Confirmed gaps relevant to non-functional quality at the time this baseline was written: no automated tests, no static analysis/lint tooling, and one confirmed hardcoded-secret fallback (see Security considerations). **Corrected 2026-09-03**: the hardcoded-secret fallback and the lack of automated tests were both fixed since (specs 002, 004, 005); no static analysis/lint tooling remains the one still-open gap.
+Not applicable as a forward-looking requirement list. Confirmed gaps relevant to non-functional quality at the time this baseline was written: no automated tests, no static analysis/lint tooling, and one confirmed hardcoded-secret fallback (see Security considerations). **Corrected 2026-09-03**: the hardcoded-secret fallback and the lack of automated tests were both fixed since (specs 002, 004, 005). **Corrected 2026-09-24**: static analysis and lint tooling were added by spec 034 (PHPStan level 5 + PHP-CS-Fixer, both gating CI), so none of the three gaps named here remains open.
 
 ## User flows
 
@@ -199,6 +199,7 @@ Not applicable — this is a documentation snapshot, not a unit of implementatio
 ## Implementation log
 
 - 2026-08-05 — Initial baseline written by direct investigation: full reads of `README.md`, `composer.json`, `COMMIT_CONVENTION.md`, `.gitignore`, `docker-compose.yml`, `Dockerfile`, `src/Routes.php`, `src/App.php`, `src/Database.php`, `src/Settings.php`, `common/config.php`, `common/db.php`, `src/Controllers/AuthController.php`, `public/.htaccess`, `public/cashier/index.php`, `common/sql/001_schema.sql` (grep for seed data); repo-wide greps for `common/config`/`common/db` usage and for `$table`/`$fillable` across `src/Models/`; `git status`, `git log`, `git ls-files`, and `git check-ignore -v composer.lock` to confirm tracked/untracked state. No containers were started and no database was queried — all findings are static-code confirmations.
+- 2026-09-24 (spec 039's doc pass) — Corrected two stale claims measured against the repository, not assumed: "No test or lint command exists in composer.json" (spec 034 added `analyse`/`style`/`style:fix`) and "no static analysis/lint tooling remains the one still-open gap" (closed by the same spec). The audit that found them also showed this baseline mentioned **none** of specs 033-039 and `docs/architecture.md` mentioned only one of the seven — the gap was never a missing document, it was documents nobody was updating. `CLAUDE.md` now makes the doc pass part of finishing a spec, alongside the changelog rule.
 - 2026-09-03 (spec 006) — Corrected three stale claims left over from this baseline's original snapshot, confirmed against the current `src/Routes.php:22` (reads `$_ENV['JWT_SECRET'] ?? throw new \RuntimeException(...)`, no hardcoded fallback): the Authentication paragraph, the Security considerations bullet, and the Non-functional requirements sentence all previously asserted a hardcoded JWT-secret fallback that was actually removed by spec 002 and shipped in `v1.5.6`. Corrected in place with dated notes rather than silently rewritten, per this baseline's own "confirmed in code" discipline. The Non-functional requirements sentence's "no automated tests" claim was also corrected (specs 004/005 added PHPUnit + CI) since it was adjacent to the same sentence being fixed.
 - 2026-09-03 (spec 010) — Corrected the Order flow paragraph's mention of the create endpoint's `table` field: spec 010 renamed `POST /api/orders`'s request field from `table` to `table_number` (unifying it with the update endpoint, which already used `table_number`), and confirmed `table_number` is a customer-facing pickup ticket ("Senha"), not a physical restaurant table. Corrected in place with a dated note rather than silently rewritten.
 - 2026-09-03 (spec 015) — Corrected the Authentication paragraph's mention of the seeded `admin`/`admin123` user: spec 015 removed that seed from `common/sql/001_schema.sql` and introduced `bin/create-admin` as the explicit replacement process. Corrected in place with a dated note rather than silently rewritten.
