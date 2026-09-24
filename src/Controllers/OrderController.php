@@ -213,7 +213,19 @@ class OrderController
         $id = (int)$args['id'];
 
         try {
-            $this->orderService->printOrder($id);
+            $queued = $this->orderService->printOrder($id);
+
+            if (!$queued) {
+                // Impressora bloqueada após falhas consecutivas (spec 039): nada foi
+                // enfileirado, e o operador precisa reativar depois de resolver a impressora.
+                return ApiResponse::error(
+                    $response,
+                    409,
+                    'PRINTING_BLOCKED',
+                    'Impressão bloqueada após falhas consecutivas. Reative a impressão para tentar de novo.'
+                );
+            }
+
             $payload = ['success' => true, 'message' => 'Print job queued'];
             $response->getBody()->write(json_encode($payload));
             return $response->withHeader('Content-Type', 'application/json');

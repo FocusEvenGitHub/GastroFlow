@@ -24,6 +24,11 @@ function kitchenApp() {
         eventSource: null,
         foodSummary: [],
         selectedDate: localDateString(),
+        // Estado da impressora (spec 039)
+        printerBlocked: false,
+        printerFailures: 0,
+        lastPrintFailureSeen: null,
+        reactivatingPrinter: false,
         editingOrder: null,
         savingOrder: false,
         reprinting: null,
@@ -44,6 +49,53 @@ function kitchenApp() {
             this.applyTheme();
             await Promise.all([this.fetchAll(), this.loadMenu()]);
             this.connectSSE();
+            this.startPrinterWatch();
+        },
+
+        // Polling, e não SSE: o worker de impressão roda em outro container, e o SSE atual
+        // lê um arquivo em sys_get_temp_dir() — o evento escrito pelo worker seria invisível
+        // para o container que serve o stream. A tabela jobs é o único estado que os dois
+        // enxergam, e é o que este endpoint consulta (spec 039).
+        startPrinterWatch() {
+            this.refreshPrinterStatus();
+            setInterval(() => this.refreshPrinterStatus(), 15000);
+        },
+
+        async refreshPrinterStatus() {
+            try {
+                const res = await fetch('/api/printer/status');
+                if (!res.ok) return;
+                const status = await res.json();
+
+                // Avisa a cada falha nova, identificando o pedido afetado.
+                if (status.last_failed_order_id && status.last_failed_order_id !== this.lastPrintFailureSeen) {
+                    this.lastPrintFailureSeen = status.last_failed_order_id;
+                    this.showMessage(`Erro ao imprimir o pedido #${status.last_failed_order_id}`, 'danger');
+                }
+                if (!status.last_failed_order_id) {
+                    this.lastPrintFailureSeen = null;
+                }
+
+                this.printerBlocked = status.blocked;
+                this.printerFailures = status.consecutive_failures;
+            } catch (err) {
+                // Rede instável não deve poluir a tela da cozinha com toasts.
+                console.error('Erro ao consultar status da impressora:', err);
+            }
+        },
+
+        async reactivatePrinting() {
+            this.reactivatingPrinter = true;
+            try {
+                const res = await fetch('/api/printer/reset', { method: 'POST' });
+                if (!res.ok) throw new Error('Não foi possível reativar a impressão');
+                await this.refreshPrinterStatus();
+                this.showMessage('Impressão reativada', 'success');
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            } finally {
+                this.reactivatingPrinter = false;
+            }
         },
 
         async loadMenu() {
@@ -378,11 +430,18 @@ function kitchenApp() {
         },
 
         async reprintOrder(orderId) {
+            if (this.printerBlocked) return;
+
             this.reprinting = orderId;
             try {
                 const res = await fetch(`/api/orders/${orderId}/print`, { method: 'POST' });
                 const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao reimprimir');
+                if (!res.ok || data.error) {
+                    // O servidor também bloqueia (spec 039): se o estado local estiver
+                    // defasado, a resposta corrige a tela.
+                    if (data.code === 'PRINTING_BLOCKED') this.printerBlocked = true;
+                    throw new Error(data.error || 'Erro ao reimprimir');
+                }
                 // O endpoint só enfileira — ele retorna antes de qualquer byte chegar na
                 // impressora. Dizer "impresso" aqui era afirmar o que não se sabe: com a
                 // impressora fora do ar o operador via sucesso e nada nunca o corrigia.

@@ -46,6 +46,10 @@ class Routes
             $group->post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
             $group->get('/orders/next-number', [OrderController::class, 'nextNumber']);
             $group->get('/kitchen/food-summary', [KitchenController::class, 'foodCategorySummary']);
+            // Público pelo mesmo motivo que as rotas acima (spec 018): cozinha e caixa não
+            // têm login, e são exatamente elas que precisam consultar/reativar (spec 039).
+            $group->get('/printer/status', [PrinterController::class, 'status']);
+            $group->post('/printer/reset', [PrinterController::class, 'reset']);
         });
 
         $app->post('/api/login', function ($request, $response) use ($secret) {

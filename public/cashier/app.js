@@ -12,6 +12,12 @@ function cashierApp() {
         loading: true,
         submitting: false,
         printTicket: true,
+        // Estado da impressora (spec 039). Bloqueio nunca impede criar pedido — a regra
+        // dura do roadmap diz que falha de impressora não invalida pedido.
+        printerBlocked: false,
+        printerFailures: 0,
+        lastPrintFailureSeen: null,
+        reactivatingPrinter: false,
         viewMode: localStorage.getItem('cashierViewMode') || 'grid',
         darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
         reorderMode: false,
@@ -26,6 +32,48 @@ function cashierApp() {
         FOOD_CATEGORY_LABELS: {
             protein: 'Proteínas', grain: 'Grãos', vegetable: 'Vegetais',
             sauce: 'Molhos', side: 'Acompanhamentos', other: 'Outros'
+        },
+
+        // Polling em vez de SSE pelo mesmo motivo da cozinha: o worker de impressão roda em
+        // outro container e o SSE atual lê um arquivo local, invisível entre eles (spec 039).
+        startPrinterWatch() {
+            this.refreshPrinterStatus();
+            setInterval(() => this.refreshPrinterStatus(), 15000);
+        },
+
+        async refreshPrinterStatus() {
+            try {
+                const res = await fetch('/api/printer/status');
+                if (!res.ok) return;
+                const status = await res.json();
+
+                if (status.last_failed_order_id && status.last_failed_order_id !== this.lastPrintFailureSeen) {
+                    this.lastPrintFailureSeen = status.last_failed_order_id;
+                    this.showMessage(`Erro ao imprimir o pedido #${status.last_failed_order_id}`, 'danger');
+                }
+                if (!status.last_failed_order_id) {
+                    this.lastPrintFailureSeen = null;
+                }
+
+                this.printerBlocked = status.blocked;
+                this.printerFailures = status.consecutive_failures;
+            } catch (err) {
+                console.error('Erro ao consultar status da impressora:', err);
+            }
+        },
+
+        async reactivatePrinting() {
+            this.reactivatingPrinter = true;
+            try {
+                const res = await fetch('/api/printer/reset', { method: 'POST' });
+                if (!res.ok) throw new Error('Não foi possível reativar a impressão');
+                await this.refreshPrinterStatus();
+                this.showMessage('Impressão reativada', 'success');
+            } catch (err) {
+                this.showMessage(err.message, 'danger');
+            } finally {
+                this.reactivatingPrinter = false;
+            }
         },
 
         async init() {
@@ -47,6 +95,7 @@ function cashierApp() {
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {
+                this.startPrinterWatch();
                 this.loading = false;
             }
         },

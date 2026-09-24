@@ -86,6 +86,25 @@
         </button>
     </nav>
 
+    <!-- Impressão bloqueada após falhas consecutivas (spec 039).
+         x-if, e não x-show: as utilitárias do Bootstrap 5 são !important, então
+         .d-flex vence o display:none inline que o x-show aplica e o aviso nunca sumiria
+         (pego pela verificação no navegador). x-if remove do DOM. -->
+    <template x-if="printerBlocked">
+    <div class="alert alert-danger d-flex align-items-center justify-content-between m-3">
+        <span>
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Impressão bloqueada.</strong>
+            As últimas <span x-text="printerFailures"></span> impressões falharam.
+            Verifique a impressora e reative.
+        </span>
+        <button class="btn btn-sm btn-danger" @click="reactivatePrinting()" :disabled="reactivatingPrinter">
+            <span x-show="!reactivatingPrinter">Reativar impressão</span>
+            <span x-show="reactivatingPrinter"><span class="spinner-border spinner-border-sm"></span></span>
+        </button>
+    </div>
+    </template>
+
     <!-- Toast container -->
     <div class="toast-container" x-show="toasts.length">
         <template x-for="toast in toasts" :key="toast.id">
@@ -165,7 +184,7 @@
                                             <small class="text-muted" x-text="timeAgo(order)"></small>
                                         </div>
                                         <div class="d-flex align-items-center gap-1">
-                                            <button class="btn btn-outline-secondary btn-sm-icon" @click="reprintOrder(order.id)" :disabled="reprinting === order.id" title="Reimprimir nota">
+                                            <button class="btn btn-outline-secondary btn-sm-icon" @click="reprintOrder(order.id)" :disabled="reprinting === order.id || printerBlocked" :title="printerBlocked ? 'Impressão bloqueada após falhas consecutivas' : 'Reimprimir nota'">
                                                 <span x-show="reprinting !== order.id"><i class="fas fa-print"></i></span>
                                                 <span x-show="reprinting === order.id"><span class="spinner-border spinner-border-sm"></span></span>
                                             </button>
@@ -231,7 +250,7 @@
                                                 <small class="text-muted" x-text="timeAgo(order)"></small>
                                             </div>
                                             <div class="d-flex align-items-center gap-1">
-                                                <button class="btn btn-outline-secondary btn-sm-icon" @click="reprintOrder(order.id)" :disabled="reprinting === order.id" title="Reimprimir nota">
+                                                <button class="btn btn-outline-secondary btn-sm-icon" @click="reprintOrder(order.id)" :disabled="reprinting === order.id || printerBlocked" :title="printerBlocked ? 'Impressão bloqueada após falhas consecutivas' : 'Reimprimir nota'">
                                                     <span x-show="reprinting !== order.id"><i class="fas fa-print"></i></span>
                                                     <span x-show="reprinting === order.id"><span class="spinner-border spinner-border-sm"></span></span>
                                                 </button>
