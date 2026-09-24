@@ -15,6 +15,14 @@ require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
 Dotenv\Dotenv::createImmutable(dirname(__DIR__, 3))->safeLoad();
 
+// Same getenv() -> $_ENV bridge as tests/bootstrap.php: in CI the configuration arrives as
+// real environment variables, immutable Dotenv leaves those alone, and Settings reads $_ENV.
+foreach (getenv() as $key => $value) {
+    if (!array_key_exists($key, $_ENV)) {
+        $_ENV[$key] = $value;
+    }
+}
+
 $menuItemId = (int) ($argv[1] ?? 0);
 $database   = $argv[2] ?? null;
 

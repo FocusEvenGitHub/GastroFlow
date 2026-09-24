@@ -20,6 +20,16 @@ require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
 Dotenv\Dotenv::createImmutable(dirname(__DIR__, 3))->safeLoad();
 
+// CI supplies configuration as real environment variables, and immutable Dotenv will not
+// overwrite those — so $_ENV can stay empty while getenv() has the values. Settings reads
+// $_ENV only. tests/bootstrap.php bridges this for the test process; these subprocesses
+// bootstrap themselves and need the same bridge.
+foreach (getenv() as $key => $value) {
+    if (!array_key_exists($key, $_ENV)) {
+        $_ENV[$key] = $value;
+    }
+}
+
 $queue    = $argv[1] ?? 'default';
 $database = $argv[2] ?? null;
 
