@@ -1,0 +1,30 @@
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+
+    paths:
+        - src
+        - bin
+
+    # public/ holds plain PHP/HTML view scripts that run outside Slim (see CLAUDE.md);
+    # analysing them produces noise disproportionate to the value.
+    # tests/ is excluded for now — including it needs the Tests\ autoload-dev mapping
+    # to be exercised by PHPStan, which is deliberately left to a later pass.
+
+    ignoreErrors:
+        # Eloquent resolves these through Model::__callStatic() -> Builder. PHPStan cannot
+        # see them without an extension, and larastan targets full Laravel rather than the
+        # standalone illuminate/database this project uses (see spec 034, "Current behavior").
+        # Scoped to this project's models and the Capsule manager on purpose — a blanket
+        # "undefined static method" ignore would hide real typos elsewhere.
+        -
+            message: '#^Call to an undefined static method App\\Models\\[A-Za-z]+::[A-Za-z]+\(\)\.$#'
+        -
+            message: '#^Call to an undefined static method Illuminate\\Database\\Capsule\\Manager::[A-Za-z]+\(\)\.$#'
+        # Eloquent attributes come from the database row via Model::__get(), so there is no
+        # declared property to find. Fixing this properly means @property docblocks on the
+        # ten models — real work, explicitly a non-goal of spec 034.
+        -
+            message: '#^Access to an undefined property App\\Models\\[A-Za-z]+::\$[a-z_]+\.$#'

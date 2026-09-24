@@ -1,0 +1,13 @@
+# Normalize line endings (spec 034).
+#
+# Without this, a Windows checkout gets CRLF while CI (Linux) gets LF, and
+# PHP-CS-Fixer's PSR-12 line_ending rule then reports every file locally while
+# reporting none in CI — the local and CI results contradict each other.
+* text=auto
+
+*.php text eol=lf
+*.neon text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.sql text eol=lf
+*.md text eol=lf

@@ -45,6 +45,20 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
+      # Fast checks run before anything that needs the database, so a malformed
+      # manifest or a style slip fails in seconds instead of after a DB spin-up.
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Audit dependencies for known vulnerabilities
+        run: composer audit
+
+      - name: Static analysis (PHPStan)
+        run: vendor/bin/phpstan analyse --no-progress
+
+      - name: Code style (PHP-CS-Fixer)
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+
       - name: Wait for MySQL and load base schema
         run: |
           for i in $(seq 1 30); do
@@ -66,5 +80,5 @@ jobs:
       - name: Run migrations
         run: php bin/migrate
 
-      - name: Run PHPUnit
+      - name: Unit tests (PHPUnit)
         run: vendor/bin/phpunit

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -22,7 +23,9 @@ class KitchenService
         foreach ($pendingOrders as $order) {
             foreach ($order->items as $orderItem) {
                 $menuItem = $orderItem->menuItem;
-                if (!$menuItem) continue;
+                if (!$menuItem) {
+                    continue;
+                }
 
                 $qty = (int) $orderItem->quantity;
 
@@ -31,7 +34,9 @@ class KitchenService
                     // for this order item, not the menu item's fixed recipe.
                     foreach ($orderItem->components as $chosen) {
                         $component = $chosen->menuItem;
-                        if (!$component || !$component->food_category) continue;
+                        if (!$component || !$component->food_category) {
+                            continue;
+                        }
                         $key = $component->food_category . '::' . $component->id;
                         if (!isset($summary[$key])) {
                             $summary[$key] = [
@@ -45,7 +50,9 @@ class KitchenService
                     }
                 } elseif ($menuItem->components->isNotEmpty()) {
                     foreach ($menuItem->components as $component) {
-                        if (!$component->food_category) continue;
+                        if (!$component->food_category) {
+                            continue;
+                        }
                         $compQty = $qty * ($component->pivot->quantity ?? 1);
                         $key = $component->food_category . '::' . $component->id;
                         if (!isset($summary[$key])) {
@@ -59,7 +66,9 @@ class KitchenService
                         $summary[$key]['total_quantity'] += $compQty;
                     }
                 } else {
-                    if (!$menuItem->food_category) continue;
+                    if (!$menuItem->food_category) {
+                        continue;
+                    }
                     $key = $menuItem->food_category . '::' . $menuItem->id;
                     if (!isset($summary[$key])) {
                         $summary[$key] = [

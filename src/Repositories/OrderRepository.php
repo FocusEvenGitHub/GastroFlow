@@ -55,7 +55,7 @@ class OrderRepository
                     'unit_price'     => (float) $item->unit_price,
                     'packaging_cost' => (float) $item->packaging_cost,
                     'category_name'  => $item->menuItem->category->name ?? null,
-                    'components'     => $item->components->map(fn($c) => [
+                    'components'     => $item->components->map(fn ($c) => [
                         'menu_item_id' => (int) $c->menu_item_id,
                         'name'         => $c->item_name,
                         'quantity'     => (int) $c->quantity,
@@ -162,7 +162,7 @@ class OrderRepository
                 $components = $resolved['components'];
                 $unitPrice = $this->pricingService->composedUnitPrice(
                     $this->pricingService->unitPriceFor($menuItem),
-                    array_map(fn($c) => ['price' => $c['price'], 'quantity' => $c['quantity']], $components)
+                    array_map(fn ($c) => ['price' => $c['price'], 'quantity' => $c['quantity']], $components)
                 );
                 $diningOption = $item['dining_option'] ?? 'local';
                 $quantity = (int) $item['quantity'];

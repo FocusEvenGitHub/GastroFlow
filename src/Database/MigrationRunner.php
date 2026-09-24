@@ -91,7 +91,7 @@ class MigrationRunner
             }
         }
 
-        usort($files, fn(\SplFileInfo $a, \SplFileInfo $b) => strcmp($a->getFilename(), $b->getFilename()));
+        usort($files, fn (\SplFileInfo $a, \SplFileInfo $b) => strcmp($a->getFilename(), $b->getFilename()));
 
         return $files;
     }

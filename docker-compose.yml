@@ -27,6 +27,11 @@ services:
       - ./composer.json:/var/www/html/composer.json
       - ./composer.lock:/var/www/html/composer.lock
       - ./phpunit.xml:/var/www/html/phpunit.xml
+      # Quality tooling configs (spec 034) — the root itself isn't mounted, only
+      # named paths, so these have to be listed explicitly to be visible in the container.
+      - ./phpstan.neon:/var/www/html/phpstan.neon
+      - ./phpstan-baseline.neon:/var/www/html/phpstan-baseline.neon
+      - ./.php-cs-fixer.dist.php:/var/www/html/.php-cs-fixer.dist.php
       - ./.env:/var/www/html/.env
       - ./vendor:/var/www/html/vendor
       - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
