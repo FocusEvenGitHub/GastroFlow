@@ -81,4 +81,21 @@ jobs:
         run: php bin/migrate
 
       - name: Unit tests (PHPUnit)
-        run: vendor/bin/phpunit
+        run: vendor/bin/phpunit --testsuite Smoke,Unit
+
+      # The integration suite writes real rows, so it gets its own database. It refuses to
+      # run if MYSQL_DATABASE_TEST is unset (skips) or equals MYSQL_DATABASE (fails).
+      - name: Create integration test database
+        run: |
+          mysql -h127.0.0.1 -uroot -proot -e "
+            CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE_TEST}
+              CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE_TEST}\`.* TO '${MYSQL_USER}'@'%';
+            FLUSH PRIVILEGES;"
+        env:
+          MYSQL_DATABASE_TEST: restaurant_test
+
+      - name: Integration tests (PHPUnit, MySQL)
+        run: vendor/bin/phpunit --testsuite Integration
+        env:
+          MYSQL_DATABASE_TEST: restaurant_test

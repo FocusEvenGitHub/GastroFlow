@@ -11,6 +11,11 @@
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>
+        <!-- MySQL-backed (spec 035). Skips itself unless MYSQL_DATABASE_TEST names a
+             database other than MYSQL_DATABASE. -->
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
