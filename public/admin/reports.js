@@ -43,11 +43,19 @@ function reportsApp() {
             }
         },
 
+        // Não use toISOString(): converte para UTC, e em UTC-3 a partir das 21:00
+        // locais o dia já virou — dateTo apontava para amanhã e dateFrom para o
+        // último dia do mês anterior (spec 036).
+        _localDate(date) {
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+        },
+
         setCurrentMonth() {
             const now = new Date();
             const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            this.dateFrom = firstDay.toISOString().split('T')[0];
-            this.dateTo = now.toISOString().split('T')[0];
+            this.dateFrom = this._localDate(firstDay);
+            this.dateTo = this._localDate(now);
         },
 
         async doLogin() {

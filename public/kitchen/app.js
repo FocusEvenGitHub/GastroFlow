@@ -1,3 +1,15 @@
+/**
+ * Data de hoje no fuso do navegador, como YYYY-MM-DD.
+ *
+ * Não use toISOString(): ela converte para UTC, e em UTC-3 qualquer horário a partir
+ * das 21:00 locais já caiu no dia seguinte — a cozinha passava a pedir os pedidos de
+ * amanhã e mostrava a tela vazia (spec 036).
+ */
+function localDateString(date = new Date()) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 function kitchenApp() {
     return {
         orders: [],
@@ -11,7 +23,7 @@ function kitchenApp() {
         darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
         eventSource: null,
         foodSummary: [],
-        selectedDate: new Date().toISOString().split('T')[0],
+        selectedDate: localDateString(),
         editingOrder: null,
         savingOrder: false,
         reprinting: null,
@@ -25,7 +37,7 @@ function kitchenApp() {
         summaryMode: localStorage.getItem('kitchenSummaryMode') === 'dishes' ? 'dishes' : 'ingredients',
 
         _today() {
-            return new Date().toISOString().split('T')[0];
+            return localDateString();
         },
 
         async init() {
