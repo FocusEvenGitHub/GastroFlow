@@ -29,9 +29,13 @@ class OrderService
     {
         $order = $this->orderRepo->createOrder($data);
 
-        // Dispara job de impressão assíncrono (apenas se print_ticket for true)
+        // Dispara job de impressão assíncrono (apenas se print_ticket for true).
+        // Com a impressora bloqueada o job NÃO é enfileirado — sem isso o bloqueio seria
+        // cosmético, e qualquer cliente da API continuaria empilhando jobs condenados.
+        // O pedido em si é criado normalmente: a regra dura do roadmap diz que uma falha de
+        // impressora nunca invalida um pedido (spec 008 FR8, spec 039).
         $printTicket = isset($data['print_ticket']) ? (bool) $data['print_ticket'] : true;
-        if ($printTicket) {
+        if ($printTicket && !$this->printService->isPrintingBlocked()) {
             $this->jobService->dispatch('print', \App\Jobs\PrintOrderJob::class, [
                 'order_id' => $order->id,
             ]);
@@ -94,13 +98,25 @@ class OrderService
         $this->triggerKitchenEvent('order.updated', $orderId);
     }
 
-    public function printOrder(int $id): void
+    /**
+     * Enfileira a reimpressão de um pedido.
+     *
+     * @return bool false quando a impressão está bloqueada e nada foi enfileirado (spec 039).
+     */
+    public function printOrder(int $id): bool
     {
         // Garante que o pedido existe antes de enfileirar a impressão.
         Order::findOrFail($id);
+
+        if ($this->printService->isPrintingBlocked()) {
+            return false;
+        }
+
         $this->jobService->dispatch('print', \App\Jobs\PrintOrderJob::class, [
             'order_id' => $id,
         ]);
+
+        return true;
     }
 
     /**

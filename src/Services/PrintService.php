@@ -22,6 +22,30 @@ class PrintService
      */
     public const ERROR_NO_IP = 'IP da impressora não configurado.';
 
+    /**
+     * Quantas falhas permanentes seguidas bloqueiam a impressão (spec 039).
+     *
+     * Conta JOBS que falharam de vez, não tentativas: a spec 008 dá max_attempts=3 com
+     * backoff 2s/4s/8s, então um único job leva ~14s até falhar permanentemente. Contar
+     * tentativas bloquearia a impressora por causa de UM pedido, o que não é evidência de
+     * impressora fora.
+     */
+    public const MAX_CONSECUTIVE_FAILURES = 3;
+
+    /**
+     * O contador é persistido, não derivado da tabela jobs.
+     *
+     * Derivar seria mais simples e está errado: bin/jobs-prune (spec 033) apaga os jobs
+     * concluídos e preserva os falhos, então depois da retenção uma sequência real de
+     * "falha, falha, sucesso, falha" vira "falha, falha, falha" na tabela — o sucesso que
+     * quebrava a sequência foi podado, e o estado derivado afirmaria três falhas
+     * consecutivas que nunca existiram.
+     */
+    private const KEY_FAILURES = 'printer_consecutive_failures';
+    private const KEY_BLOCKED_AT = 'printer_blocked_at';
+    private const KEY_LAST_FAILED_ORDER = 'printer_last_failed_order';
+    private const KEY_LAST_ERROR = 'printer_last_error';
+
     /** @var callable|null */
     private $connectorFactory;
 
@@ -54,6 +78,83 @@ class PrintService
     /**
      * Get printer connection settings.
      */
+    /**
+     * Registra uma falha PERMANENTE de impressão e retorna o total consecutivo.
+     * Ao atingir MAX_CONSECUTIVE_FAILURES, a impressão fica bloqueada (spec 039).
+     */
+    public function recordPrintFailure(?int $orderId = null, ?string $error = null): int
+    {
+        $failures = $this->consecutiveFailures() + 1;
+
+        Setting::setValue(self::KEY_FAILURES, (string) $failures);
+        Setting::setValue(self::KEY_LAST_FAILED_ORDER, $orderId === null ? null : (string) $orderId);
+        Setting::setValue(self::KEY_LAST_ERROR, $error);
+
+        if ($failures >= self::MAX_CONSECUTIVE_FAILURES && !$this->isPrintingBlocked()) {
+            Setting::setValue(self::KEY_BLOCKED_AT, date('Y-m-d H:i:s'));
+            $this->logger->error(sprintf(
+                'Impressão bloqueada após %d falhas consecutivas. Operador precisa reativar.',
+                $failures
+            ));
+        }
+
+        return $failures;
+    }
+
+    /** Uma impressão bem-sucedida quebra a sequência e destrava (spec 039). */
+    public function recordPrintSuccess(): void
+    {
+        if ($this->consecutiveFailures() === 0 && !$this->isPrintingBlocked()) {
+            return;
+        }
+
+        $this->clearFailureState();
+    }
+
+    /** Reativação manual pelo operador. Não mexe em nenhum job (spec 033 os preserva). */
+    public function resetPrinterFailures(): void
+    {
+        $this->clearFailureState();
+        $this->logger->info('Impressão reativada manualmente pelo operador.');
+    }
+
+    public function isPrintingBlocked(): bool
+    {
+        return !empty(Setting::getValue(self::KEY_BLOCKED_AT));
+    }
+
+    /**
+     * Estado que a cozinha e o caixa consultam por polling.
+     *
+     * @return array{blocked: bool, consecutive_failures: int, max_failures: int, blocked_at: ?string, last_failed_order_id: ?int, last_error: ?string}
+     */
+    public function getPrinterStatus(): array
+    {
+        $lastOrder = Setting::getValue(self::KEY_LAST_FAILED_ORDER);
+
+        return [
+            'blocked'              => $this->isPrintingBlocked(),
+            'consecutive_failures' => $this->consecutiveFailures(),
+            'max_failures'         => self::MAX_CONSECUTIVE_FAILURES,
+            'blocked_at'           => Setting::getValue(self::KEY_BLOCKED_AT) ?: null,
+            'last_failed_order_id' => ($lastOrder === null || $lastOrder === '') ? null : (int) $lastOrder,
+            'last_error'           => Setting::getValue(self::KEY_LAST_ERROR) ?: null,
+        ];
+    }
+
+    private function consecutiveFailures(): int
+    {
+        return (int) (Setting::getValue(self::KEY_FAILURES) ?: 0);
+    }
+
+    private function clearFailureState(): void
+    {
+        Setting::setValue(self::KEY_FAILURES, '0');
+        Setting::setValue(self::KEY_BLOCKED_AT, null);
+        Setting::setValue(self::KEY_LAST_FAILED_ORDER, null);
+        Setting::setValue(self::KEY_LAST_ERROR, null);
+    }
+
     /**
      * The configured printer as "ip:port", or null when no IP is set.
      *

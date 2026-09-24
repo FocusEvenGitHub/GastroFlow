@@ -17,6 +17,39 @@ class PrinterController
     }
 
     /**
+     * GET /api/printer/status
+     *
+     * Público, como /api/orders* e /api/kitchen/* (spec 018): a cozinha e o caixa não têm
+     * tela de login, então um endpoint protegido seria inútil justamente para as duas telas
+     * que precisam dele. Não expõe dado de cliente nem credencial — só se a impressora está
+     * com problema, e a mensagem de erro já saneada pela spec 038.
+     */
+    public function status(Request $request, Response $response): Response
+    {
+        $payload = ['success' => true] + $this->printService->getPrinterStatus();
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * POST /api/printer/reset
+     *
+     * Reativação manual. Idempotente e não destrutiva: não apaga jobs, não altera pedidos e
+     * não muda a configuração da impressora. Os jobs já em `failed` continuam `failed` — a
+     * spec 033 os preserva de propósito como registro de diagnóstico.
+     */
+    public function reset(Request $request, Response $response): Response
+    {
+        $this->printService->resetPrinterFailures();
+
+        $payload = ['success' => true] + $this->printService->getPrinterStatus();
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
      * POST /api/admin/settings/test-print
      * Imprime um cupom de teste.
      */

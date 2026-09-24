@@ -139,6 +139,59 @@ class PrintServiceTest extends TestCase
         $this->assertSame($orderMessage, $testMessage, 'The two paths disagreed before spec 038');
     }
 
+    /** Spec 039 — o contador só bloqueia ao atingir o limite. */
+    public function testThreeFailuresBlockPrintingAndSuccessClearsIt(): void
+    {
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService());
+
+        $this->assertFalse($service->isPrintingBlocked());
+
+        $this->assertSame(1, $service->recordPrintFailure(11, 'erro'));
+        $this->assertFalse($service->isPrintingBlocked(), 'Uma falha não pode bloquear');
+
+        $this->assertSame(2, $service->recordPrintFailure(12, 'erro'));
+        $this->assertFalse($service->isPrintingBlocked(), 'Duas falhas não podem bloquear');
+
+        $this->assertSame(3, $service->recordPrintFailure(13, 'erro'));
+        $this->assertTrue($service->isPrintingBlocked(), 'Três falhas bloqueiam');
+
+        $service->recordPrintSuccess();
+
+        $this->assertFalse($service->isPrintingBlocked());
+        $this->assertSame(0, $service->getPrinterStatus()['consecutive_failures']);
+    }
+
+    /** Spec 039 — o status carrega o pedido afetado, que é o que a UI notifica. */
+    public function testStatusReportsTheLastFailedOrder(): void
+    {
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService());
+        $service->recordPrintFailure(77, 'impressora fora');
+
+        $status = $service->getPrinterStatus();
+
+        $this->assertSame(77, $status['last_failed_order_id']);
+        $this->assertSame('impressora fora', $status['last_error']);
+        $this->assertSame(3, $status['max_failures']);
+    }
+
+    /** Spec 039 — reativar destrava e limpa o estado. */
+    public function testResetClearsTheBlock(): void
+    {
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService());
+        $service->recordPrintFailure(1, 'e');
+        $service->recordPrintFailure(2, 'e');
+        $service->recordPrintFailure(3, 'e');
+        $this->assertTrue($service->isPrintingBlocked());
+
+        $service->resetPrinterFailures();
+
+        $status = $service->getPrinterStatus();
+        $this->assertFalse($status['blocked']);
+        $this->assertSame(0, $status['consecutive_failures']);
+        $this->assertNull($status['last_failed_order_id']);
+        $this->assertNull($status['last_error']);
+    }
+
     public function testConfiguredAddressIsNullWhenNoIpIsSet(): void
     {
         Setting::setValue('printer_ip', '');

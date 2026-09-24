@@ -68,6 +68,23 @@
     </nav>
 
     <!-- Toast container -->
+    <!-- Impressão bloqueada após falhas consecutivas (spec 039). O pedido continua sendo
+         criado normalmente — só o ticket deixa de ser enfileirado. -->
+    <template x-if="printerBlocked">
+    <div class="alert alert-warning d-flex align-items-center justify-content-between m-3">
+        <span>
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Impressão bloqueada.</strong>
+            As últimas <span x-text="printerFailures"></span> impressões falharam.
+            Os pedidos continuam sendo registrados, sem ticket.
+        </span>
+        <button class="btn btn-sm btn-warning" @click="reactivatePrinting()" :disabled="reactivatingPrinter">
+            <span x-show="!reactivatingPrinter">Reativar impressão</span>
+            <span x-show="reactivatingPrinter"><span class="spinner-border spinner-border-sm"></span></span>
+        </button>
+    </div>
+    </template>
+
     <div class="toast-container" x-show="toasts.length">
         <template x-for="toast in toasts" :key="toast.id">
             <div class="gastro-toast" :class="toast.type">
@@ -98,8 +115,10 @@
                     <span x-show="!reordering"><i class="fas fa-arrows-alt me-1"></i><span x-text="reorderMode ? 'Concluir' : 'Reorganizar'"></span></span>
                     <span x-show="reordering"><span class="spinner-border spinner-border-sm me-1"></span>Salvando ordem...</span>
                 </button>
-                <div class="form-check form-switch print-switch mb-0" title="Quando ligado, o pedido é enviado para a impressora térmica">
-                    <input class="form-check-input" type="checkbox" id="printToggle" x-model="printTicket" checked>
+                <div class="form-check form-switch print-switch mb-0"
+                     :class="{ 'opacity-50': printerBlocked }"
+                     :title="printerBlocked ? 'Impressão bloqueada após falhas consecutivas' : 'Quando ligado, o pedido é enviado para a impressora térmica'">
+                    <input class="form-check-input" type="checkbox" id="printToggle" x-model="printTicket" :disabled="printerBlocked" checked>
                     <label class="form-check-label small" for="printToggle">
                         <i class="fas fa-print text-secondary me-1"></i>Imprimir
                         <i class="fas fa-info-circle text-muted ms-1" title="Desligue para não enviar o pedido à impressora"></i>

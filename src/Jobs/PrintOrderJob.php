@@ -47,6 +47,20 @@ class PrintOrderJob
         }
 
         $printService = new PrintService($logger, $settings, new PricingService());
-        $printService->printOrder($order, $jobContext);
+
+        try {
+            $printService->printOrder($order, $jobContext);
+        } catch (\Throwable $e) {
+            // Só conta quando o job falhou DE VEZ. Uma tentativa intermediária ainda vai ser
+            // repetida pelo JobService (spec 008), e contá-la bloquearia a impressora por
+            // causa de um único pedido (spec 039).
+            if ($job !== null && $job->attempts >= $job->max_attempts) {
+                $printService->recordPrintFailure($order->id, $e->getMessage());
+            }
+
+            throw $e;
+        }
+
+        $printService->recordPrintSuccess();
     }
 }

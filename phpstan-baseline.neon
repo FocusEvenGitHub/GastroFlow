@@ -72,11 +72,6 @@ parameters:
 			count: 1
 			path: src/Repositories/OrderRepository.php
 
-		-
-			message: '#^Property App\\Services\\OrderService\:\:\$printService is never read, only written\.$#'
-			identifier: property.onlyWritten
-			count: 1
-			path: src/Services/OrderService.php
 
 		-
 			message: '#^Parameter \#2 \$port of class Mike42\\Escpos\\PrintConnectors\\NetworkPrintConnector constructor expects string, int given\.$#'
