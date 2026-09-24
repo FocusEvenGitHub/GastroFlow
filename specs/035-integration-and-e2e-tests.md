@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-09-23
 - Updated: 2026-09-23
 - Owner: Henry
@@ -418,6 +418,17 @@ Non-blocking, to be resolved during implementation:
   dedicated section below. Spec 035's non-goals forbid changing application code, so it is
   reported rather than patched. The test records it with `markTestIncomplete()` so it is
   visible on every run without turning CI red for a pre-existing bug.
+- **2026-09-24 — 9. Passed locally, failed in CI: the subprocesses lacked the `getenv()`
+  bridge.** The concurrency tests were green on six local runs and then failed on PR #5 with
+  `MYSQL_USER environment variable is not set`. Cause: CI supplies configuration as real
+  environment variables, immutable Dotenv does not overwrite those, and `Settings` reads `$_ENV`
+  only — so `$_ENV` was empty inside the worker subprocesses. `tests/bootstrap.php` already
+  bridges `getenv()` into `$_ENV` for the test process; the subprocesses bootstrap themselves
+  and needed the same six lines. Locally the `.env` file was the only source, so Dotenv
+  populated `$_ENV` and the gap was invisible.
+  **Process lesson, recorded by the owner mid-implementation:** `act` is installed on this
+  machine and would have run the workflow locally before the push. Use it as the gate rather
+  than discovering CI-only differences from a red check.
 - **2026-09-23 — 8. Four racers, not two.** The processes are started without a
   synchronisation barrier, so overlap inside the critical section is probable but not
   guaranteed. Four concurrent workers raise the chance of genuine contention; this is an
@@ -493,10 +504,13 @@ database; `restaurant_test` is the dedicated one created for this spec.
   equals `PricingService`'s unit price × quantity plus packaging, compared in cents.
 - **AC12** — `testAdminCanCreateAMenuItemAndItAppearsOnThePublicMenu` passes; a companion test
   asserts the same mutation is `401` without a token.
-- **AC13 — partially verified.** The workflow file contains "Unit tests (PHPUnit)", "Create
-  integration test database" and "Integration tests (PHPUnit, MySQL)" in that order, verified by
-  reading it. **Not yet observed running in GitHub Actions** — that happens when this branch's
-  pull request runs.
+- **AC13 — verified.** On PR #5 the job's steps were read back from the GitHub API:
+  `13. Unit tests (PHPUnit) — success`, `14. Create integration test database — success`,
+  `15. Integration tests (PHPUnit, MySQL) — success`, in that order.
+  The first run of that PR (`35946468819`) **failed at step 15** with
+  `Concurrent process #0 failed: error: MYSQL_USER environment variable is not set.` — which
+  also demonstrates the stage fails in isolation and names itself, the property AC13 is about.
+  Fixed (see Implementation log entry 9) and green on run `35946697960`.
 - **AC14** — `vendor/bin/phpstan analyse` → `[OK] No errors`. `php-cs-fixer --dry-run` →
   `Found 0 of 78 files that can be fixed` after one file was reformatted.
 - **Stability** — the integration suite was run six consecutive times after the final change:
@@ -505,8 +519,6 @@ database; `restaurant_test` is the dedicated one created for this spec.
 
 **Not validated:**
 
-- **AC13's CI observation** — see above; the stage exists and is ordered correctly in the YAML
-  but has not been seen executing.
 - **The concurrency tests do not guarantee contention.** Four processes are launched without a
   barrier; on a fast machine they may serialise. A run where they happen not to overlap would
   pass without exercising the lock. The tests are a real race, not a deterministic one, and the
