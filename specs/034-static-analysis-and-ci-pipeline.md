@@ -460,11 +460,14 @@ All commands run inside the `web` container on 2026-09-23.
 
 **Not validated:**
 
-- **AC10 — unverified.** Observing that a deliberate style violation fails *the step named for
-  code style* in a real GitHub Actions run requires pushing a throwaway commit to a pull request.
-  That was not done. The stage ordering and naming are verified statically (AC9), but the
-  end-to-end CI behaviour on a real PR is asserted from the YAML, not observed. The PR that
-  merges this spec will exercise the stages on a passing run, which is weaker evidence than a
-  deliberate failure.
+- **AC10 — partially verified.** On PR #3 (run `35940869191`) the job's steps were read back from
+  the GitHub API and the five stages ran, in order, each under its own name:
+  `5. Install dependencies` → `6. Validate composer.json` → `7. Audit dependencies for known
+  vulnerabilities` → `8. Static analysis (PHPStan)` → `9. Code style (PHP-CS-Fixer)` →
+  `10. Wait for MySQL and load base schema` → … → `13. Unit tests (PHPUnit)`, all `success`.
+  **What is still not observed** is the failing case: that a deliberate style violation fails
+  *specifically* at step 9 and not somewhere else. That needs a throwaway commit pushed to a PR,
+  which was not done. A passing run is weaker evidence than a deliberate failure, so this
+  criterion is not claimed as fully met.
 - **The level-6 cost is recorded but not attempted.** 215 findings at level 6 vs 107 at level 5;
   no work was done to see how far annotations would actually reduce that.
