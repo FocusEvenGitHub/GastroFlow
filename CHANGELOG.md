@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.8.0 — Reliability & Quality (em andamento, sem tag)
+
+Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: testes de integração, smoke E2E, confiabilidade de impressão, realtime/SSE, logging estruturado, histórico de auditoria, health checks, confiabilidade de migração, backup & restore.
+
+### Correções
+- **Fila de jobs — reserva travada**: `JobService::processNext()` gravava `reserved_at` antes de executar o job, e a query de claim só pegava `reserved_at IS NULL` — um worker morto entre a reserva e o fim deixava o job reservado para sempre, sem retry e sem sinal ao operador. O claim agora carimba `reserved_until`, e uma varredura antes de cada claim devolve a reserva vencida para a fila (ou marca `failed`, se não houver tentativa restante), sem devolver a tentativa já consumida (spec 033)
+- **Handler não resolvível**: um job cuja classe de handler não existe era apagado como se tivesse dado certo — perda silenciosa. Agora falha e fica registrado (spec 033)
+- **Falhas de job invisíveis**: `logJobFailure()` usava `error_log()`, que não chega ao `app.log` — as falhas não apareciam no visualizador de Logs do Admin. Agora vão via Monolog (spec 033)
+
+### Novidades
+- **Observabilidade da fila**: colunas `status` (`pending`/`reserved`/`completed`/`failed`), `last_error`, `failed_at` e `completed_at` na tabela `jobs` (migração `016`); jobs concluídos deixam de ser apagados e passam a ser podados por retenção (`QUEUE_RETENTION_DAYS`, padrão 7) (spec 033)
+- **`bin/jobs-status`**: lista falhas permanentes e reservas expiradas. Na primeira execução revelou 47 jobs de impressão acumulados que estavam invisíveis (spec 033)
+- **`bin/jobs-prune`**: remove jobs concluídos além da retenção; jobs com falha nunca são removidos automaticamente (spec 033)
+
+### Infraestrutura / Qualidade
+- **Análise estática**: PHPStan no nível 5 (`phpstan.neon`), escolhido por medição — 107 achados no nível 5 contra 215 no 6, onde o salto é type hint faltando nos models do Eloquent. Dois `ignoreErrors` cobrem `__callStatic`/`__get` do Eloquent, e os 16 achados restantes ficam congelados em `phpstan-baseline.neon` (spec 034)
+- **Estilo de código**: PHP-CS-Fixer com PSR-12 + `declare_strict_types` (`.php-cs-fixer.dist.php`), em modo somente-leitura no CI; reformatação única aplicada a 29 arquivos, sem mudança de lógica (spec 034)
+- **Pipeline de CI**: `composer validate --strict` → `composer audit` → PHPStan → PHP-CS-Fixer → PHPUnit, em estágios nomeados, antes dos passos que dependem do MySQL (spec 034)
+- **`.gitattributes`**: fixa `eol=lf`. Sem isso o check de estilo acusava 69 arquivos no Windows (CRLF) e 0 no CI, contradizendo-se (spec 034)
+
+### Lacunas conhecidas nesta fase
+- Concorrência entre dois workers segue **sem teste**: `lockForUpdate()` é no-op no SQLite usado pela suíte. Pertence ao item "Integration tests" deste mesmo milestone (spec 033)
+- `OrderService::$printService` é injetado e nunca lido — achado real do PHPStan, deixado na baseline porque removê-lo muda assinatura de construtor, fora do escopo da spec 034
+
 ## v1.7.1 (2026-09-19) — Monte Seu Prato, cozinha e relatórios
 
 Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`**: montagem de prato no Caixa, ajustes na tela da Cozinha e um novo recorte de relatório. Pela tabela SemVer do `docs/COMMIT_CONVENTION.md`, commits `feat` pediriam um bump MINOR (`v1.8.0`), mas `v1.8.0` está reservado para o milestone `v1.8.0 — Reliability & Quality` — por isso esta release sai como `v1.7.1`. Desvio consciente, registrado aqui em vez de silencioso.
