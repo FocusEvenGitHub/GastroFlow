@@ -99,3 +99,46 @@ jobs:
         run: vendor/bin/phpunit --testsuite Integration
         env:
           MYSQL_DATABASE_TEST: restaurant_test
+
+      # Testes de navegador (spec 040). Rodam neste mesmo job, e não num job separado, porque
+      # o banco restaurant_test e seu schema acabaram de ser construídos pelo passo acima —
+      # um job separado teria que duplicar serviço MySQL, composer install, schema e migrações
+      # para não reaproveitar nada. A falha continua dizendo qual camada quebrou, porque os
+      # passos são nomeados.
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install browser test dependencies
+        working-directory: tests/e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # A instância de testes aponta para restaurant_test pela variável de ambiente: o
+      # public/index.php usa Dotenv imutável e variables_order inclui E, então o ambiente
+      # vence o arquivo .env. É o mesmo mecanismo do docker-compose.e2e.yml local.
+      - name: Start app for browser tests (test database)
+        run: |
+          MYSQL_DATABASE=restaurant_test php -S 127.0.0.1:8081 -t public > /tmp/e2e-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null http://127.0.0.1:8081/api/menu && break
+            sleep 1
+          done
+          curl -sf -o /dev/null http://127.0.0.1:8081/api/menu
+
+      - name: Browser tests (Playwright)
+        working-directory: tests/e2e
+        run: npx playwright test
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8081
+          E2E_PHP_DIRECT: '1'
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/e2e/playwright-report/
+          retention-days: 7
