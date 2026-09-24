@@ -27,11 +27,15 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - `composer start` — `php -S 0.0.0.0:80 -t public` (only script in `composer.json`).
 - `docker compose exec web vendor/bin/phpunit` — run the PHPUnit suite (`phpunit.xml`, `tests/Smoke` + `tests/Unit`). No `composer test` alias exists — use the `vendor/bin/phpunit` invocation directly.
 - GitHub Actions (`.github/workflows/ci.yml`) runs this same suite against a real MySQL 8.0 service on every push/PR to `master`.
-- **There is still no lint/static-analysis command in this project** (no PHPStan/Psalm/CS-Fixer configured). Do not invent one, and never claim a test or check passed without having actually run it and observed the result.
+- `docker compose exec web vendor/bin/phpstan analyse` — static analysis (PHPStan level 5, config `phpstan.neon`, pre-existing findings frozen in `phpstan-baseline.neon`). Added by spec 034.
+- `docker compose exec web vendor/bin/php-cs-fixer fix --dry-run --diff` — check code style (PSR-12, config `.php-cs-fixer.dist.php`); drop `--dry-run --diff` to apply. Added by spec 034.
+- CI runs `composer validate --strict` → `composer audit` → PHPStan → PHP-CS-Fixer → PHPUnit, in that order, as separately named steps.
+- Never claim a test or check passed without having actually run it and observed the result.
 
 ## Code conventions observed
 
-- `declare(strict_types=1)` is used in newer files but not universally — prefer it in new/edited files, don't mass-retrofit old ones as a side effect of an unrelated change.
+- `declare(strict_types=1)` is now in **every** PHP file under `src/`, `bin/` and `tests/` (measured during spec 034), and PHP-CS-Fixer's `declare_strict_types` rule keeps it that way — a new file without it fails the style check.
+- Style is PSR-12, enforced mechanically (spec 034). Don't hand-format against the fixer; run it.
 - Mixed style: older files use manual constructor property assignment, newer files (e.g. `ReportController`) use PHP 8 promoted `private readonly` properties — prefer promoted properties in new code.
 - Docblocks/domain comments in English; user-facing error strings and some domain comments in Portuguese — keep that split, don't translate one into the other wholesale.
 - Controllers catch exceptions and return JSON manually (`json_encode` + `Content-Type` header); there's no shared response helper except in `ReportController`. Don't introduce a new one unless a spec calls for it.
