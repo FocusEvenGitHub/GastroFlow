@@ -1024,6 +1024,29 @@ Do not replace it solely for framework consistency.
 
 ---
 
+## Line endings (LF vs CRLF)
+
+`.gitattributes` (spec 034) declares `*.php text eol=lf`, but `core.autocrlf=true` on a Windows
+clone still wins in practice: files are checked out as CRLF, git then reports them permanently
+modified against the `eol=lf` normalization, and `checkout`/`pull`/branch switching get blocked
+by changes that contain **no content difference at all**. This was hit for real on 2026-09-24
+and cost a working session several minutes of unblocking.
+
+Two blobs had also been committed with CRLF while every sibling file was LF, depending on which
+tool wrote them — so the inconsistency reaches the repository, not just the working tree.
+
+Decide and document one policy, then make it hold without relying on each developer's local
+git config:
+
+* whether `core.autocrlf` should be set (and to what) for this repository, or whether
+  `.gitattributes` alone is meant to govern;
+* whether a check belongs in CI, so a CRLF blob cannot be committed again;
+* how a Windows clone is expected to be set up, in the installation docs.
+
+A rule that only works when each person configures their machine correctly is not a rule.
+
+---
+
 ## Backup & restore
 
 Document and test database recovery.
