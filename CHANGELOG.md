@@ -2,7 +2,19 @@
 
 ## v1.8.0 — Reliability & Quality (em andamento, sem tag)
 
-Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: testes de integração, smoke E2E, confiabilidade de impressão, realtime/SSE, logging estruturado, histórico de auditoria, health checks, confiabilidade de migração, backup & restore.
+Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: confiabilidade de impressão, realtime/SSE, logging estruturado, histórico de auditoria, health checks, confiabilidade de migração, backup & restore.
+
+### Testes
+- **Suíte de integração com MySQL real**: 26 testes cobrindo autenticação, autorização, criação/numeração/preço/conclusão/reabertura de pedido, mutação de cardápio, relatórios e criação de job, mais a jornada ponta a ponta caixa → pedido → cozinha → conclusão → relatório. Exercitada pela camada HTTP, sem automação de navegador (spec 035)
+- **Banco de teste dedicado, com o default seguro**: a suíte escreve linhas reais, então só roda com `MYSQL_DATABASE_TEST` apontando para um banco **diferente** do de produção. Sem a variável, os testes se pulam e `phpunit` continua saindo 0; apontada para o mesmo banco, a suíte falha alto em vez de arriscar os dados (spec 035)
+- **Concorrência testada de verdade**: quatro processos de SO separados disputando o mesmo job e a mesma numeração de pedido — a lacuna que a spec 033 declarou e adiou, porque `lockForUpdate()` é no-op no SQLite da suíte unitária (spec 035)
+- **Novo estágio no CI**: `Integration tests (PHPUnit, MySQL)`, com banco próprio criado num passo dedicado (spec 035)
+
+### Correções
+- **Job cujo handler já executou não volta mais para a fila**: sob contenção o MySQL levantava deadlock no `UPDATE` que marca `status = completed` — depois do trabalho já feito — e o `catch` do `processNext()` recolocava o job em `pending`, silenciosamente. O trabalho era refeito: ticket duplicado na impressão, e NFC-e duplicada no job fiscal do `v2.1.0`. Agora a execução do handler e a gravação do resultado são fases separadas, e um resultado que não pode ser gravado estaciona o job em `failed` com um erro explícito em vez de repetir o trabalho (spec 037, defeito encontrado pela spec 035)
+- **Retry para erros transitórios de banco** (`40001`/`1213`/`1205`) no claim, na gravação, na falha e na varredura — nunca envolvendo o handler, porque reexecutar a unidade que o contém é exatamente como o trabalho é duplicado (spec 037)
+- **Varredura de reservas expiradas fora do caminho quente**: passa a rodar no máximo a cada 10s por processo em vez de em toda chamada. A medição mostrou que era ela — dois `UPDATE` irrestritos sobre os mesmos índices que os claims travam — a causa do deadlock, e não o tipo de lock (spec 037)
+- **Cozinha mostrava a data do dia seguinte**: a tela montava a data com `toISOString()`, que converte para UTC, então das 21:00 à meia-noite em UTC−3 ela pedia os pedidos de amanhã e aparecia vazia justamente no horário de maior movimento. Mesmo defeito corrigido no `dateTo` dos relatórios. Trabalho de cliente, fora do milestone (spec 036)
 
 ### Correções
 - **Fila de jobs — reserva travada**: `JobService::processNext()` gravava `reserved_at` antes de executar o job, e a query de claim só pegava `reserved_at IS NULL` — um worker morto entre a reserva e o fim deixava o job reservado para sempre, sem retry e sem sinal ao operador. O claim agora carimba `reserved_until`, e uma varredura antes de cada claim devolve a reserva vencida para a fila (ou marca `failed`, se não houver tentativa restante), sem devolver a tentativa já consumida (spec 033)
@@ -21,7 +33,9 @@ Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada eta
 - **`.gitattributes`**: fixa `eol=lf`. Sem isso o check de estilo acusava 69 arquivos no Windows (CRLF) e 0 no CI, contradizendo-se (spec 034)
 
 ### Lacunas conhecidas nesta fase
-- Concorrência entre dois workers segue **sem teste**: `lockForUpdate()` é no-op no SQLite usado pela suíte. Pertence ao item "Integration tests" deste mesmo milestone (spec 033)
+- ~~Concorrência entre workers sem teste~~ — **fechada** pela spec 035, que a testou e no caminho descobriu o defeito corrigido pela spec 037
+- O deadlock **não reproduz mais**, então o caminho de retry da spec 037 é exercitado por simulação, não pelo MySQL. O código de erro `1205` (lock wait timeout) está na lista de retry mas nunca foi observado
+- Operação com **múltiplos workers em paralelo** não foi testada sob carga; o Community roda um `print-worker`
 - `OrderService::$printService` é injetado e nunca lido — achado real do PHPStan, deixado na baseline porque removê-lo muda assinatura de construtor, fora do escopo da spec 034
 
 ## v1.7.1 (2026-09-19) — Monte Seu Prato, cozinha e relatórios
