@@ -2,7 +2,9 @@
 
 ## v1.8.0 — Reliability & Quality (em andamento, sem tag)
 
-Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: confiabilidade de impressão, realtime/SSE, logging estruturado, histórico de auditoria, health checks, confiabilidade de migração, backup & restore.
+Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: realtime/SSE, logging estruturado, histórico de auditoria, health checks, confiabilidade de migração, backup & restore.
+
+> ⚠️ **Mudança de comportamento visível ao atualizar (spec 038):** instalações com a impressora não configurada vão começar a acumular jobs de impressão com status `failed`, onde antes tudo parecia bem. É o alarme correto — antes esses pedidos constavam impressos sem nada ter saído. Configure `printer_ip` ou crie os pedidos com `print_ticket=false`.
 
 ### Testes
 - **Suíte de integração com MySQL real**: 26 testes cobrindo autenticação, autorização, criação/numeração/preço/conclusão/reabertura de pedido, mutação de cardápio, relatórios e criação de job, mais a jornada ponta a ponta caixa → pedido → cozinha → conclusão → relatório. Exercitada pela camada HTTP, sem automação de navegador (spec 035)
@@ -11,6 +13,9 @@ Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada eta
 - **Novo estágio no CI**: `Integration tests (PHPUnit, MySQL)`, com banco próprio criado num passo dedicado (spec 035)
 
 ### Correções
+- **Impressora não configurada deixa de fazer o job "dar certo"**: `printOrder()` logava um aviso e retornava normal com `printer_ip` vazio, então o job virava `completed` — o pedido constava impresso sem nada ter saído, e `bin/jobs-status` não mostrava problema. `printTestPage()` já lançava exceção para a mesma condição; as duas rotas agora concordam, com a mensagem vinda de uma constante compartilhada (spec 038)
+- **Teste de impressão passa a dizer o que está errado**: o endpoint não tinha `try/catch`, então qualquer falha virava 500 e era sanitizada para "Erro interno do servidor" — a única tela feita para diagnosticar a impressora não conseguia diagnosticá-la. Agora responde `503 PRINTER_UNAVAILABLE` com mensagem acionável (IP não configurado, ou o endereço que foi tentado), construída de fatos conhecidos em vez de ecoar a exceção (spec 038)
+- **Cozinha para de afirmar que imprimiu**: o toast dizia "enviado para impressão!" numa resposta que só significa "enfileirado"; passa a "na fila de impressão" (spec 038)
 - **Job cujo handler já executou não volta mais para a fila**: sob contenção o MySQL levantava deadlock no `UPDATE` que marca `status = completed` — depois do trabalho já feito — e o `catch` do `processNext()` recolocava o job em `pending`, silenciosamente. O trabalho era refeito: ticket duplicado na impressão, e NFC-e duplicada no job fiscal do `v2.1.0`. Agora a execução do handler e a gravação do resultado são fases separadas, e um resultado que não pode ser gravado estaciona o job em `failed` com um erro explícito em vez de repetir o trabalho (spec 037, defeito encontrado pela spec 035)
 - **Retry para erros transitórios de banco** (`40001`/`1213`/`1205`) no claim, na gravação, na falha e na varredura — nunca envolvendo o handler, porque reexecutar a unidade que o contém é exatamente como o trabalho é duplicado (spec 037)
 - **Varredura de reservas expiradas fora do caminho quente**: passa a rodar no máximo a cada 10s por processo em vez de em toda chamada. A medição mostrou que era ela — dois `UPDATE` irrestritos sobre os mesmos índices que os claims travam — a causa do deadlock, e não o tipo de lock (spec 037)
