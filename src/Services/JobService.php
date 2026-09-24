@@ -18,6 +18,21 @@ class JobService
     private const LAST_ERROR_MAX_LENGTH = 1000;
 
     /**
+     * MySQL conditions that are transient under contention and safe to retry as a unit:
+     * 40001/1213 deadlock, 1205 lock wait timeout. Found by spec 035's concurrency test.
+     */
+    private const RETRYABLE_DB_ERRORS = ['40001', '1213', '1205'];
+
+    /** Bounded, so a worker can never spin forever on a contended row. */
+    private const MAX_DB_RETRIES = 3;
+
+    /** How often a single process re-runs the stale-reservation sweep. */
+    private const SWEEP_INTERVAL_SECONDS = 10.0;
+
+    /** 0.0 means "never swept in this process", so the first call always sweeps. */
+    private float $lastSweepAt = 0.0;
+
+    /**
      * Both dependencies are optional so `new JobService()` keeps working in bin/ scripts,
      * while the DI container (which already defines LoggerInterface and Settings) autowires
      * them for HTTP requests and tests can inject a NullLogger.
@@ -57,40 +72,47 @@ class JobService
      */
     public function processNext(string $queue = 'default'): bool
     {
-        $this->reclaimStaleReservations($queue);
+        $this->sweepIfDue($queue);
 
         $timeout = $this->settings()->getQueueReservationTimeout();
 
         // Reserve the next available job (atomic SELECT … FOR UPDATE)
-        $job = DB::transaction(function () use ($queue, $timeout) {
-            $job = Job::where('queue', $queue)
-                ->where('status', Job::STATUS_PENDING)
-                ->where('available_at', '<=', Carbon::now())
-                ->where('attempts', '<', DB::raw('max_attempts'))
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->first();
+        $job = $this->retryOnTransientDbError('claim', function () use ($queue, $timeout) {
+            return DB::transaction(function () use ($queue, $timeout) {
+                $job = Job::where('queue', $queue)
+                    ->where('status', Job::STATUS_PENDING)
+                    ->where('available_at', '<=', Carbon::now())
+                    ->where('attempts', '<', DB::raw('max_attempts'))
+                    ->orderBy('id')
+                    // Kept as plain FOR UPDATE, as spec 033 chose. SKIP LOCKED was tried and
+                    // measured during spec 037: with the sweep throttled, the deadlock stops
+                    // reproducing either way (5 runs, zero retries logged), so SKIP LOCKED is
+                    // not what fixes it and changing the locking semantics was not warranted.
+                    ->lockForUpdate()
+                    ->first();
 
-            if (!$job) {
-                return null;
-            }
+                if (!$job) {
+                    return null;
+                }
 
-            $now = Carbon::now();
-            $job->update([
-                'status'         => Job::STATUS_RESERVED,
-                'reserved_at'    => $now,
-                'reserved_until' => $now->copy()->addSeconds($timeout),
-                'attempts'       => $job->attempts + 1,
-            ]);
+                $now = Carbon::now();
+                $job->update([
+                    'status'         => Job::STATUS_RESERVED,
+                    'reserved_at'    => $now,
+                    'reserved_until' => $now->copy()->addSeconds($timeout),
+                    'attempts'       => $job->attempts + 1,
+                ]);
 
-            return $job;
+                return $job;
+            });
         });
 
         if (!$job) {
             return false;
         }
 
-        // Execute the job
+        // Phase 1 — do the work. A failure here is the job's failure, and goes through the
+        // normal retry/backoff path from spec 008.
         try {
             $payload = json_decode($job->payload, true);
             $handler = $payload['handler'] ?? null;
@@ -107,20 +129,155 @@ class JobService
 
             $instance = new $handler();
             $instance->handle($data, $job);
-
-            // Success — keep the row as history; pruneCompleted() removes it later.
-            $job->update([
-                'status'         => Job::STATUS_COMPLETED,
-                'completed_at'   => Carbon::now(),
-                'reserved_at'    => null,
-                'reserved_until' => null,
-                'last_error'     => null,
-            ]);
         } catch (\Throwable $e) {
             $this->recordFailure($job, $e);
+
+            return true;
         }
 
+        // Phase 2 — the work is DONE. From here the job must never go back to 'pending':
+        // re-queueing it would run the handler a second time. Recording the result is a
+        // separate failure with a separate answer (spec 037).
+        $this->recordCompletion($job);
+
         return true;
+    }
+
+    /**
+     * Record a finished job. Never re-queues: the handler already ran.
+     */
+    private function recordCompletion(Job $job): void
+    {
+        try {
+            $this->retryOnTransientDbError('complete', function () use ($job) {
+                $job->update([
+                    'status'         => Job::STATUS_COMPLETED,
+                    'completed_at'   => Carbon::now(),
+                    'reserved_at'    => null,
+                    'reserved_until' => null,
+                    'last_error'     => null,
+                ]);
+            }, $job);
+
+            return;
+        } catch (\Throwable $e) {
+            $this->markCompletionUnrecordable($job, $e);
+        }
+    }
+
+    /**
+     * The handler ran but its result could not be written, even after retries.
+     *
+     * The job is parked in 'failed' — terminal, never re-claimed — rather than returned to
+     * the queue. That is deliberately an alarming state: the real situation is "work done,
+     * bookkeeping lost", and an operator should look at it. Leaving it 'reserved' would let
+     * the stale-reservation sweep re-run it, which is the exact defect this spec fixes.
+     */
+    private function markCompletionUnrecordable(Job $job, \Throwable $e): void
+    {
+        $this->logger()->error('Job concluído mas não foi possível gravar o resultado', [
+            'job_id'    => $job->id,
+            'queue'     => $job->queue,
+            'attempt'   => $job->attempts,
+            'operation' => 'complete',
+            'error'     => $e->getMessage(),
+        ]);
+
+        // Best effort: if even this cannot be written, the reservation eventually expires and
+        // the sweep marks it failed (spec 033) — still not re-run, because attempts is spent
+        // only when max_attempts allows. Never let bookkeeping kill the worker.
+        try {
+            $this->retryOnTransientDbError('complete-fallback', function () use ($job, $e) {
+                $job->update([
+                    'status'         => Job::STATUS_FAILED,
+                    'failed_at'      => Carbon::now(),
+                    'reserved_at'    => null,
+                    'reserved_until' => null,
+                    'last_error'     => $this->truncateError(
+                        'O handler JÁ FOI EXECUTADO, mas o resultado não pôde ser gravado: '
+                        . $e->getMessage()
+                        . ' — o job NÃO foi recolocado na fila para não repetir o trabalho.'
+                    ),
+                ]);
+            }, $job);
+        } catch (\Throwable $inner) {
+            $this->logger()->error('Falha ao registrar a conclusão não gravável do job', [
+                'job_id' => $job->id,
+                'queue'  => $job->queue,
+                'error'  => $inner->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Run a database operation, retrying the transient contention errors MySQL raises when
+     * several workers touch the same rows.
+     *
+     * Deliberately never wraps a job handler: retrying a unit that contains the handler is
+     * precisely how work gets done twice (spec 037).
+     *
+     * @template T
+     * @param  callable(): T $operation
+     * @return T
+     */
+    private function retryOnTransientDbError(string $name, callable $operation, ?Job $job = null)
+    {
+        $attempt = 0;
+
+        while (true) {
+            try {
+                return $operation();
+            } catch (\Throwable $e) {
+                $attempt++;
+
+                if (!$this->isRetryableDbError($e) || $attempt > self::MAX_DB_RETRIES) {
+                    throw $e;
+                }
+
+                $this->logger()->warning('Erro transitório de banco; tentando novamente', [
+                    'job_id'    => $job?->id,
+                    'queue'     => $job?->queue,
+                    'operation' => $name,
+                    'attempt'   => $attempt,
+                    'max'       => self::MAX_DB_RETRIES,
+                    'error'     => $e->getMessage(),
+                ]);
+
+                // Short backoff with jitter so retrying workers do not collide again in step.
+                usleep((int) ((2 ** $attempt) * 10_000 + random_int(0, 10_000)));
+            }
+        }
+    }
+
+    private function isRetryableDbError(\Throwable $e): bool
+    {
+        $haystack = $e->getMessage() . '|' . (string) $e->getCode();
+
+        foreach (self::RETRYABLE_DB_ERRORS as $marker) {
+            if (str_contains($haystack, $marker)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The sweep is two unbounded UPDATEs over the same index ranges concurrent claims lock,
+     * which is what the deadlock formed around. Spec 033 ran it on every call for correctness
+     * under --once; throttling by time keeps that (a fresh process has never swept, so the
+     * first call always does) while removing it from the hot loop.
+     */
+    private function sweepIfDue(string $queue): void
+    {
+        $now = microtime(true);
+
+        if ($this->lastSweepAt !== 0.0 && ($now - $this->lastSweepAt) < self::SWEEP_INTERVAL_SECONDS) {
+            return;
+        }
+
+        $this->lastSweepAt = $now;
+        $this->reclaimStaleReservations($queue);
     }
 
     /**
@@ -134,7 +291,7 @@ class JobService
 
         // No attempts left: mark it failed, otherwise it would sit 'reserved' forever —
         // the claim query excludes it, so nothing else would ever touch it again.
-        $failed = Job::where('queue', $queue)
+        $failed = $this->retryOnTransientDbError('sweep-failed', fn () => Job::where('queue', $queue)
             ->where('status', Job::STATUS_RESERVED)
             ->where('reserved_until', '<', $now)
             ->whereColumn('attempts', '>=', 'max_attempts')
@@ -144,12 +301,12 @@ class JobService
                 'reserved_until' => null,
                 'failed_at'      => $now,
                 'last_error'     => 'Reserva expirada: o worker provavelmente foi encerrado durante a execução.',
-            ]);
+            ]));
 
         // Attempts left: back to the queue. The attempt consumed at claim time is NOT
         // refunded, so a job that reliably kills its worker still exhausts max_attempts
         // instead of looping forever.
-        $released = Job::where('queue', $queue)
+        $released = $this->retryOnTransientDbError('sweep-released', fn () => Job::where('queue', $queue)
             ->where('status', Job::STATUS_RESERVED)
             ->where('reserved_until', '<', $now)
             ->whereColumn('attempts', '<', 'max_attempts')
@@ -158,7 +315,7 @@ class JobService
                 'reserved_at'    => null,
                 'reserved_until' => null,
                 'available_at'   => $now,
-            ]);
+            ]));
 
         return $failed + $released;
     }
@@ -208,13 +365,13 @@ class JobService
         // If max attempts reached, mark it failed and keep it for inspection.
         // Otherwise release it so it can be retried.
         if ($job->attempts >= $job->max_attempts) {
-            $job->update([
+            $this->retryOnTransientDbError('fail-permanent', fn () => $job->update([
                 'status'         => Job::STATUS_FAILED,
                 'reserved_at'    => null,
                 'reserved_until' => null,
                 'failed_at'      => Carbon::now(),
                 'last_error'     => $error,
-            ]);
+            ]), $job);
             $this->logJobFailure($job, $e, "Falha permanente (max_attempts={$job->max_attempts} atingido)");
 
             return;
@@ -222,13 +379,13 @@ class JobService
 
         // Release with a small delay (exponential backoff)
         $backoff = (int) pow(2, $job->attempts);
-        $job->update([
+        $this->retryOnTransientDbError('fail-release', fn () => $job->update([
             'status'         => Job::STATUS_PENDING,
             'reserved_at'    => null,
             'reserved_until' => null,
             'available_at'   => Carbon::now()->addSeconds($backoff),
             'last_error'     => $error,
-        ]);
+        ]), $job);
         $this->logJobFailure($job, $e, "Job liberado para retry em {$backoff}s (attempt={$job->attempts}/{$job->max_attempts})");
     }
 

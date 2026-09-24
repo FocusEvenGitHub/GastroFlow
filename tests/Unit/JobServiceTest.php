@@ -29,6 +29,31 @@ class SucceedJob
 }
 
 /**
+ * A Job whose completion UPDATE fails the way MySQL fails under contention.
+ *
+ * This is how spec 037's criteria are tested deterministically: waiting for a real deadlock
+ * would mean waiting for a race, and a green run would only prove it did not happen that time.
+ */
+class DeadlockingJob extends Job
+{
+    /** @var list<array<string, mixed>> */
+    public array $updates = [];
+
+    public function update(array $attributes = [], array $options = [])
+    {
+        $this->updates[] = $attributes;
+
+        if (($attributes['status'] ?? null) === Job::STATUS_COMPLETED) {
+            throw new \PDOException(
+                'SQLSTATE[40001]: Serialization failure: 1213 Deadlock found when trying to get lock'
+            );
+        }
+
+        return true;
+    }
+}
+
+/**
  * Captures the reservation fields as they are *while the handler runs*.
  * Values are copied, not the model reference: the success path clears reserved_at /
  * reserved_until on that same object right after handle() returns.
@@ -258,6 +283,102 @@ class JobServiceTest extends TestCase
             abs(ProbeJob::$reservedUntil->diffInSeconds($expected)),
             'reserved_until must be reserved_at + QUEUE_RESERVATION_TIMEOUT'
         );
+    }
+
+    /** @param array<string, mixed> ...$args */
+    private function invokePrivate(JobService $service, string $method, ...$args): mixed
+    {
+        $reflection = new \ReflectionMethod($service, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($service, ...$args);
+    }
+
+    /**
+     * Spec 037, AC1 + AC2 — the defect spec 035 found.
+     *
+     * The handler already ran. If the completion UPDATE deadlocks, the job must NOT return to
+     * 'pending', because re-queueing it would do the work a second time (duplicate ticket, or
+     * a duplicate NFC-e once the fiscal job exists).
+     */
+    public function testCompletionThatCannotBeRecordedParksTheJobInsteadOfRequeueing(): void
+    {
+        $job = new DeadlockingJob();
+        $job->id = 4242;
+        $job->queue = 'print';
+        $job->attempts = 1;
+        $job->max_attempts = 3;
+
+        $service = $this->service();
+        $this->invokePrivate($service, 'recordCompletion', $job);
+
+        $statuses = array_map(static fn (array $u) => $u['status'] ?? null, $job->updates);
+
+        $this->assertNotContains(
+            Job::STATUS_PENDING,
+            $statuses,
+            'A job whose handler already ran must never be put back on the queue'
+        );
+
+        $final = end($job->updates);
+        $this->assertSame(Job::STATUS_FAILED, $final['status']);
+        $this->assertNotNull($final['failed_at']);
+        $this->assertStringContainsString('JÁ FOI EXECUTADO', (string) $final['last_error']);
+    }
+
+    /** Spec 037 — the completion UPDATE is retried before the job is parked. */
+    public function testCompletionIsRetriedBeforeGivingUp(): void
+    {
+        $job = new DeadlockingJob();
+        $job->id = 4243;
+        $job->queue = 'print';
+
+        $this->invokePrivate($this->service(), 'recordCompletion', $job);
+
+        $completionAttempts = count(array_filter(
+            $job->updates,
+            static fn (array $u) => ($u['status'] ?? null) === Job::STATUS_COMPLETED
+        ));
+
+        // 1 initial try + MAX_DB_RETRIES (3).
+        $this->assertSame(4, $completionAttempts, 'Completion must be retried, bounded');
+    }
+
+    /** Spec 037, AC3 — the retry helper is bounded and only retries transient errors. */
+    public function testRetryHelperRetriesDeadlocksAndThenGivesUp(): void
+    {
+        $calls = 0;
+        $service = $this->service();
+
+        try {
+            $this->invokePrivate($service, 'retryOnTransientDbError', 'test', function () use (&$calls) {
+                $calls++;
+                throw new \PDOException('SQLSTATE[40001]: Serialization failure: 1213 Deadlock found');
+            }, null);
+            $this->fail('The helper must rethrow once its retries are exhausted');
+        } catch (\PDOException $e) {
+            $this->assertStringContainsString('1213', $e->getMessage());
+        }
+
+        $this->assertSame(4, $calls, '1 attempt + 3 retries');
+    }
+
+    /** A non-transient error must fail immediately — retrying it would just waste time. */
+    public function testRetryHelperDoesNotRetryOrdinaryErrors(): void
+    {
+        $calls = 0;
+
+        try {
+            $this->invokePrivate($this->service(), 'retryOnTransientDbError', 'test', function () use (&$calls) {
+                $calls++;
+                throw new \RuntimeException('column not found');
+            }, null);
+            $this->fail('Expected the exception to propagate');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('column not found', $e->getMessage());
+        }
+
+        $this->assertSame(1, $calls, 'A non-transient error must not be retried');
     }
 
     /** AC8 */
