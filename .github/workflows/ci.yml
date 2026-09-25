@@ -119,14 +119,22 @@ jobs:
       # A instância de testes aponta para restaurant_test pela variável de ambiente: o
       # public/index.php usa Dotenv imutável e variables_order inclui E, então o ambiente
       # vence o arquivo .env. É o mesmo mecanismo do docker-compose.e2e.yml local.
+      # tests/e2e/router.php é obrigatório: o servidor embutido do PHP não lê o
+      # public/.htaccess, e é ele que manda caminho inexistente para o front controller.
+      # Sem o roteador, /api/menu devolve 404 — foi assim que este job falhou na primeira vez.
       - name: Start app for browser tests (test database)
         run: |
-          MYSQL_DATABASE=restaurant_test php -S 127.0.0.1:8081 -t public > /tmp/e2e-server.log 2>&1 &
+          MYSQL_DATABASE=restaurant_test php -S 127.0.0.1:8081 -t public tests/e2e/router.php \
+            > /tmp/e2e-server.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf -o /dev/null http://127.0.0.1:8081/api/menu && break
             sleep 1
           done
-          curl -sf -o /dev/null http://127.0.0.1:8081/api/menu
+          if ! curl -sf -o /dev/null http://127.0.0.1:8081/api/menu; then
+            echo "O app não respondeu na 8081. Log do servidor:"
+            cat /tmp/e2e-server.log
+            exit 1
+          fi
 
       - name: Browser tests (Playwright)
         working-directory: tests/e2e
