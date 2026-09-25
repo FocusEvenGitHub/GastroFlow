@@ -129,7 +129,13 @@ jobs:
           # essa única conexão consome o único worker e trava todo o resto. Localmente passa
           # porque lá quem serve é o Apache.
           PHP_CLI_SERVER_WORKERS=8 MYSQL_DATABASE=restaurant_test \
-            php -S 127.0.0.1:8081 -t public tests/e2e/router.php \
+          # -d variables_order=EGPCS é OBRIGATÓRIO, e foi a causa de o job ler o banco
+          # errado: o phpdotenv imutável decide "já está definido?" olhando $_ENV/$_SERVER,
+          # NÃO o getenv(). Sem o E, $_ENV fica vazio, o Dotenv conclui que a chave não
+          # existe e carrega MYSQL_DATABASE=restaurant do .env — o banco de desenvolvimento.
+          # Provado no CI: escrever em restaurant.settings fazia o servidor reportar
+          # blocked=true. Local passava porque o php.ini do container já usa EGPCS.
+            php -d variables_order=EGPCS -S 127.0.0.1:8081 -t public tests/e2e/router.php \
             > /tmp/e2e-server.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf -o /dev/null http://127.0.0.1:8081/api/menu && break
@@ -140,42 +146,6 @@ jobs:
             cat /tmp/e2e-server.log
             exit 1
           fi
-
-      # TEMPORÁRIO (spec 040): o job falhou com o servidor reportando blocked:false depois de
-      # o helper escrever. Isto mostra QUAL banco cada lado usa, em vez de eu continuar
-      # teorizando. Some assim que a causa for encontrada.
-      - name: Diagnose which database each side uses
-        run: |
-          echo "--- status ANTES ---"
-          curl -s http://127.0.0.1:8081/api/printer/status; echo
-          echo "--- helper escreve o bloqueio ---"
-          MYSQL_DATABASE=restaurant_test php -r '
-            require "vendor/autoload.php";
-            Dotenv\Dotenv::createImmutable(getcwd())->safeLoad();
-            foreach (getenv() as $k => $v) { if (!array_key_exists($k, $_ENV)) { $_ENV[$k] = $v; } }
-            $_ENV["MYSQL_DATABASE"] = getenv("MYSQL_DATABASE") ?: "restaurant_test";
-            App\Database::boot(new App\Settings());
-            echo "  helper escreveu em: ", Illuminate\Database\Capsule\Manager::connection()->selectOne("SELECT DATABASE() AS d")->d, "\n";
-            App\Models\Setting::setValue("printer_blocked_at", date("Y-m-d H:i:s"));
-            App\Models\Setting::setValue("printer_consecutive_failures", "3");'
-          echo "--- status DEPOIS ---"
-          curl -s http://127.0.0.1:8081/api/printer/status; echo
-          echo "--- teste decisivo: escrever no OUTRO banco (restaurant) ---"
-          mysql -h127.0.0.1 -uroot -proot -e \
-            "REPLACE INTO restaurant.settings (\`key\`, value) VALUES ('printer_blocked_at','2000-01-01 00:00:00');"
-          echo -n "  status agora: "; curl -s http://127.0.0.1:8081/api/printer/status; echo
-          echo "  (se blocked=true, o servidor está no banco restaurant, não no de teste)"
-          echo "--- ambiente REAL do processo do servidor ---"
-          for pid in $(pgrep -f "php -S 127.0.0.1:8081" || true); do
-            echo "  pid=$pid MYSQL_DATABASE=$(tr '\0' '\n' < /proc/$pid/environ | grep '^MYSQL_DATABASE=' || echo '(ausente)')"
-          done
-          echo "--- log do servidor ---"
-          tail -5 /tmp/e2e-server.log || true
-          echo "--- linhas em cada banco ---"
-          mysql -h127.0.0.1 -uroot -proot -e \
-            "SELECT 'restaurant' AS db, \`key\`, value FROM restaurant.settings WHERE \`key\` LIKE 'printer%'
-             UNION ALL
-             SELECT 'restaurant_test', \`key\`, value FROM restaurant_test.settings WHERE \`key\` LIKE 'printer%';"
 
       - name: Browser tests (Playwright)
         working-directory: tests/e2e
