@@ -26,9 +26,12 @@ $file = $root . $path;
  * cinco testes abrindo a tela, os workers acabam e TODAS as requisições seguintes passam a
  * dar timeout — foi exatamente o que aconteceu no CI (15s em apiRequestContext.get).
  *
- * Nenhum teste desta suíte exercita SSE: o estado da impressora chega por polling. Devolver
- * 204 mantém o EventSource inofensivo (ele apenas tenta reconectar) sem prender worker.
- * O Apache de produção não tem essa limitação, então nada disso vale fora daqui.
+ * Os testes de printer-block.spec.ts (spec 040) não exercitam SSE: o estado da impressora
+ * chega por polling. Os de realtime-events.spec.ts (spec 041) exercitam SSE de propósito, mas
+ * se pulam sozinhos quando E2E_PHP_DIRECT=1 é o sinal de que é este servidor — exatamente por
+ * causa desta limitação. Devolver 204 mantém qualquer EventSource remanescente inofensivo (ele
+ * apenas tenta reconectar) sem prender worker. O Apache de produção não tem essa limitação,
+ * então nada disso vale fora daqui.
  */
 if (str_starts_with($path, '/api/events/')) {
     http_response_code(204);

@@ -34,6 +34,7 @@ abstract class IntegrationTestCase extends TestCase
         'orders',
         'order_number_counters',
         'jobs',
+        'events',
         'users',
     ];
 

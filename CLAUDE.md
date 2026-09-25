@@ -24,6 +24,7 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - `bin/worker [--once] [queue]` — process the DB-backed job queue (e.g. print jobs).
 - `bin/jobs-status [queue]` — list jobs needing attention (permanent failures + expired reservations). Read-only.
 - `bin/jobs-prune [--days=N]` — delete completed jobs older than N days (default `QUEUE_RETENTION_DAYS`, 7). Never removes failed jobs.
+- `bin/events-prune [--days=N]` — delete realtime events older than N days (default `EVENTS_RETENTION_DAYS`, 2). Added by spec 041.
 - `composer start` — `php -S 0.0.0.0:80 -t public` (only script in `composer.json`).
 - `docker compose exec web vendor/bin/phpunit` — run the PHPUnit suite (`phpunit.xml`: `tests/Smoke`, `tests/Unit`, `tests/Integration`). No `composer test` alias exists — use the `vendor/bin/phpunit` invocation directly.
 - `docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d web-e2e` then `cd tests/e2e && npm install && npx playwright install chromium && npx playwright test` — the browser suite (spec 040). It targets **port 8081**, a second app instance pointed at `restaurant_test`; it must never target 8080, which is the development database. Only covers what breaks exclusively in a browser (Alpine/Bootstrap interaction, enabled/disabled bindings) — the HTTP-layer flows belong to the integration suite.

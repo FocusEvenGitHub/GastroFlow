@@ -12,12 +12,18 @@ class OrderService
     private OrderRepository $orderRepo;
     private PrintService $printService;
     private JobService $jobService;
+    private EventPublisher $events;
 
-    public function __construct(OrderRepository $orderRepo, PrintService $printService, JobService $jobService)
-    {
+    public function __construct(
+        OrderRepository $orderRepo,
+        PrintService $printService,
+        JobService $jobService,
+        EventPublisher $events
+    ) {
         $this->orderRepo = $orderRepo;
         $this->printService = $printService;
         $this->jobService = $jobService;
+        $this->events = $events;
     }
 
     public function getOrders(string $status, ?string $date = null): array
@@ -42,7 +48,7 @@ class OrderService
         }
 
         // Dispara evento SSE para a cozinha
-        $this->triggerKitchenEvent('order.created', $order->id);
+        $this->events->publish('order.created', ['order_id' => $order->id]);
 
         return $order;
     }
@@ -50,19 +56,19 @@ class OrderService
     public function completeOrder(int $id): void
     {
         $this->orderRepo->completeOrder($id);
-        $this->triggerKitchenEvent('order.completed', $id);
+        $this->events->publish('order.completed', ['order_id' => $id]);
     }
 
     public function uncompleteOrder(int $id): void
     {
         $this->orderRepo->uncompleteOrder($id);
-        $this->triggerKitchenEvent('order.uncompleted', $id);
+        $this->events->publish('order.uncompleted', ['order_id' => $id]);
     }
 
     public function cancelOrder(int $id): void
     {
         $this->orderRepo->cancelOrder($id);
-        $this->triggerKitchenEvent('order.cancelled', $id);
+        $this->events->publish('order.cancelled', ['order_id' => $id]);
     }
 
     public function getNextNumber(): int
@@ -73,20 +79,20 @@ class OrderService
     public function updateOrder(int $id, array $data): void
     {
         $this->orderRepo->updateOrder($id, $data);
-        $this->triggerKitchenEvent('order.updated', $id);
+        $this->events->publish('order.updated', ['order_id' => $id]);
     }
 
     public function addOrderItem(int $orderId, array $data): array
     {
         $item = $this->orderRepo->addOrderItem($orderId, $data);
-        $this->triggerKitchenEvent('order.updated', $orderId);
+        $this->events->publish('order.updated', ['order_id' => $orderId]);
         return $item;
     }
 
     public function updateOrderItem(int $orderId, int $itemId, array $data): void
     {
         $this->orderRepo->updateOrderItem($orderId, $itemId, $data);
-        $this->triggerKitchenEvent('order.updated', $orderId);
+        $this->events->publish('order.updated', ['order_id' => $orderId]);
     }
 
     public function removeOrderItem(int $orderId, int $itemId): void
@@ -95,7 +101,7 @@ class OrderService
         if (!$removed) {
             throw new \DomainException('Não é possível remover o último item do pedido. Cancele o pedido inteiro.');
         }
-        $this->triggerKitchenEvent('order.updated', $orderId);
+        $this->events->publish('order.updated', ['order_id' => $orderId]);
     }
 
     /**
@@ -117,19 +123,5 @@ class OrderService
         ]);
 
         return true;
-    }
-
-    /**
-     * Write a notification event for the SSE stream.
-     */
-    private function triggerKitchenEvent(string $type, int $orderId): void
-    {
-        $eventFile = sys_get_temp_dir() . '/gastroflow-events.json';
-        $data = [
-            'type'      => $type,
-            'order_id'  => $orderId,
-            'timestamp' => time(),
-        ];
-        @file_put_contents($eventFile, json_encode($data, JSON_UNESCAPED_UNICODE));
     }
 }

@@ -2,9 +2,13 @@
 
 ## v1.8.0 — Reliability & Quality (em andamento, sem tag)
 
-Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: realtime/SSE, logging estruturado, histórico de auditoria, health checks, confiabilidade de migração, backup & restore.
+Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: logging estruturado, histórico de auditoria, health checks, confiabilidade de migração, LF/CRLF, backup & restore.
 
 > ⚠️ **Mudança de comportamento visível ao atualizar (spec 038):** instalações com a impressora não configurada vão começar a acumular jobs de impressão com status `failed`, onde antes tudo parecia bem. É o alarme correto — antes esses pedidos constavam impressos sem nada ter saído. Configure `printer_ip` ou crie os pedidos com `print_ticket=false`.
+
+### Correções
+- **Eventos em tempo real deixam de se perder entre containers**: a cozinha descobria pedidos novos via SSE lendo um arquivo em `sys_get_temp_dir()`, que é por container — um evento publicado pelo worker de impressão nunca chegava à cozinha, servida pelo container `web`. Confirmado quebrado três vezes nas specs 038-040 sem ser o assunto delas, até a 040 ter que desabilitar o SSE inteiro no servidor de teste. `OrderService` agora depende só da interface `EventPublisher`, nunca do transporte, implementada por uma tabela `events` no MySQL — o mesmo banco que todo container já compartilha (spec 041)
+- **Reconexão da cozinha deixa de perder eventos**: o stream SSE passa a emitir uma linha `id:` por evento, habilitando a reconexão nativa do `EventSource` (`Last-Event-ID`) — uma tela que cai por um minuto recupera o que perdeu em vez de ficar desatualizada até o próximo carregamento completo. Retenção de 2 dias via `bin/events-prune`, reaproveitando o mesmo gancho horário que já poda jobs concluídos (spec 041)
 
 ### Testes
 - **Suíte de testes de navegador** (`tests/e2e/`, Playwright): cinco testes cobrindo **só o que quebra exclusivamente no navegador** — a interação Alpine/Bootstrap que produziu o defeito invisível da spec 039, estados habilitado/desabilitado por binding, e elementos que aparecem por condição. Roda contra uma **segunda instância do app na porta 8081** apontada para o banco de teste, então nunca escreve no banco de desenvolvimento. O item de E2E do roadmap foi emendado junto, distinguindo "não automatizar o frontend inteiro" (que continua valendo) de "cobrir o que só quebra no navegador" (spec 040)

@@ -11,6 +11,8 @@ use Psr\Log\LoggerInterface;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Psr\Http\Message\ServerRequestInterface;
+use App\Services\EventPublisher;
+use App\Services\DatabaseEventPublisher;
 use Throwable;
 
 class App
@@ -37,6 +39,10 @@ class App
                 $logger->pushHandler(new StreamHandler($this->settings->getLogFile(), Logger::DEBUG));
                 return $logger;
             },
+            // Binds the roadmap's named abstraction (OrderService -> EventPublisher -> ...)
+            // to its MySQL-backed implementation (spec 041). Autowiring alone can't resolve
+            // an interface without this — PHP-DI needs an explicit binding.
+            EventPublisher::class => \DI\autowire(DatabaseEventPublisher::class),
         ]);
 
         $container = $containerBuilder->build();
