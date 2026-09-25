@@ -124,7 +124,12 @@ jobs:
       # Sem o roteador, /api/menu devolve 404 — foi assim que este job falhou na primeira vez.
       - name: Start app for browser tests (test database)
         run: |
-          MYSQL_DATABASE=restaurant_test php -S 127.0.0.1:8081 -t public tests/e2e/router.php \
+          # PHP_CLI_SERVER_WORKERS é obrigatório: a tela da cozinha abre uma conexão SSE de
+          # longa duração (/api/events/stream.php) e o `php -S` é single-threaded por padrão —
+          # essa única conexão consome o único worker e trava todo o resto. Localmente passa
+          # porque lá quem serve é o Apache.
+          PHP_CLI_SERVER_WORKERS=8 MYSQL_DATABASE=restaurant_test \
+            php -S 127.0.0.1:8081 -t public tests/e2e/router.php \
             > /tmp/e2e-server.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf -o /dev/null http://127.0.0.1:8081/api/menu && break
