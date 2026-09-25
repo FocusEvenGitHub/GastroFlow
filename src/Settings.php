@@ -83,6 +83,20 @@ class Settings
         return $value > 0 ? $value : 7;
     }
 
+    /**
+     * How many days a realtime event is kept before being pruned (spec 041).
+     *
+     * Defaults to 2. These rows exist so a reconnecting kitchen screen can catch up on what
+     * it missed (Last-Event-ID) — not as an audit trail — so the window is deliberately
+     * short: long enough to cover an overnight disconnect, short enough that nobody mistakes
+     * `events` for order history (that's what `orders`/`order_items` already are).
+     */
+    public function getEventsRetentionDays(): int
+    {
+        $value = (int) $this->get('EVENTS_RETENTION_DAYS', 2);
+        return $value > 0 ? $value : 2;
+    }
+
     public function getBasePath(): string
     {
         return $this->basePath;

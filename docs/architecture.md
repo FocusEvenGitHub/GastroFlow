@@ -86,7 +86,20 @@ Every subsection `docs/ROADMAP.md`'s `v1.7.0 — Domain & Architecture` phase na
 
 ## Real-time kitchen updates (SSE)
 
-The kitchen's "real-time" update is a signal file, not a message queue: `OrderService` writes a JSON file to `sys_get_temp_dir()` on order creation/completion, and `public/api/events/stream.php` polls it to emit Server-Sent Events. This works correctly for a single app instance and zero extra infrastructure, but is not safe under concurrent writes or a multi-instance deployment — `docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality` phase ("Realtime reliability") plans to replace it with Redis pub/sub or a MySQL-backed `events` table.
+**Rebuilt on a MySQL-backed `EventPublisher` (spec 041).** `OrderService` depends only on the
+`App\Services\EventPublisher` interface — never on how an event actually reaches the kitchen —
+and publishes through `DatabaseEventPublisher`, which inserts a row into the `events` table
+(migration `017_realtime_events.sql`). `public/api/events/stream.php` polls that table
+(`WHERE id > :lastId`) and emits each row as an SSE frame with a real `id:` line, so the
+browser's native `EventSource` reconnection (`Last-Event-ID`) works without any client code.
+
+This replaces an earlier signal-file mechanism (`OrderService` writing a JSON file to
+`sys_get_temp_dir()`) that was confirmed broken across containers: the print worker and the web
+container never shared a filesystem, so an event from one was invisible to the other — found
+while investigating specs 038-040, and fixed here rather than worked around again. `events` rows
+are pruned after `EVENTS_RETENTION_DAYS` (default 2 — these rows exist for reconnect catch-up,
+not as an audit trail) by the same hourly hook `bin/worker` already runs for the job queue
+(spec 033), or on demand via `bin/events-prune`.
 
 ## Background jobs and printing
 
@@ -159,4 +172,7 @@ Named, not hidden — tracked in `specs/000-project-baseline.md` and `docs/ROADM
 - Concurrency between two workers is exercised by `tests/Integration/ConcurrencyTest.php` against real MySQL (spec 035), but the race is **not deterministic** — a green run proves it did not happen that time, not that it cannot.
 - The frontend's automated coverage is **deliberately narrow** (spec 040): `tests/e2e/` holds a five-test Playwright suite covering only what breaks exclusively in a browser — the Alpine/Bootstrap interaction that produced spec 039's invisible defect, enabled/disabled bindings, and elements that appear by condition. Layout and visual regression remain human checks. The suite runs against a **second app instance on port 8081** (`docker-compose.e2e.yml`) pointed at `restaurant_test`, so it never writes to the development database; the isolation works because `variables_order=EGPCS` populates `$_ENV` from the process environment and `public/index.php` uses immutable Dotenv, which does not overwrite it.
 - Migrations are forward-only; no rollback mechanism.
-- Signal-file SSE and the DB-backed job queue both assume a single app instance.
+- ~~Signal-file SSE~~ — replaced by a MySQL-backed `EventPublisher` (spec 041), which fixed the
+  cross-container defect the file had; the realtime events table and the job queue both still
+  assume Community's single-location model (`docs/ROADMAP.md`'s "Single-location first"), which
+  is a deliberate scope boundary, not a gap.

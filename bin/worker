@@ -18,6 +18,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use App\Services\DatabaseEventPublisher;
 use App\Services\JobService;
 use App\Settings;
 use App\Database as DB;
@@ -43,6 +44,7 @@ for ($i = 1; $i < $argc; $i++) {
 }
 
 $jobService = new JobService();
+$eventPublisher = new DatabaseEventPublisher();
 $startedAt = date('Y-m-d H:i:s');
 
 echo "=== GastroFlow Worker ===\n";
@@ -93,6 +95,13 @@ while ($running) {
         $pruned = $jobService->pruneCompleted();
         if ($pruned > 0) {
             echo date('H:i:s') . " — Pruned {$pruned} completed job(s)\n";
+        }
+
+        // Reuses this same hourly hook rather than adding a second scheduled task — the
+        // print-worker container already runs this loop continuously (spec 041).
+        $eventsPruned = $eventPublisher->pruneOlderThan($settings->getEventsRetentionDays());
+        if ($eventsPruned > 0) {
+            echo date('H:i:s') . " — Pruned {$eventsPruned} old event(s)\n";
         }
     }
 

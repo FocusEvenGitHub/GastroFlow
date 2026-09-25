@@ -5,15 +5,19 @@ declare(strict_types=1);
 /**
  * SSE (Server-Sent Events) endpoint for real-time kitchen updates.
  *
- * O cliente (cozinha) conecta-se a este endpoint via EventSource.
- * Ele monitora um arquivo de eventos compartilhado e notifica
- * a cozinha quando um pedido é criado, finalizado ou reaberto.
+ * O cliente (cozinha) conecta-se a este endpoint via EventSource. Ele consulta a tabela
+ * `events` (spec 041) e notifica a cozinha quando um pedido é criado, finalizado ou reaberto.
+ *
+ * `id` é o próprio id autoincremento da tabela — é isso que faz a reconexão nativa do
+ * EventSource funcionar: o navegador guarda o último `id:` recebido e o reenvia como o
+ * header `Last-Event-ID` ao reconectar, sem qualquer código extra no cliente.
  */
 
 require __DIR__ . '/../../../vendor/autoload.php';
 
 use App\Settings;
 use App\Database as DB;
+use App\Models\Event;
 
 // Carregar .env
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../../..');
@@ -35,8 +39,16 @@ if (ob_get_level()) {
 }
 ob_implicit_flush(true);
 
-$eventFile = sys_get_temp_dir() . '/gastroflow-events.json';
-$lastEvent = '';
+// Last-Event-ID: o navegador reenvia isso sozinho ao reconectar (padrão EventSource), sem
+// nenhum código no cliente. Sem o header (conexão nova), começa de "agora" — não replay do
+// histórico inteiro, só o que aconteceu depois de reconectar.
+$lastEventId = $_SERVER['HTTP_LAST_EVENT_ID'] ?? null;
+if ($lastEventId !== null && ctype_digit((string) $lastEventId)) {
+    $lastId = (int) $lastEventId;
+} else {
+    $lastId = (int) (Event::max('id') ?? 0);
+}
+
 $pingCount = 0;
 
 // Send initial connection event
@@ -49,19 +61,24 @@ while (true) {
         break;
     }
 
-    // Check for new events
-    clearstatcache(true, $eventFile);
-    if (file_exists($eventFile)) {
-        $content = file_get_contents($eventFile);
-        if ($content !== false && $content !== $lastEvent) {
-            $lastEvent = $content;
-            $data = json_decode($content, true);
-            if ($data && isset($data['type'])) {
-                echo "event: {$data['type']}\n";
-                echo "data: {$content}\n\n";
-                flush();
-            }
-        }
+    $newEvents = Event::where('id', '>', $lastId)
+        ->orderBy('id')
+        ->limit(50)
+        ->get();
+
+    foreach ($newEvents as $event) {
+        $lastId = $event->id;
+        $data = [
+            'type'       => $event->type,
+            'order_id'   => $event->order_id,
+            'timestamp'  => $event->created_at?->timestamp,
+        ];
+        echo "id: {$event->id}\n";
+        echo "event: {$event->type}\n";
+        echo 'data: ' . json_encode($data, JSON_UNESCAPED_UNICODE) . "\n\n";
+    }
+    if ($newEvents->isNotEmpty()) {
+        flush();
     }
 
     // Send keepalive ping every 30 seconds
