@@ -141,6 +141,31 @@ jobs:
             exit 1
           fi
 
+      # TEMPORÁRIO (spec 040): o job falhou com o servidor reportando blocked:false depois de
+      # o helper escrever. Isto mostra QUAL banco cada lado usa, em vez de eu continuar
+      # teorizando. Some assim que a causa for encontrada.
+      - name: Diagnose which database each side uses
+        run: |
+          echo "--- status ANTES ---"
+          curl -s http://127.0.0.1:8081/api/printer/status; echo
+          echo "--- helper escreve o bloqueio ---"
+          MYSQL_DATABASE=restaurant_test php -r '
+            require "vendor/autoload.php";
+            Dotenv\Dotenv::createImmutable(getcwd())->safeLoad();
+            foreach (getenv() as $k => $v) { if (!array_key_exists($k, $_ENV)) { $_ENV[$k] = $v; } }
+            $_ENV["MYSQL_DATABASE"] = getenv("MYSQL_DATABASE") ?: "restaurant_test";
+            App\Database::boot(new App\Settings());
+            echo "  helper escreveu em: ", Illuminate\Database\Capsule\Manager::connection()->selectOne("SELECT DATABASE() AS d")->d, "\n";
+            App\Models\Setting::setValue("printer_blocked_at", date("Y-m-d H:i:s"));
+            App\Models\Setting::setValue("printer_consecutive_failures", "3");'
+          echo "--- status DEPOIS ---"
+          curl -s http://127.0.0.1:8081/api/printer/status; echo
+          echo "--- linhas em cada banco ---"
+          mysql -h127.0.0.1 -uroot -proot -e \
+            "SELECT 'restaurant' AS db, \`key\`, value FROM restaurant.settings WHERE \`key\` LIKE 'printer%'
+             UNION ALL
+             SELECT 'restaurant_test', \`key\`, value FROM restaurant_test.settings WHERE \`key\` LIKE 'printer%';"
+
       - name: Browser tests (Playwright)
         working-directory: tests/e2e
         run: npx playwright test
