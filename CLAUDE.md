@@ -60,6 +60,17 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - The changelog edit goes through a branch and a pull request, like any other change — never committed straight to `master`.
 - **The changelog pass and the docs pass are the same pass.** Whenever you touch `CHANGELOG.md`, check `docs/architecture.md`, `docs/technical-decisions.md`, `specs/000-project-baseline.md` and `README.md` for anything the merged work made false, and fix it **in the same pull request** — don't wait to be asked and don't leave it for later. An audit on 2026-09-24 found `architecture.md` mentioned 1 of the last 7 specs and the baseline mentioned 0: the problem was never a missing document, it was documents nobody updated. When you catch a doc asserting something the code no longer does, correct it in place with a dated note rather than silently rewriting it, which is the discipline the baseline already sets for itself.
 
+## Trello board
+
+- The project is tracked on the Trello board **"GastroFlow Community"** (https://trello.com/b/8wJbH7PY), reached through the `trello` MCP server. Lists are the `docs/ROADMAP.md` milestones (`📌 Visão & Regras`, `✅ Concluído / Histórico`, `🚧 v1.8`, `📦 v1.9`, `🧪 v2.0`, `🧾 v2.1`, `🧹 Backlog / Follow-ups`); progress lives in each card's **`Spec / Delivery`** checklist. The repository stays the source of truth — the board mirrors it, never the other way round.
+- **Updating the board is part of the work, like `CHANGELOG.md` — during development, not only at the end, and without waiting to be asked.** Tick a `Spec / Delivery` item when the step actually happens:
+  - `/spec-plan` creates a spec → put the spec number/path and branch on the matching card (create the card if the work has none); tick investigation + spec items.
+  - Spec approved / `/spec-implement` / tests / `/spec-review` / PR opened → tick the corresponding items as each one is really done.
+  - Work lands on `master` (same trigger as the changelog rule above) → move the card to `✅ Concluído / Histórico`, record PR/commit in the description, set the merge date as due date and mark it complete.
+  - A new gap or follow-up gets documented, or `docs/ROADMAP.md` changes → add/update the card in the same pass.
+- The evidence rule applies to the board too: never tick an item or mark a card complete without the evidence being real (merged PR, run observed, spec status).
+- Don't invent due dates (only real, documented dates such as tags/merges), don't pre-assign future spec numbers, and never put secrets, tokens or credentials in a card.
+
 ## General rules
 
 - Don't add new dependencies, don't bump Composer/Docker versions, unless explicitly asked.
