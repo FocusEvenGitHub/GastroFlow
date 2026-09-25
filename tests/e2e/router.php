@@ -18,6 +18,23 @@ $root = dirname(__DIR__, 2) . '/public';
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $file = $root . $path;
 
+/**
+ * O stream SSE é recusado de propósito neste servidor de teste.
+ *
+ * Cada carga da tela da cozinha abre uma conexão de longa duração em
+ * /api/events/stream.php, e cada uma ocupa um worker do `php -S` até o cliente sumir. Com
+ * cinco testes abrindo a tela, os workers acabam e TODAS as requisições seguintes passam a
+ * dar timeout — foi exatamente o que aconteceu no CI (15s em apiRequestContext.get).
+ *
+ * Nenhum teste desta suíte exercita SSE: o estado da impressora chega por polling. Devolver
+ * 204 mantém o EventSource inofensivo (ele apenas tenta reconectar) sem prender worker.
+ * O Apache de produção não tem essa limitação, então nada disso vale fora daqui.
+ */
+if (str_starts_with($path, '/api/events/')) {
+    http_response_code(204);
+    return true;
+}
+
 // Arquivo real (css, js, imagem, .php de tela): o servidor embutido serve sozinho.
 if ($path !== '/' && is_file($file)) {
     return false;
