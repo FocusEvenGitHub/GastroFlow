@@ -94,9 +94,25 @@ async function createOrder(page: Page): Promise<number> {
 
 test.afterEach(() => setPrinterState('clear'));
 
+/**
+ * Confirma, pelo próprio endpoint, que o servidor sob teste enxerga o bloqueio.
+ *
+ * Existe porque uma falha no CI dizia apenas "elemento não encontrado", sem revelar se o
+ * problema era a UI ou o estado nunca ter chegado ao servidor — e as duas causas exigem
+ * correções opostas. Falhar aqui aponta o backend; falhar no locator aponta a tela.
+ */
+async function expectServerBlocked(page: Page): Promise<void> {
+  const status = await (await page.request.get(`${BASE}/api/printer/status`)).json();
+  expect(
+    status.blocked,
+    `o servidor em ${BASE} não está bloqueado; status = ${JSON.stringify(status)}`
+  ).toBe(true);
+}
+
 test('cozinha: o aviso de bloqueio SOME ao reativar', async ({ page }) => {
   const orderId = await createOrder(page);
   setPrinterState('blocked', orderId);
+  await expectServerBlocked(page);
 
   await page.goto('/kitchen/');
 
@@ -113,6 +129,7 @@ test('cozinha: o aviso de bloqueio SOME ao reativar', async ({ page }) => {
 test('cozinha: o botão de reimprimir desabilita e reabilita', async ({ page }) => {
   const orderId = await createOrder(page);
   setPrinterState('blocked', orderId);
+  await expectServerBlocked(page);
 
   await page.goto('/kitchen/');
 
@@ -128,6 +145,7 @@ test('cozinha: o botão de reimprimir desabilita e reabilita', async ({ page }) 
 
 test('caixa: o toggle de imprimir desabilita e fica visivelmente esmaecido', async ({ page }) => {
   setPrinterState('blocked', 1);
+  await expectServerBlocked(page);
 
   await page.goto('/cashier/');
 
@@ -142,6 +160,7 @@ test('caixa: o toggle de imprimir desabilita e fica visivelmente esmaecido', asy
 test('as duas telas avisam qual pedido falhou', async ({ page }) => {
   const orderId = await createOrder(page);
   setPrinterState('blocked', orderId);
+  await expectServerBlocked(page);
 
   for (const tela of ['/kitchen/', '/cashier/']) {
     await page.goto(tela);

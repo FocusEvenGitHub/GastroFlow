@@ -9,6 +9,12 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './specs',
+  // Um worker: estes testes compartilham estado GLOBAL — o bloqueio da impressora vive na
+  // tabela `settings`, não por sessão — então o afterEach de um limparia o bloqueio que
+  // outro ainda verifica. (Hoje o Playwright só paraleliza entre ARQUIVOS e há um só, então
+  // isto é proteção para quando um segundo arquivo existir, não correção de bug observado.)
+  workers: 1,
+  fullyParallel: false,
   // Sem retries: um teste que só passa na segunda tentativa está escondendo instabilidade,
   // e a suíte é pequena o bastante para não precisar disso.
   retries: 0,
