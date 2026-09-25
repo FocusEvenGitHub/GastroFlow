@@ -2,12 +2,12 @@
 
 ## Metadata
 
-- Status: In Progress
+- Status: Verified
 - Created: 2026-09-24
 - Updated: 2026-09-24
 - Owner: Henry
 - Related issue: Not applicable (decisão do dono, após a spec 039)
-- Related branch: `040` (a ser criada a partir de `master`)
+- Related branch: `040`
 
 ## Context
 
@@ -279,34 +279,128 @@ documento passa a prometer uma suíte que não existe.
 
 ## Open questions
 
-Nenhuma bloqueante.
+Todas resolvidas na implementação:
 
-Não bloqueantes, a resolver na implementação:
-
-- **Custo real no CI**, e portanto se o job `e2e` roda em todo PR ou sob condição. A decisão sai
-  do número medido, não de estimativa.
-- **Como a segunda instância sobe no CI** — `docker compose -f docker-compose.e2e.yml` exige
-  Docker no runner, o que o workflow atual não usa (ele instala PHP direto). A alternativa é o
-  servidor embutido do PHP com a variável de ambiente trocada, que a medição desta spec mostra
-  ser suficiente. Decidir na implementação e registrar.
-- **Se `tests/e2e` deve entrar no PHP-CS-Fixer/PHPStan** — são arquivos TypeScript/JS, então
-  provavelmente não; confirmar que os dois continuam limpos com o diretório novo.
+- **Custo real no CI** — medido: a suíte de navegador roda em **5,6s** no runner, e os três
+  passos que a habilitam (Node, `npm ci` + download do Chromium, subir o app) somam pouco mais
+  de um minuto. O job inteiro passou de ~1m a ~1m38s. Bem abaixo do limite de ~3 min que
+  motivaria uma condição de execução, então ela **roda em todo PR**, sem condição.
+- **Como a segunda instância sobe no CI** — servidor embutido do PHP, não Docker, já que o
+  workflow instala PHP direto. Exigiu três coisas que só apareceram executando: um roteador,
+  `variables_order=EGPCS` e recusar o SSE. Ver o log de implementação.
+- **`tests/e2e` no PHPStan/PHP-CS-Fixer** — não: são arquivos TypeScript. Confirmado que ambos
+  seguem limpos (`0 of 81 files`, mesma contagem de antes).
 
 ## Task checklist
 
-- [ ] 1. Emenda do roadmap
-- [ ] 2. Segunda instância na 8081, confirmada por requisição real
-- [ ] 3. `tests/e2e/` com config e `.gitignore`
-- [ ] 4. Os cinco testes
-- [ ] 5. AC3 — quebrar a UI, ver falhar, reverter
-- [ ] 6. Job `e2e` no CI, com o tempo medido
-- [ ] 7. `CLAUDE.md`, `docs/architecture.md`, `CHANGELOG.md`
+- [x] 1. Emenda do roadmap
+- [x] 2. Segunda instância na 8081, confirmada por requisição real
+- [x] 3. `tests/e2e/` com config e `.gitignore`
+- [x] 4. Os cinco testes
+- [x] 5. AC3 — quebrar a UI, ver falhar, reverter
+- [x] 6. Job `e2e` no CI, com o tempo medido
+- [x] 7. `CLAUDE.md`, `docs/architecture.md`, `CHANGELOG.md`
 
 ## Implementation log
 
-Não iniciado — preenchido durante `/spec-implement`.
+- **2026-09-24 — 1. A emenda do roadmap foi o primeiro commit**, antes de a dependência entrar,
+  como a spec exigia. A redação separa o que continua valendo (não automatizar o frontend
+  inteiro) do que passa a valer (cobrir o que só quebra no navegador), e cita o custo medido —
+  o aviso invisível da spec 039 — em vez de argumentar em abstrato.
+- **2026-09-24 — 2. O isolamento funcionou como medido.** `orders=88 jobs=51 users=8
+  settings=7` idênticos no banco `restaurant` antes e depois de uma execução completa. Verificar
+  UI deixou de exigir criar pedido no banco de desenvolvimento.
+- **2026-09-24 — 3. Desvio do FR5, declarado.** `setPrinterState()` não usa a API porque **não
+  existe endpoint que ative o bloqueio** — só `POST /api/printer/reset`, que o limpa. Chegar lá
+  pela API exigiria três jobs falhando de verdade (~42s de backoff) e um worker contra o banco
+  de teste; criar um endpoint só para testar seria mudar a aplicação para facilitar teste, que a
+  spec proíbe. Pedidos e cardápio continuam vindo da API.
+- **2026-09-24 — 4. Desvio do FR9, declarado.** Os testes rodam no **mesmo job** do CI, não num
+  job separado: o `restaurant_test` e seu schema acabam de ser construídos pelo passo de
+  integração, e um job separado duplicaria serviço MySQL, `composer install`, schema e migrações
+  para não reaproveitar nada. Os passos são nomeados, então a falha continua dizendo qual camada
+  quebrou — que era a razão real de pedir separação.
+- **2026-09-24 — 5. Vazamento corrigido de passagem (fora do escopo original).** O banco de
+  teste tinha **510 categorias e 5368 itens**, com `/api/menu` devolvendo **1 MB em 2s**: o
+  `001_schema.sql` semeia com `INSERT`s sem guarda de idempotência e o `buildSchema()` da spec
+  035 roda uma vez por **processo**, ou seja a cada invocação do `phpunit`. O seed passa a rodar
+  uma vez por banco. **Primeira tentativa estava errada**: eu fiz o método inteiro retornar cedo,
+  o que impediria migrações novas de alcançarem um banco existente — corrigido para guardar só o
+  seed, já que o `MigrationRunner` é idempotente por construção. As 5368 linhas já acumuladas
+  **não foram apagadas**: o `CLAUDE.md` proíbe operação destrutiva em banco e a regra não abre
+  exceção para banco de teste.
+
+### As cinco falhas de CI, e o que cada uma ensinou
+
+Nada disto reproduzia localmente. O valor desta seção é exatamente esse: as cinco causas são
+diferenças entre Apache/Docker e o servidor embutido do runner.
+
+1. **`php -S` não lê o `.htaccess`** → `/api/menu` devolvia 404 e o passo morria com exit 22.
+   Resolvido com `tests/e2e/router.php`, que reproduz a regra do `.htaccess`. Aproveitei para
+   fazer o passo **imprimir o log do servidor ao falhar** — na primeira execução ele escreveu em
+   `/tmp` e nunca mostrou, o que atrasou o diagnóstico sem necessidade.
+2. **Faltava a ponte `getenv()` → `$_ENV`** no subprocesso PHP que prepara o estado, a mesma
+   armadilha que a spec 035 já tinha encontrado. Ao corrigir, percebi que a ponte sozinha abriria
+   risco pior — se o Dotenv injetasse `MYSQL_DATABASE` do `.env`, o helper escreveria no banco de
+   **desenvolvimento** — então o alvo passou a ser fixado explicitamente e há uma **guarda que
+   recusa rodar** se o banco não for `restaurant_test`.
+3. **O SSE travava o servidor** (primeira aparição): `php -S` é single-threaded por padrão e a
+   conexão de longa duração da cozinha consumia o único worker. Resolvido com
+   `PHP_CLI_SERVER_WORKERS=8`.
+4. **Hipótese de paralelismo, REFUTADA.** Atribuí quatro falhas a testes concorrentes
+   compartilhando o estado global da impressora. Testei antes de empurrar: rodando com
+   `--workers=4` **localmente a suíte passou**, porque o Playwright só paraleliza entre arquivos
+   e há um só. `workers: 1` ficou no config como proteção para quando houver um segundo arquivo,
+   com o comentário corrigido para não registrar uma causa que não existiu. No lugar de teorizar
+   de novo, adicionei `expectServerBlocked()`, que consulta o próprio endpoint e **põe o JSON
+   recebido na mensagem de falha** — para a próxima falha dizer se o problema é a tela ou o
+   backend. Foi o que localizou a causa seguinte em uma execução.
+5. **⚠ A causa raiz, e a mais séria: o servidor do CI lia o banco ERRADO.** O phpdotenv imutável
+   decide "esta chave já está definida?" olhando `$_ENV`/`$_SERVER` — **não** o `getenv()`. No
+   runner, o `variables_order` do CLI não inclui `E`, então `$_ENV` nasce vazio, o Dotenv conclui
+   que `MYSQL_DATABASE` não está definida e carrega o valor do `.env`: `restaurant`. A variável
+   **chegava ao processo** (confirmado lendo `/proc/PID/environ`), mas o app nunca a via.
+   **Provado antes de corrigir**: escrever `printer_blocked_at` em `restaurant.settings` fez o
+   servidor da 8081 responder `blocked: true`. Corrigido com `-d variables_order=EGPCS`.
+   **Consequência a registrar**: nas execuções anteriores deste job, o servidor de teste apontava
+   para `restaurant`. No CI esse banco é efêmero, então não houve dano — mas a garantia de
+   isolamento esteve **silenciosamente quebrada**, e foi só porque um diagnóstico explícito foi
+   construído que isso apareceu em vez de passar como "teste instável".
+6. **O SSE travava o servidor (segunda aparição)**, agora esgotando os 8 workers ao longo de
+   cinco testes. Como nenhum teste exercita SSE — o estado chega por polling — o roteador passou
+   a devolver `204` para `/api/events/*`. O Apache de produção não tem essa limitação.
 
 ## Validation evidence
 
-Não iniciado — preenchido durante `/spec-implement`. Nenhum critério pode ser marcado como
-atendido sem o comando e a saída real registrados aqui.
+- **AC1** — `docs/ROADMAP.md` emendado no primeiro commit da branch; a frase original agora vem
+  acompanhada da ressalva e do motivo medido.
+- **AC2** — `npx playwright test` em `tests/e2e/` → `5 passed (42.5s)` local, `5 passed (5.6s)`
+  no CI. Comando documentado no `CLAUDE.md`.
+- **AC3 — o critério que dá sentido aos outros.** Reintroduzi o defeito real da spec 039
+  (`<template x-if>` de volta para `x-show`): a suíte **reprovou com exit 1**, nomeando
+  `cozinha: o aviso de bloqueio SOME ao reativar` e apontando `toHaveCount(0)` na linha 83.
+  Revertido, `5 passed`, exit 0.
+- **AC4** — contagens no banco `restaurant` antes e depois de uma execução completa:
+  `orders=88 jobs=51 users=8 settings=7` → **idênticas**.
+- **AC5** — `grep -rn "waitForTimeout" tests/e2e/specs/` retorna **uma única linha, um
+  comentário** explicando por que não se usa espera fixa. Nenhum uso para sincronização.
+- **AC6** — execução real no CI (run `36086433877`), lida pela API do GitHub:
+  `16. Set up Node 22 — success`, `17. Install browser test dependencies — success`,
+  `18. Start app for browser tests (test database) — success`,
+  `19. Browser tests (Playwright) — success`. Saída do passo: `5 passed (5.6s)`.
+- **AC7** — `vendor/bin/phpunit` → `OK (187 tests, 417 assertions)`; `phpstan analyse` →
+  `[OK] No errors`; `php-cs-fixer --dry-run` → `Found 0 of 81 files that can be fixed`.
+- **AC8** — `docker compose config --services` → `db`, `print-worker`, `web`. Com o arquivo
+  `e2e` somado: os mesmos três mais `web-e2e`. O compose principal não mudou.
+
+**Não validado, declarado em vez de subentendido:**
+
+- **Esta suíte não prova que as telas estão visualmente corretas.** Ela checa comportamento
+  observável — existe/não existe, habilitado/desabilitado, texto. Regressão de layout continua
+  sendo verificação humana, e confundir cobertura com garantia aqui seria erro.
+- **A correção do SSE no roteador não foi verificada localmente**: o Docker Desktop caiu antes
+  de eu conseguir subir o servidor embutido para testá-la. Foi verificada pelo CI, que é o
+  ambiente onde o problema aparece.
+- **As 5368 linhas duplicadas continuam no banco de teste.** O vazamento foi estancado, a
+  limpeza não foi feita — depende de decisão do dono, por ser operação destrutiva.
+- **Nenhum navegador além do Chromium**; nenhum teste em resolução móvel.
