@@ -466,7 +466,8 @@ Apache real) para a suíte de navegador.
   segue verde: `8 passed (52.8s)` localmente contra Apache. Também confirmado localmente sob
   `E2E_PHP_DIRECT=1` (o mesmo sinal usado pelo workflow do CI): os 3 testes de
   `realtime-events.spec.ts` aparecem como `skipped`, não `failed` — ver entrada 8 do log de
-  implementação. Confirmação contra o CI real fica registrada no PR #16.
+  implementação. Confirmado no CI real (PR #16, GitHub Actions run 36199903587): `3 skipped`
+  / `5 passed (5.9s)`.
 - **Migração** — `bin/migrate` aplicou `017_realtime_events.sql` com `[OK]`; segunda execução
   → `✔ Nenhuma migração pendente.` `SHOW COLUMNS FROM events` confirma o schema no MySQL de
   desenvolvimento.
