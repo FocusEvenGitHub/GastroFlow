@@ -37,8 +37,21 @@ function setPrinterState(sql: 'blocked' | 'clear', orderId?: number): void {
          App\\Models\\Setting::setValue('printer_last_failed_order', null);
          App\\Models\\Setting::setValue('printer_last_error', null);`;
 
+  // A ponte getenv() -> $_ENV é obrigatória, pelo mesmo motivo que o tests/bootstrap.php tem
+  // uma: no CI a configuração chega como variável de ambiente real, o Dotenv imutável não
+  // sobrescreve o que já existe, e o Settings lê apenas $_ENV — que fica vazio para essas
+  // chaves. Sem isto, o subprocesso morre com "MYSQL_USER environment variable is not set".
   const script = `require "vendor/autoload.php";
-     Dotenv\\Dotenv::createImmutable(getcwd())->load();
+     Dotenv\\Dotenv::createImmutable(getcwd())->safeLoad();
+     foreach (getenv() as $k => $v) { if (!array_key_exists($k, $_ENV)) { $_ENV[$k] = $v; } }
+     // O .env pode ter injetado o banco de DESENVOLVIMENTO; o alvo é sempre o de teste.
+     $_ENV["MYSQL_DATABASE"] = getenv("MYSQL_DATABASE") ?: "restaurant_test";
+     // Guarda, na mesma disciplina da spec 035: este helper ESCREVE, então recusa rodar
+     // em qualquer banco que não seja o de teste.
+     if ($_ENV["MYSQL_DATABASE"] !== "restaurant_test") {
+         fwrite(STDERR, "Recusando: alvo seria " . $_ENV["MYSQL_DATABASE"] . ", não restaurant_test\\n");
+         exit(1);
+     }
      App\\Database::boot(new App\\Settings());
      ${php}`;
 
