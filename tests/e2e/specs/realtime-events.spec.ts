@@ -9,9 +9,23 @@ import { test, expect } from '@playwright/test';
  * o defeito que a spec 041 existe para corrigir. O que só um EventSource de verdade prova é
  * o formato do protocolo SSE na fiação: se a linha `id:` chega ao cliente do jeito que o
  * padrão exige para a reconexão nativa funcionar.
+ *
+ * Pulada inteira sob E2E_PHP_DIRECT=1 (servidor embutido do CI): tests/e2e/router.php recusa
+ * de propósito qualquer requisição a /api/events/* com 204, para não esgotar o pool de um
+ * worker por conexão do `php -S` (spec 040) — SSE nunca vai funcionar ali, e cada teste aqui
+ * dependeria de um EventSource que nunca recebe nada. Só a instância Apache real
+ * (docker-compose.e2e.yml, porta 8081) exercita este arquivo; foi contra ela que a evidência
+ * de validação da spec 041 foi coletada.
  */
 
 const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+
+test.beforeEach(() => {
+  test.skip(
+    process.env.E2E_PHP_DIRECT === '1',
+    'SSE desabilitado de propósito no servidor embutido do CI (tests/e2e/router.php, spec 040) — esta suíte só roda contra Apache real (web-e2e).'
+  );
+});
 
 /** Cria um pedido pela API real — isso é o que faz OrderService publicar order.created. */
 async function createOrder(page: import('@playwright/test').Page): Promise<number> {

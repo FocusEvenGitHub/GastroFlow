@@ -413,6 +413,18 @@ Todas resolvidas na implementação:
   spec 040). A instância local (`web-e2e`, porta 8081) usa a mesma imagem/Dockerfile do
   serviço `web` — Apache real, SSE funcionando sem stub nenhum. Foi contra ela que a
   verificação de navegador desta spec rodou.
+- **2026-09-25 — 8. `realtime-events.spec.ts` quebrou no CI (PR #16) por rodar contra o
+  servidor embutido, não contra Apache.** Eu havia registrado o fato certo na entrada 7 mas não
+  apliquei a consequência ao escrever os testes: `tests/e2e/router.php` devolve 204 de
+  propósito para qualquer `/api/events/*`, então os 3 testes desta suíte falharam no CI real
+  (`page.evaluate: Nenhum evento order.created chegou em 15s`; os dois `fetch()` receberam
+  corpo nulo). Corrigido com `test.beforeEach(() => test.skip(process.env.E2E_PHP_DIRECT ===
+  '1', ...))`, o mesmo sinal de ambiente que `printer-block.spec.ts` já usa (spec 040) para
+  diferenciar CI de Docker local — confirmado localmente rodando a suíte duas vezes: com
+  `E2E_PHP_DIRECT=1` os 3 testes aparecem como `skipped`, sem rede nenhuma; contra a instância
+  Apache real (porta 8081) os mesmos 3 seguem `passed`, junto com os 5 de printer-block.
+  Comentário de `router.php` que dizia "nenhum teste desta suíte exercita SSE" também corrigido
+  — ficaria falso sem a ressalva.
 
 ## Validation evidence
 
@@ -451,7 +463,10 @@ Apache real) para a suíte de navegador.
 - **AC9** — três testes Playwright contra a instância Apache real (porta 8081), `3 passed`:
   evento real chega com `id:`; servidor honra `Last-Event-ID` presente; servidor não repete
   histórico sem o header. A suíte de navegador inteira (8 testes, incluindo os da spec 039)
-  segue verde: `8 passed (52.8s)`.
+  segue verde: `8 passed (52.8s)` localmente contra Apache. Também confirmado localmente sob
+  `E2E_PHP_DIRECT=1` (o mesmo sinal usado pelo workflow do CI): os 3 testes de
+  `realtime-events.spec.ts` aparecem como `skipped`, não `failed` — ver entrada 8 do log de
+  implementação. Confirmação contra o CI real fica registrada no PR #16.
 - **Migração** — `bin/migrate` aplicou `017_realtime_events.sql` com `[OK]`; segunda execução
   → `✔ Nenhuma migração pendente.` `SHOW COLUMNS FROM events` confirma o schema no MySQL de
   desenvolvimento.
