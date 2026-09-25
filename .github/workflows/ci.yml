@@ -160,6 +160,12 @@ jobs:
             App\Models\Setting::setValue("printer_consecutive_failures", "3");'
           echo "--- status DEPOIS ---"
           curl -s http://127.0.0.1:8081/api/printer/status; echo
+          echo "--- ambiente REAL do processo do servidor ---"
+          for pid in $(pgrep -f "php -S 127.0.0.1:8081" || true); do
+            echo "  pid=$pid MYSQL_DATABASE=$(tr '\0' '\n' < /proc/$pid/environ | grep '^MYSQL_DATABASE=' || echo '(ausente)')"
+          done
+          echo "--- log do servidor ---"
+          tail -5 /tmp/e2e-server.log || true
           echo "--- linhas em cada banco ---"
           mysql -h127.0.0.1 -uroot -proot -e \
             "SELECT 'restaurant' AS db, \`key\`, value FROM restaurant.settings WHERE \`key\` LIKE 'printer%'
