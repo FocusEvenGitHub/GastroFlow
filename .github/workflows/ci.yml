@@ -160,6 +160,11 @@ jobs:
             App\Models\Setting::setValue("printer_consecutive_failures", "3");'
           echo "--- status DEPOIS ---"
           curl -s http://127.0.0.1:8081/api/printer/status; echo
+          echo "--- teste decisivo: escrever no OUTRO banco (restaurant) ---"
+          mysql -h127.0.0.1 -uroot -proot -e \
+            "REPLACE INTO restaurant.settings (\`key\`, value) VALUES ('printer_blocked_at','2000-01-01 00:00:00');"
+          echo -n "  status agora: "; curl -s http://127.0.0.1:8081/api/printer/status; echo
+          echo "  (se blocked=true, o servidor está no banco restaurant, não no de teste)"
           echo "--- ambiente REAL do processo do servidor ---"
           for pid in $(pgrep -f "php -S 127.0.0.1:8081" || true); do
             echo "  pid=$pid MYSQL_DATABASE=$(tr '\0' '\n' < /proc/$pid/environ | grep '^MYSQL_DATABASE=' || echo '(ausente)')"
