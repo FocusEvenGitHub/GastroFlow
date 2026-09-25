@@ -93,6 +93,17 @@ abstract class IntegrationTestCase extends TestCase
     {
         Database::boot(new Settings());
 
+        // 001_schema.sql semeia categories/menu_items com INSERTs SEM guarda de idempotência,
+        // e buildSchema() roda uma vez por PROCESSO — ou seja, a cada invocação do phpunit.
+        // Sem esta checagem a semente é reinserida a cada execução: o banco de teste chegou a
+        // 510 categorias e 5368 itens (medido na spec 040), com o /api/menu devolvendo 1 MB.
+        // Construir só quando o schema ainda não existe deixa a semente acontecer uma vez por
+        // banco, não uma vez por execução.
+        // Só o seed é pulado; as migrações abaixo continuam rodando sempre, porque o
+        // MigrationRunner já é idempotente (rastreia o que aplicou) e uma migração nova
+        // precisa alcançar um banco de teste que já existe.
+        $alreadySeeded = Db::schema()->hasTable('categories');
+
         $sql = file_get_contents(dirname(__DIR__, 2) . '/common/sql/001_schema.sql');
         if ($sql === false) {
             $this->fail('Could not read common/sql/001_schema.sql');
@@ -105,7 +116,9 @@ abstract class IntegrationTestCase extends TestCase
         $sql = preg_replace('/^\s*CREATE\s+DATABASE\b.*?;/is', '', $sql) ?? $sql;
         $sql = preg_replace('/^\s*USE\s+[^;]+;/im', '', $sql) ?? $sql;
 
-        Db::connection()->unprepared($sql);
+        if (!$alreadySeeded) {
+            Db::connection()->unprepared($sql);
+        }
 
         // MigrationRunner reports progress on stdout; keep the test output readable.
         ob_start();

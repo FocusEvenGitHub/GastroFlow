@@ -11,3 +11,5 @@
 *.json text eol=lf
 *.sql text eol=lf
 *.md text eol=lf
+# Adicionado pela spec 040, junto com os primeiros arquivos TypeScript do repositório.
+*.ts text eol=lf

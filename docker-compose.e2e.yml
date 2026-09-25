@@ -1,0 +1,47 @@
+# Segunda instância da aplicação, só para os testes de navegador (spec 040).
+#
+# Por que ela existe: os testes de navegador falam com um servidor já em execução, então não
+# passam pelo bootstrap do PHPUnit onde a spec 035 isola o banco. Sem esta instância, verificar
+# a UI significaria escrever no banco de desenvolvimento — foi o que aconteceu durante a spec
+# 039, quando um pedido real precisou ser criado e cancelado só para ter um card na tela.
+#
+# Como o isolamento funciona: `variables_order = EGPCS` popula $_ENV a partir do ambiente do
+# processo, e o public/index.php usa Dotenv::createImmutable(), que NÃO sobrescreve o que já
+# está lá. Logo, MYSQL_DATABASE definido aqui vence o arquivo .env e aponta a aplicação inteira
+# para o banco de teste. Medido antes de escrever isto, não suposto.
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d web-e2e
+#
+# Deliberadamente fora do docker-compose.yml principal: `docker compose up -d` continua subindo
+# exatamente os três serviços de sempre.
+
+services:
+  web-e2e:
+    build: .
+    image: gastroflow-web
+    container_name: restaurant_web_e2e
+    volumes:
+      - ./public:/var/www/html/public
+      - ./src:/var/www/html/src
+      - ./common:/var/www/html/common
+      - ./legacy:/var/www/html/legacy
+      - ./bin:/var/www/html/bin
+      - ./tests:/var/www/html/tests
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+      - ./phpunit.xml:/var/www/html/phpunit.xml
+      - ./.env:/var/www/html/.env
+      - ./vendor:/var/www/html/vendor
+      - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
+    depends_on:
+      - db
+    ports:
+      - "8081:80"
+    environment:
+      DB_HOST: db
+      # O ponto inteiro deste arquivo: banco de TESTE, nunca o de desenvolvimento.
+      MYSQL_DATABASE: restaurant_test
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: America/Sao_Paulo

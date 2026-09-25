@@ -4,7 +4,7 @@ Persistent instructions for working in this repository. Keep this file short; de
 
 ## Stack (confirmed)
 
-PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Eloquent ORM (`illuminate/database ^10`, via `Illuminate\Database\Capsule\Manager`), `vlucas/valitron` for validation, `firebase/php-jwt`, `monolog/monolog`, `mike42/escpos-php` (ESC/POS thermal printing), MySQL 8.0, Docker Compose. Frontend: static PHP/HTML pages under `public/` using Alpine.js + Bootstrap 5, no build step.
+PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Eloquent ORM (`illuminate/database ^10`, via `Illuminate\Database\Capsule\Manager`), `vlucas/valitron` for validation, `firebase/php-jwt`, `monolog/monolog`, `mike42/escpos-php` (ESC/POS thermal printing), MySQL 8.0, Docker Compose. Frontend: static PHP/HTML pages under `public/` using Alpine.js + Bootstrap 5, **no build step** — nothing in `public/` depends on Node. The only Node in the repository is `tests/e2e/` (Playwright, spec 040), isolated there on purpose.
 
 ## Architecture (confirmed)
 
@@ -26,6 +26,7 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 - `bin/jobs-prune [--days=N]` — delete completed jobs older than N days (default `QUEUE_RETENTION_DAYS`, 7). Never removes failed jobs.
 - `composer start` — `php -S 0.0.0.0:80 -t public` (only script in `composer.json`).
 - `docker compose exec web vendor/bin/phpunit` — run the PHPUnit suite (`phpunit.xml`: `tests/Smoke`, `tests/Unit`, `tests/Integration`). No `composer test` alias exists — use the `vendor/bin/phpunit` invocation directly.
+- `docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d web-e2e` then `cd tests/e2e && npm install && npx playwright install chromium && npx playwright test` — the browser suite (spec 040). It targets **port 8081**, a second app instance pointed at `restaurant_test`; it must never target 8080, which is the development database. Only covers what breaks exclusively in a browser (Alpine/Bootstrap interaction, enabled/disabled bindings) — the HTTP-layer flows belong to the integration suite.
 - `docker compose exec -e MYSQL_DATABASE_TEST=restaurant_test web vendor/bin/phpunit --testsuite Integration` — the MySQL-backed integration suite (spec 035). **Without `MYSQL_DATABASE_TEST` these tests skip themselves**, and if it equals `MYSQL_DATABASE` they fail on purpose — they write real rows and must never touch the development database. One-time setup: `CREATE DATABASE restaurant_test` plus a `GRANT` for `MYSQL_USER` (the app user cannot create databases).
 - GitHub Actions (`.github/workflows/ci.yml`) runs this same suite against a real MySQL 8.0 service on every push/PR to `master`.
 - `docker compose exec web vendor/bin/phpstan analyse` — static analysis (PHPStan level 5, config `phpstan.neon`, pre-existing findings frozen in `phpstan-baseline.neon`). Added by spec 034.

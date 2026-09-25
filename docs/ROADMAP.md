@@ -857,7 +857,23 @@ Order completes
 Report reflects operation
 ```
 
-Do not attempt to test the entire frontend through browser automation.
+Do not attempt to test the entire frontend through browser automation — the integration suite
+(spec 035) covers the workflows through the HTTP layer, which is faster and far less brittle.
+
+**Amended 2026-09-24 (spec 040).** The original wording banned browser automation outright, and
+that turned out to be too broad. Reserve the browser for **what only breaks in a browser**:
+interactions between Alpine and Bootstrap's utility classes, enabled/disabled states that depend
+on a binding, and elements that appear or disappear by condition.
+
+The cost of not having it was measured, not argued: during spec 039 a block notice **never
+disappeared from the screen** because Alpine's `x-show` loses to Bootstrap's
+`.d-flex { display: flex !important }`. The API answered "unblocked", the button worked again,
+and only the text on screen lied — invisible to all 187 backend tests. A second defect (a toggle
+that was disabled without looking disabled) was found the same way.
+
+So: still no sweeping frontend automation, and no duplicating in the browser what the HTTP suite
+already proves. A small, justified set of browser tests, with "it only breaks in a browser" as
+the admission criterion.
 
 ---
 

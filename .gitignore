@@ -94,3 +94,8 @@ mysql/
 !/public/assets/img/tela_kitchen.png
 !/public/assets/img/tela_admin.png
 !/public/assets/img/tela_relatorio.png
+
+# Testes de navegador (spec 040)
+tests/e2e/node_modules/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
