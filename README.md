@@ -210,10 +210,11 @@ Five picks that best represent how this project trades things off — full table
 - **Realtime kitchen updates rebuilt on MySQL** (spec 041): replaced a signal-file SSE mechanism that was invisible across the `web`/`print-worker` container boundary with a `EventPublisher` interface backed by an `events` table — reliable event IDs, `Last-Event-ID` reconnection, and retention via `bin/events-prune`
 - **Structured logging with request/correlation IDs** (spec 042): every HTTP request gets a `request_id` (and `user_id` once authenticated) carried automatically into every log line it causes, including into the async print job it dispatches — tracing `HTTP Request → Order → Job → Printing` across process boundaries in one `app.log`
 - **Audit history for sensitive administrative operations** (spec 043): menu item changes, settings changes (including printer configuration — the same endpoint as general settings), order reopening, and user creation via `bin/create-admin` each write a permanent, queryable `audit_log` row (who, what, when) — deliberately separate from the technical `app.log`, with its own `GET /api/admin/audit-log` endpoint and admin viewer page
+- **Health checks** (spec 044): `GET /health/live` always confirms the PHP process is routing requests; `GET /health/ready` runs a real query through the existing database connection and returns `503 DB_UNAVAILABLE` (a fixed, generic message — never the underlying exception) when the database is unreachable. Both are unauthenticated, matching the existing `/api/printer/status` precedent for infrastructure-facing endpoints
 
 Full detail for all of the above in [`CHANGELOG.md`](CHANGELOG.md).
 
-**Next up** (same milestone): `/health/live` + `/health/ready` endpoints, migration reliability, consistent LF line endings on Windows, backup & restore.
+**Next up** (same milestone): migration reliability, consistent LF line endings on Windows, backup & restore.
 
 **Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
 
