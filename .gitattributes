@@ -13,3 +13,6 @@
 *.md text eol=lf
 # Adicionado pela spec 040, junto com os primeiros arquivos TypeScript do repositório.
 *.ts text eol=lf
+
+bin/backup-db text eol=lf
+bin/restore-db text eol=lf

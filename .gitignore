@@ -73,6 +73,7 @@ mysql/
 *.bak
 *.backup
 *.sql.gz
+/backups/
 
 # ============================================
 # Arquivos específicos do projeto

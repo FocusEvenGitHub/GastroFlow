@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+#
+# GastroFlow — Restaurar backup do banco de dados
+#
+# Uso:
+#   ./bin/restore-db [--yes] [arquivo]
+#
+# Sem "arquivo", usa o backup mais recente em backups/. Um nome sem "/" é
+# resolvido dentro de backups/; um caminho (relativo com "/" ou absoluto) é
+# usado como está.
+#
+# DESTRUTIVO: um dump do mysqldump inclui DROP TABLE IF EXISTS para cada
+# tabela (comportamento padrão de --opt), então restaurar apaga o conteúdo
+# atual do banco antes de recriar as tabelas. Por isso, sem --yes, o operador
+# precisa digitar RESTAURAR para confirmar; qualquer outra resposta (ou stdin
+# não-interativo) aborta sem tocar no banco.
+#
+# Mesma mecânica do bin/backup-db: roda no HOST via `docker compose exec` no
+# serviço `db` (que já tem mysql/gunzip), nunca lê o `.env` diretamente — usa
+# as variáveis de ambiente que o docker-compose.yml já injeta no container
+# `db` (spec 045).
+
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+backups_dir="backups"
+assume_yes=false
+file_arg=""
+
+for arg in "$@"; do
+    case "$arg" in
+        --yes)
+            assume_yes=true
+            ;;
+        *)
+            if [ -n "$file_arg" ]; then
+                echo "Erro: mais de um arquivo informado (\"$file_arg\" e \"$arg\")." >&2
+                exit 1
+            fi
+            file_arg="$arg"
+            ;;
+    esac
+done
+
+if [ -n "$file_arg" ]; then
+    case "$file_arg" in
+        */*|/*)
+            file="$file_arg"
+            ;;
+        *)
+            file="$backups_dir/$file_arg"
+            ;;
+    esac
+else
+    file="$(ls -t "$backups_dir"/*.sql.gz 2>/dev/null | head -n1 || true)"
+    if [ -z "$file" ]; then
+        echo "Erro: nenhum backup encontrado em $backups_dir/ e nenhum arquivo foi informado." >&2
+        exit 1
+    fi
+fi
+
+if [ ! -f "$file" ]; then
+    echo "Erro: arquivo de backup não encontrado: $file" >&2
+    exit 1
+fi
+
+if ! docker compose exec -T db sh -c 'command -v mysql >/dev/null 2>&1'; then
+    echo "Erro: mysql não encontrado no container db. O serviço está no ar?" >&2
+    exit 1
+fi
+
+if ! cat "$file" | docker compose exec -T db sh -c 'gunzip -t' 2>/dev/null; then
+    echo "Erro: $file não é um gzip válido (backup corrompido ou incompleto)." >&2
+    exit 1
+fi
+
+database="$(docker compose exec -T db sh -c 'echo "$MYSQL_DATABASE"' | tr -d '\r\n')"
+size="$(du -h "$file" | cut -f1)"
+
+if [ "$assume_yes" != true ]; then
+    echo "Isso vai APAGAR os dados atuais do banco '$database' e substituir pelo"
+    echo "conteúdo de: $file ($size)"
+    if [ ! -t 0 ]; then
+        echo "Erro: confirmação necessária, mas a entrada não é interativa. Use --yes para pular o prompt." >&2
+        exit 1
+    fi
+    read -r -p "Digite RESTAURAR para confirmar: " confirm
+    if [ "$confirm" != "RESTAURAR" ]; then
+        echo "Cancelado. Nenhuma alteração foi feita."
+        exit 1
+    fi
+fi
+
+if ! cat "$file" | docker compose exec -T db sh -c 'gunzip | MYSQL_PWD="$MYSQL_PASSWORD" mysql -u"$MYSQL_USER" "$MYSQL_DATABASE"'; then
+    echo "Erro: falha ao restaurar o backup." >&2
+    exit 1
+fi
+
+echo "✔ Banco '$database' restaurado a partir de: $file"

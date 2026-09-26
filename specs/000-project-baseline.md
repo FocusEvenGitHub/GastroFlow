@@ -129,6 +129,7 @@ Behind `JwtMiddleware` (`/api/admin/*`):
 - `bin/worker [--once] [queue]` — processes the `jobs` table (e.g. print jobs); handles `SIGINT`/`SIGTERM`.
 - `composer start` — `php -S 0.0.0.0:80 -t public` (the only script in `composer.json`).
 - ~~**No test or lint command exists** in `composer.json`~~ — **corrected 2026-09-24**: `composer.json` now defines `analyse`, `style` and `style:fix` (spec 034), and the suites run through `vendor/bin/phpunit` (`tests/Smoke`, `tests/Unit`, `tests/Integration`).
+- **Added 2026-09-26 (spec 045)**: `bin/backup-db` / `bin/restore-db` — the only two `bin/*` scripts that run on the **host**, not inside `web` (which has no MySQL client, only `pdo_mysql`), shelling out to `docker compose exec db mysqldump`/`mysql` instead.
 
 ## Proposed behavior
 
