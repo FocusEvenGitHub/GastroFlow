@@ -10,10 +10,12 @@ use App\Models\MenuItem;
 class MenuService
 {
     private MenuRepository $menuRepo;
+    private AuditLogger $auditLogger;
 
-    public function __construct(MenuRepository $menuRepo)
+    public function __construct(MenuRepository $menuRepo, AuditLogger $auditLogger)
     {
         $this->menuRepo = $menuRepo;
+        $this->auditLogger = $auditLogger;
     }
 
     public function getFullMenu(): array
@@ -33,7 +35,19 @@ class MenuService
 
     public function updateItem(int $id, array $data): MenuItem
     {
-        return $this->menuRepo->updateItem($id, $data);
+        $item = $this->menuRepo->updateItem($id, $data);
+
+        // Only the fields MenuRepository::updateItem() actually recognizes (spec 043) — not
+        // whatever else the caller's payload might contain.
+        $recognized = ['name', 'description', 'price', 'available', 'category_name'];
+        $this->auditLogger->record(
+            'menu_item.updated',
+            'menu_item',
+            $id,
+            array_intersect_key($data, array_flip($recognized))
+        );
+
+        return $item;
     }
 
     public function getDishComponents(int $dishId): array

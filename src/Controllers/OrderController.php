@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\ApiResponse;
 use App\OrderCancelledException;
+use App\Services\AuditLogger;
 use App\Services\OrderService;
 use App\Validators\OrderValidator;
 
@@ -15,11 +16,13 @@ class OrderController
 {
     private OrderService $orderService;
     private OrderValidator $validator;
+    private AuditLogger $auditLogger;
 
-    public function __construct(OrderService $orderService, OrderValidator $validator)
+    public function __construct(OrderService $orderService, OrderValidator $validator, AuditLogger $auditLogger)
     {
         $this->orderService = $orderService;
         $this->validator = $validator;
+        $this->auditLogger = $auditLogger;
     }
 
     public function index(Request $request, Response $response): Response
@@ -93,6 +96,7 @@ class OrderController
         } catch (\DomainException $e) {
             return ApiResponse::error($response, 409, 'ORDER_CANCELLED', $e->getMessage());
         }
+        $this->auditLogger->record('order.reopened', 'order', $id);
         $payload = ['success' => true, 'message' => 'Order reopened'];
         $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json');

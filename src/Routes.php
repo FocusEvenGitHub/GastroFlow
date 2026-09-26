@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Controllers\MenuController;
 use App\Controllers\OrderController;
+use App\Controllers\AuditLogController;
 use App\Controllers\AuthController;
 use App\Controllers\KitchenController;
 use App\Controllers\IngredientController;
@@ -84,6 +85,7 @@ class Routes
             $group->put('/settings', [SettingsController::class, 'updateSettings'])->add($adminOnly());
             $group->post('/settings/logo', [SettingsController::class, 'uploadLogo'])->add($adminOnly());
             $group->get('/logs', [LogController::class, 'getLogs'])->add($adminOnly());
+            $group->get('/audit-log', [AuditLogController::class, 'index'])->add($adminOnly());
             $group->post('/settings/test-print', [PrinterController::class, 'testPrint'])->add($adminOnly());
             $group->get('/reports/sales', [ReportController::class, 'sales'])->add($adminOrManager());
             $group->get('/reports/top-items', [ReportController::class, 'topItems'])->add($adminOrManager());

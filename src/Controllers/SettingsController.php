@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\ApiResponse;
 use App\Models\Setting;
+use App\Services\AuditLogger;
 use App\Settings;
 use App\Validators\SettingsValidator;
 
@@ -16,6 +17,7 @@ class SettingsController
     public function __construct(
         private readonly Settings $settings,
         private readonly SettingsValidator $settingsValidator,
+        private readonly AuditLogger $auditLogger,
     ) {
     }
 
@@ -49,9 +51,15 @@ class SettingsController
             return ApiResponse::error($response, 400, 'VALIDATION_FAILED', 'Validation failed', ['messages' => $errors]);
         }
 
+        // Read the old value before overwriting it — this is the one call site where a real
+        // before/after costs nothing extra, since Setting::getValue() is already this cheap
+        // and no separate read-before-write query is needed elsewhere (spec 043).
+        $changes = [];
         foreach ($settings as $key => $value) {
+            $changes[$key] = ['old' => Setting::getValue($key), 'new' => $value];
             Setting::setValue($key, $value);
         }
+        $this->auditLogger->record('settings.updated', null, null, $changes);
 
         $response->getBody()->write(json_encode([
             'success' => true,
