@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Logging\RequestContext;
 use App\Models\Job;
 use App\Settings;
 use Carbon\Carbon;
@@ -33,13 +34,18 @@ class JobService
     private float $lastSweepAt = 0.0;
 
     /**
-     * Both dependencies are optional so `new JobService()` keeps working in bin/ scripts,
-     * while the DI container (which already defines LoggerInterface and Settings) autowires
-     * them for HTTP requests and tests can inject a NullLogger.
+     * All three dependencies are optional so `new JobService()` keeps working in bin/ scripts,
+     * while the DI container (which already defines LoggerInterface, Settings and
+     * RequestContext) autowires them for HTTP requests and tests can inject a NullLogger.
+     * RequestContext is what lets dispatch() stamp a job with the request_id of whatever HTTP
+     * request created it (spec 042) — the domain layer (e.g. OrderService) never needs to know
+     * about request_id at all, only JobService, the same abstraction discipline spec 041 used
+     * for EventPublisher.
      */
     public function __construct(
         private ?LoggerInterface $logger = null,
         private ?Settings $settings = null,
+        private ?RequestContext $requestContext = null,
     ) {
     }
 
@@ -53,6 +59,11 @@ class JobService
      */
     public function dispatch(string $queue, string $handler, array $data, int $delay = 0): Job
     {
+        $requestId = $this->requestContext?->getRequestId();
+        if ($requestId !== null) {
+            $data['request_id'] = $requestId;
+        }
+
         return Job::create([
             'queue'        => $queue,
             'payload'      => json_encode([
@@ -113,10 +124,15 @@ class JobService
 
         // Phase 1 — do the work. A failure here is the job's failure, and goes through the
         // normal retry/backoff path from spec 008.
+        $requestId = null;
+
         try {
             $payload = json_decode($job->payload, true);
             $handler = $payload['handler'] ?? null;
             $data    = $payload['data'] ?? [];
+            // Present only when dispatch() was called from an HTTP request (spec 042) —
+            // absent for any hypothetical non-HTTP-originated job, which is correct, not a gap.
+            $requestId = is_string($data['request_id'] ?? null) ? $data['request_id'] : null;
 
             // An unresolvable handler used to fall through to $job->delete(), destroying the
             // job as if it had succeeded. Throwing puts it on the normal failure path instead.
@@ -130,7 +146,7 @@ class JobService
             $instance = new $handler();
             $instance->handle($data, $job);
         } catch (\Throwable $e) {
-            $this->recordFailure($job, $e);
+            $this->recordFailure($job, $e, $requestId);
 
             return true;
         }
@@ -138,7 +154,7 @@ class JobService
         // Phase 2 — the work is DONE. From here the job must never go back to 'pending':
         // re-queueing it would run the handler a second time. Recording the result is a
         // separate failure with a separate answer (spec 037).
-        $this->recordCompletion($job);
+        $this->recordCompletion($job, $requestId);
 
         return true;
     }
@@ -146,7 +162,7 @@ class JobService
     /**
      * Record a finished job. Never re-queues: the handler already ran.
      */
-    private function recordCompletion(Job $job): void
+    private function recordCompletion(Job $job, ?string $requestId = null): void
     {
         try {
             $this->retryOnTransientDbError('complete', function () use ($job) {
@@ -161,7 +177,7 @@ class JobService
 
             return;
         } catch (\Throwable $e) {
-            $this->markCompletionUnrecordable($job, $e);
+            $this->markCompletionUnrecordable($job, $e, $requestId);
         }
     }
 
@@ -173,15 +189,15 @@ class JobService
      * bookkeeping lost", and an operator should look at it. Leaving it 'reserved' would let
      * the stale-reservation sweep re-run it, which is the exact defect this spec fixes.
      */
-    private function markCompletionUnrecordable(Job $job, \Throwable $e): void
+    private function markCompletionUnrecordable(Job $job, \Throwable $e, ?string $requestId = null): void
     {
-        $this->logger()->error('Job concluído mas não foi possível gravar o resultado', [
+        $this->logger()->error('Job concluído mas não foi possível gravar o resultado', $this->withRequestId([
             'job_id'    => $job->id,
             'queue'     => $job->queue,
             'attempt'   => $job->attempts,
             'operation' => 'complete',
             'error'     => $e->getMessage(),
-        ]);
+        ], $requestId));
 
         // Best effort: if even this cannot be written, the reservation eventually expires and
         // the sweep marks it failed (spec 033) — still not re-run, because attempts is spent
@@ -201,11 +217,11 @@ class JobService
                 ]);
             }, $job);
         } catch (\Throwable $inner) {
-            $this->logger()->error('Falha ao registrar a conclusão não gravável do job', [
+            $this->logger()->error('Falha ao registrar a conclusão não gravável do job', $this->withRequestId([
                 'job_id' => $job->id,
                 'queue'  => $job->queue,
                 'error'  => $inner->getMessage(),
-            ]);
+            ], $requestId));
         }
     }
 
@@ -358,7 +374,7 @@ class JobService
         return $query->orderBy('id')->get();
     }
 
-    private function recordFailure(Job $job, \Throwable $e): void
+    private function recordFailure(Job $job, \Throwable $e, ?string $requestId = null): void
     {
         $error = $this->truncateError($e->getMessage());
 
@@ -372,7 +388,7 @@ class JobService
                 'failed_at'      => Carbon::now(),
                 'last_error'     => $error,
             ]), $job);
-            $this->logJobFailure($job, $e, "Falha permanente (max_attempts={$job->max_attempts} atingido)");
+            $this->logJobFailure($job, $e, "Falha permanente (max_attempts={$job->max_attempts} atingido)", $requestId);
 
             return;
         }
@@ -386,7 +402,7 @@ class JobService
             'available_at'   => Carbon::now()->addSeconds($backoff),
             'last_error'     => $error,
         ]), $job);
-        $this->logJobFailure($job, $e, "Job liberado para retry em {$backoff}s (attempt={$job->attempts}/{$job->max_attempts})");
+        $this->logJobFailure($job, $e, "Job liberado para retry em {$backoff}s (attempt={$job->attempts}/{$job->max_attempts})", $requestId);
     }
 
     private function truncateError(string $message): string
@@ -403,15 +419,31 @@ class JobService
      * show up in the Admin log viewer. The payload is deliberately never logged — it can
      * carry order data.
      */
-    private function logJobFailure(Job $job, \Throwable $e, string $context): void
+    private function logJobFailure(Job $job, \Throwable $e, string $context, ?string $requestId = null): void
     {
-        $this->logger()->error($context, [
+        $this->logger()->error($context, $this->withRequestId([
             'job_id'       => $job->id,
             'queue'        => $job->queue,
             'attempt'      => $job->attempts,
             'max_attempts' => $job->max_attempts,
             'error'        => $e->getMessage(),
-        ]);
+        ], $requestId));
+    }
+
+    /**
+     * Adds request_id to a log context array only when present — omits the key entirely
+     * rather than logging a noisy null (spec 042). This is a plain array merge, unlike
+     * RequestIdProcessor's automatic Monolog-record injection: JobService's own logger is a
+     * freshly-built standalone instance in bin/worker (no container, no processor attached),
+     * so request_id has to be threaded through explicitly here.
+     */
+    private function withRequestId(array $context, ?string $requestId): array
+    {
+        if ($requestId !== null) {
+            $context['request_id'] = $requestId;
+        }
+
+        return $context;
     }
 
     private function settings(): Settings

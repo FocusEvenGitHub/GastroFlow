@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use App\Logging\RequestContext;
 use App\Models\Job;
 use App\Services\JobService;
 use App\Settings;
 use Carbon\Carbon;
 use Illuminate\Database\Capsule\Manager as Db;
+use Monolog\Handler\TestHandler;
+use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -110,6 +113,15 @@ class JobServiceTest extends TestCase
         return new JobService(new NullLogger(), new Settings());
     }
 
+    /** @return array{0: JobService, 1: TestHandler} */
+    private function serviceWithTestHandler(): array
+    {
+        $handler = new TestHandler();
+        $logger = new Logger('test');
+        $logger->pushHandler($handler);
+        return [new JobService($logger, new Settings()), $handler];
+    }
+
     private function makeJob(string $handler, int $attempts, int $maxAttempts, array $overrides = []): Job
     {
         return Job::create(array_merge([
@@ -170,6 +182,48 @@ class JobServiceTest extends TestCase
 
         // It must not be selected/processed again.
         $this->assertFalse($service->processNext('print'));
+    }
+
+    /** Spec 042 — dispatch() stamps the payload with request_id when a RequestContext has one. */
+    public function testDispatchStampsPayloadWithRequestIdWhenContextHasOne(): void
+    {
+        $context = new RequestContext();
+        $context->setRequestId('req-dispatch-1');
+        $service = new JobService(new NullLogger(), new Settings(), $context);
+
+        $job = $service->dispatch('print', __NAMESPACE__ . '\SucceedJob', ['order_id' => 42]);
+
+        $payload = json_decode($job->payload, true);
+        $this->assertSame('req-dispatch-1', $payload['data']['request_id']);
+        $this->assertSame(42, $payload['data']['order_id'], 'Caller-supplied data must be preserved');
+    }
+
+    /** Spec 042 — with no RequestContext (bin/worker's own usage), the payload carries no request_id key at all. */
+    public function testDispatchWithoutRequestContextLeavesPayloadUnchanged(): void
+    {
+        $job = $this->service()->dispatch('print', __NAMESPACE__ . '\SucceedJob', ['order_id' => 42]);
+
+        $payload = json_decode($job->payload, true);
+        $this->assertArrayNotHasKey('request_id', $payload['data']);
+    }
+
+    /** Spec 042 — the flagship trace claim at the queue layer: a permanent failure's log carries the same request_id the job was dispatched with. */
+    public function testPermanentFailureLogCarriesRequestIdFromPayload(): void
+    {
+        $job = $this->makeJob(__NAMESPACE__ . '\FailingJob', 2, 3, [
+            'payload' => json_encode(['handler' => __NAMESPACE__ . '\FailingJob', 'data' => ['request_id' => 'req-trace-1']]),
+        ]);
+
+        [$service, $handler] = $this->serviceWithTestHandler();
+        $this->assertTrue($service->processNext('print'));
+
+        $failureRecords = array_values(array_filter(
+            $handler->getRecords(),
+            fn ($r) => ($r->context['job_id'] ?? null) === $job->id
+        ));
+
+        $this->assertCount(1, $failureRecords);
+        $this->assertSame('req-trace-1', $failureRecords[0]->context['request_id']);
     }
 
     /** AC3 — replaces the old testSuccessfulJobIsDeleted: success now keeps the row. */

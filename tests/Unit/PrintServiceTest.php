@@ -96,6 +96,15 @@ class PrintServiceTest extends TestCase
         return $logger;
     }
 
+    /** @return array{0: Logger, 1: \Monolog\Handler\TestHandler} */
+    private function makeLoggerWithTestHandler(): array
+    {
+        $handler = new \Monolog\Handler\TestHandler();
+        $logger = new Logger('test');
+        $logger->pushHandler($handler);
+        return [$logger, $handler];
+    }
+
     /**
      * Spec 038, AC1 — an unconfigured printer used to return normally here, so JobService
      * marked the job completed and the order was recorded as printed with nothing printed.
@@ -232,6 +241,85 @@ class PrintServiceTest extends TestCase
         $service->printOrder($this->makeOrder());
 
         $this->addToAssertionCount(1);
+    }
+
+    /** Spec 042 — a successful print's log carries structured, not string-concatenated, context. */
+    public function testSuccessfulPrintLogsStructuredContext(): void
+    {
+        [$logger, $handler] = $this->makeLoggerWithTestHandler();
+        $service = new PrintService($logger, new Settings(), new PricingService(), function () {
+            return new \Mike42\Escpos\PrintConnectors\DummyPrintConnector();
+        });
+
+        $service->printOrder($this->makeOrder(), [
+            'job_id'       => 55,
+            'attempt'      => 1,
+            'max_attempts' => 3,
+            'request_id'   => 'req-abc123',
+        ]);
+
+        // Filtered, not assumed to be the only record: a real logo.png happening to exist in
+        // this dev environment can add an unrelated "logo failed to load" warning from
+        // buildReceipt() — pre-existing behavior, nothing to do with this spec's change.
+        $successRecords = array_values(array_filter(
+            $handler->getRecords(),
+            fn ($r) => $r->message === 'Print success'
+        ));
+
+        $this->assertCount(1, $successRecords);
+        $this->assertSame([
+            'job_id'       => 55,
+            'attempt'      => 1,
+            'max_attempts' => 3,
+            'request_id'   => 'req-abc123',
+            'event'        => 'print.success',
+            'order_id'     => 1,
+            'printer'      => '192.168.0.136:9100',
+        ], $successRecords[0]->context);
+    }
+
+    /** Spec 042 — the unconfigured-printer failure path also carries structured context. */
+    public function testUnconfiguredPrinterLogsStructuredContext(): void
+    {
+        Setting::setValue('printer_ip', '');
+        [$logger, $handler] = $this->makeLoggerWithTestHandler();
+        $service = new PrintService($logger, new Settings(), new PricingService());
+
+        try {
+            $service->printOrder($this->makeOrder(), ['job_id' => 9]);
+        } catch (\RuntimeException $e) {
+            // Expected — assertions are on the log record, not the exception here.
+        }
+
+        $records = $handler->getRecords();
+        $this->assertCount(1, $records);
+        $this->assertSame('Print failed', $records[0]->message);
+        $this->assertSame('print.failed', $records[0]->context['event']);
+        $this->assertSame(1, $records[0]->context['order_id']);
+        $this->assertSame(9, $records[0]->context['job_id']);
+        $this->assertSame(PrintService::ERROR_NO_IP, $records[0]->context['error']);
+    }
+
+    /** Spec 042 — the block-message log (3 consecutive failures) also carries structured context. */
+    public function testBlockLogCarriesEventAndCallerContext(): void
+    {
+        [$logger, $handler] = $this->makeLoggerWithTestHandler();
+        $service = new PrintService($logger, new Settings(), new PricingService());
+
+        $service->recordPrintFailure(1, 'e', ['job_id' => 10, 'request_id' => 'req-x']);
+        $service->recordPrintFailure(2, 'e', ['job_id' => 11, 'request_id' => 'req-y']);
+        $service->recordPrintFailure(3, 'e', ['job_id' => 12, 'request_id' => 'req-z']);
+
+        $blockRecords = array_values(array_filter(
+            $handler->getRecords(),
+            fn ($r) => ($r->context['event'] ?? null) === 'print.blocked'
+        ));
+
+        $this->assertCount(1, $blockRecords, 'Exactly one block log, on the third failure');
+        $this->assertSame('req-z', $blockRecords[0]->context['request_id'], 'Carries the LAST call\'s context');
+        $this->assertSame(12, $blockRecords[0]->context['job_id']);
+        $this->assertSame(3, $blockRecords[0]->context['failures']);
+        $this->assertSame(3, $blockRecords[0]->context['order_id']);
     }
 
     public function testReceiptTotalIsExactAcrossManyItems(): void

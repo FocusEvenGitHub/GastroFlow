@@ -16,6 +16,7 @@ use App\Controllers\LogController;
 use App\Controllers\PrinterController;
 use App\Controllers\ReportController;
 use App\Controllers\SettingsController;
+use App\Logging\RequestContext;
 use App\Middleware\JwtMiddleware;
 use App\Middleware\RoleMiddleware;
 use App\Validators\AuthValidator;
@@ -25,7 +26,10 @@ class Routes
     public function register(App $app): void
     {
         $secret = $_ENV['JWT_SECRET'] ?? throw new \RuntimeException('JWT_SECRET environment variable is not set.');
-        $jwt = new JwtMiddleware($secret);
+        // JwtMiddleware takes a scalar $secret, so it can't be autowired by class name like a
+        // controller — built manually here, same as before spec 042, just now also handed the
+        // container's shared RequestContext so a successful decode can record user_id.
+        $jwt = new JwtMiddleware($secret, $app->getContainer()?->get(RequestContext::class));
 
         $app->get('/', function (Request $request, Response $response) {
             return $response->withHeader('Location', '/cashier/')->withStatus(302);

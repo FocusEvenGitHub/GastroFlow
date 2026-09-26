@@ -13,6 +13,10 @@ use Monolog\Handler\StreamHandler;
 use Psr\Http\Message\ServerRequestInterface;
 use App\Services\EventPublisher;
 use App\Services\DatabaseEventPublisher;
+use App\Logging\RequestContext;
+use App\Logging\RequestIdProcessor;
+use App\Middleware\CorrelationIdMiddleware;
+use App\Services\JobService;
 use Throwable;
 
 class App
@@ -34,15 +38,28 @@ class App
         // Add definitions
         $containerBuilder->addDefinitions([
             Settings::class => $this->settings,
-            LoggerInterface::class => function () {
+            LoggerInterface::class => function (RequestContext $context) {
                 $logger = new Logger('app');
                 $logger->pushHandler(new StreamHandler($this->settings->getLogFile(), Logger::DEBUG));
+                // Attaches request_id/user_id to every record automatically (spec 042) — no
+                // log call site elsewhere needs to pass them explicitly.
+                $logger->pushProcessor(new RequestIdProcessor($context));
                 return $logger;
             },
             // Binds the roadmap's named abstraction (OrderService -> EventPublisher -> ...)
             // to its MySQL-backed implementation (spec 041). Autowiring alone can't resolve
             // an interface without this — PHP-DI needs an explicit binding.
             EventPublisher::class => \DI\autowire(DatabaseEventPublisher::class),
+            // Verified empirically (spec 042): PHP-DI's autowiring never resolves a
+            // constructor parameter that has a default value — it just uses the default,
+            // regardless of the type hint or nullability. JobService's $requestContext is
+            // optional (defaults to null) so `new JobService()` keeps working in bin/worker,
+            // which means plain autowiring alone would silently leave it null in the HTTP
+            // path too. constructorParameter() overrides just that one parameter's
+            // resolution without touching $logger/$settings, which already resolve
+            // correctly via their own explicit bindings above.
+            JobService::class => \DI\autowire(JobService::class)
+                ->constructorParameter('requestContext', \DI\get(RequestContext::class)),
         ]);
 
         $container = $containerBuilder->build();
@@ -57,6 +74,11 @@ class App
         // Middleware
         $app->add(new Middleware\JsonBodyParserMiddleware());
         $app->add(new Middleware\CorsMiddleware($this->settings->get('CORS_ALLOWED_ORIGIN', '*')));
+        // Added last among these three (still inside the error middleware below) so it's
+        // outermost of the three — Slim's middleware stack is last-in-first-out (spec 042).
+        // No scalar constructor args, so a class-string lets Slim resolve it via the
+        // container (autowired), same as controllers registered as [Class::class, 'method'].
+        $app->add(CorrelationIdMiddleware::class);
 
         // Error middleware — always return JSON for API routes
         $settings = $this->settings;
@@ -87,6 +109,14 @@ class App
             }
 
             $response = $app->getResponseFactory()->createResponse($statusCode);
+
+            // This response is built fresh here, bypassing CorrelationIdMiddleware's own
+            // return path — echo the same request_id by hand so an error response still
+            // carries it (spec 042).
+            $requestId = $container->get(RequestContext::class)->getRequestId();
+            if ($requestId !== null) {
+                $response = $response->withHeader(CorrelationIdMiddleware::HEADER_NAME, $requestId);
+            }
 
             // Slim's own HTTP exception messages (e.g. "Not Found") never leak internals,
             // so they're shown regardless of debug mode; only an unrecognized/500 error
