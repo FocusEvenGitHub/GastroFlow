@@ -11,6 +11,7 @@ use App\Controllers\MenuController;
 use App\Controllers\OrderController;
 use App\Controllers\AuditLogController;
 use App\Controllers\AuthController;
+use App\Controllers\HealthController;
 use App\Controllers\KitchenController;
 use App\Controllers\IngredientController;
 use App\Controllers\LogController;
@@ -36,6 +37,11 @@ class Routes
         $app->get('/', function (Request $request, Response $response) {
             return $response->withHeader('Location', '/cashier/')->withStatus(302);
         });
+
+        // Sem autenticação, de propósito (spec 044): ferramentas de infraestrutura que
+        // fazem o probe não têm como apresentar um JWT.
+        $app->get('/health/live', [HealthController::class, 'live']);
+        $app->get('/health/ready', [HealthController::class, 'ready']);
 
         // Público e sem middleware, de propósito: só um indicador cosmético de
         // versão para o rodapé do caixa/cozinha/admin, nenhum dado sensível.

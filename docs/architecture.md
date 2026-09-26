@@ -191,9 +191,11 @@ Read path mirrors `LogController`/`logs.php` (spec 033) exactly: `GET /api/admin
 
 ## Persistence
 
-Eloquent (`illuminate/database ^10`) via `Illuminate\Database\Capsule\Manager`, booted in `src/Database.php`. Initial schema: `common/sql/001_schema.sql`, mounted into the `db` container's `docker-entrypoint-initdb.d` (only runs on first volume init). Incremental changes: 13 files under `common/migrations/*.sql` (currently up to `014_order_item_name_snapshot.sql`), applied by the custom `App\Database\MigrationRunner` through `bin/migrate`, which tracks applied files in a `migrations` table. There is no ORM-style migration framework — migrations are forward-only, with no `down()`/rollback semantics.
+Eloquent (`illuminate/database ^10`) via `Illuminate\Database\Capsule\Manager`, booted in `src/Database.php`. Initial schema: `common/sql/001_schema.sql`, mounted into the `db` container's `docker-entrypoint-initdb.d` (only runs on first volume init). Incremental changes: 17 files under `common/migrations/*.sql` (currently up to `018_audit_log.sql`; **corrected 2026-09-26**, was previously stated as 13 files up to `014_order_item_name_snapshot.sql` — several specs had landed migrations since without this line being updated), applied by the custom `App\Database\MigrationRunner` through `bin/migrate`, which tracks applied files in a `migrations` table. There is no ORM-style migration framework — migrations are forward-only, with no `down()`/rollback semantics.
 
 `common/config.php` and `common/db.php` are legacy raw-PDO helpers with no callers found anywhere in `src/` or `public/` — dead code, not yet removed (open question in `specs/000-project-baseline.md`: whether something external still depends on them).
+
+`bin/backup-db`/`bin/restore-db` (spec 045) back up and restore this same database via the `db` container's own `mysqldump`/`mysql` — see "Known architectural limitations" below for what they deliberately don't cover.
 
 ## Project structure
 
@@ -214,7 +216,9 @@ GastroFlow
 │   ├── sql/001_schema.sql     # Initial schema — mounted into MySQL's first-init only
 │   ├── migrations/*.sql       # Incremental migrations, applied via bin/migrate
 │   └── config.php, db.php     # Legacy raw-PDO helpers with no callers — dead code
-├── bin/                        # migrate, worker — CLI entry points
+├── bin/                        # migrate, worker, create-admin, jobs-status, jobs-prune,
+│                                #   events-prune (all run inside `web`) + backup-db, restore-db
+│                                #   (host-run — the `web` container has no MySQL client)
 ├── legacy/                     # Empty, tracked — kept as a marker, not in active use
 ├── specs/                       # Spec-driven development: baseline, template, and one file per change
 ├── docs/                         # This directory
@@ -237,3 +241,20 @@ Named, not hidden — tracked in `specs/000-project-baseline.md` and `docs/ROADM
   cross-container defect the file had; the realtime events table and the job queue both still
   assume Community's single-location model (`docs/ROADMAP.md`'s "Single-location first"), which
   is a deliberate scope boundary, not a gap.
+- `bin/restore-db` (spec 045) always restores into whatever `MYSQL_DATABASE` the `db` container
+  reports — there is no `--database` override. This is safe for its one real use (restoring a
+  backup into the same database it came from) but means the script itself can't be pointed at a
+  throwaway database for testing; validating it required reproducing its exact pipeline by hand
+  with `docker compose exec -e MYSQL_DATABASE=<throwaway>`, not running the shipped script
+  end-to-end. A future change to add such a flag should keep the default target implicit — an
+  operator recovering from data loss should not have to name the database on top of everything
+  else they're already dealing with.
+- `bin/backup-db`/`bin/restore-db` are POSIX shell (bash), matching this session's own Windows
+  development setup (Git Bash) but not tested under a plain PowerShell/cmd.exe host with neither
+  Git Bash nor WSL — a real, disclosed limitation, not silently assumed away (see spec 045's
+  Non-goals). Also: `mysqldump` against `MYSQL_USER` (which has no global `PROCESS` privilege by
+  design — it's scoped to its own database only) prints an "Access denied ... PROCESS
+  privilege(s) ... when trying to dump tablespaces" warning unless `--no-tablespaces` is passed;
+  `bin/backup-db` already passes it, but anyone hand-running `mysqldump` against this database
+  outside the script will hit the same warning and should know it's expected, not a sign of a
+  misconfigured user.
