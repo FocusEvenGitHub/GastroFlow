@@ -166,7 +166,7 @@ No feature flag, migration, or data backfill involved — this is a client-side 
 ## Open questions
 
 - None blocking. One non-blocking note: `OrderRepository::updateOrderItem()`'s current behavior of *not* recomputing `packaging_cost` on a bare `quantity`-only change (today, before this spec) is being fixed as a side effect of this work rather than filed as a separate spec, since the fix is required anyway to make `dining_option` edits correct. Flagging this explicitly per `CLAUDE.md`'s "record relevant implementation decisions" guidance, in case the team wants it split out instead during `/spec-implement`.
-- Resolved during `/spec-implement`: `git diff` review confirmed the two backend files stay within the project's existing style (PSR-12 spacing, `declare(strict_types=1)` already present, promoted-property pattern untouched). `vendor/bin/php-cs-fixer`/`phpstan` were not run (see Validation evidence) — recommended before merge, not blocking for `Implemented`.
+- Resolved during `/spec-implement`: `git diff` review confirmed the two backend files stay within the project's existing style (PSR-12 spacing, `declare(strict_types=1)` already present, promoted-property pattern untouched). `vendor/bin/phpstan analyse` (0 errors) and `vendor/bin/php-cs-fixer fix --dry-run --diff` (this spec's files: 0 flagged; 2 unrelated pre-existing files flagged, out of scope) were run after commit `4f45ce8` — see Validation evidence.
 
 ## Task checklist
 
@@ -190,6 +190,7 @@ Kept in sync with actual implementation progress, not the original plan.
 - Confirmed while re-reading `OrderItem.php`: `quantity`/`dining_option` have no Eloquent cast, so `updateOrderItem()` explicitly casts `(int) $item->quantity` when calling `PricingService::packagingFeeFor()` — matches the pattern already used in `createOrder()`.
 - 2026-09-26 — **Requirement change, mid-implementation:** after the first pass was already `Implemented` (backend done, Cashier modal read-only), the user asked for the Cashier confirmation modal to also let the cashier choose Local/Simples/VIP directly inside it, not just view it. This superseded the spec's original non-goal ("not adding an editing UI inside the new Cashier confirmation modal"). Updated `Non-goals`, `Proposed behavior`, added functional requirement 13 and acceptance criterion 8 before touching code, per `CLAUDE.md`'s "do not silently change requirements during implementation." Implementation: reused the existing `setDiningOption(index, option)` method and the modal iterates `selectedItems` directly (not a copy, unlike the Kitchen edit modal's deep-copied `editingOrder`), so no new state or method was needed beyond the markup — a change inside the modal is visible immediately in the modal's own totals and in the summary panel underneath.
 - 2026-09-26 — The Chrome extension reconnected mid-session (it had reported "not connected" earlier). Completed full browser-level verification for both Kitchen and Cashier that was previously blocked — see Validation evidence below.
+- 2026-09-26 — After commit `4f45ce8` and PR #23 were already open, ran `vendor/bin/phpstan analyse` and `vendor/bin/php-cs-fixer fix --dry-run --diff` (both deferred earlier since Docker only came up mid-session). Clean for every file this spec touches; two unrelated pre-existing files (`bin/worker`, `bin/create-admin`) were flagged by php-cs-fixer but are out of scope (not part of this diff) — left untouched per "stay in scope."
 
 ## Validation evidence
 
@@ -202,7 +203,18 @@ No syntax errors detected in src/Validators/OrderValidator.php
 $ docker compose exec -T web php -l src/Repositories/OrderRepository.php
 No syntax errors detected in src/Repositories/OrderRepository.php
 ```
-(`php-cs-fixer` and `phpstan` were not run — not required for `Implemented`, recommended before this spec moves toward `Verified`/merge.)
+**Static analysis / style (run 2026-09-26, after commit `4f45ce8`, containers up):**
+```
+$ docker compose exec -T web vendor/bin/phpstan analyse
+ [OK] No errors
+```
+```
+$ docker compose exec -T web vendor/bin/php-cs-fixer fix --dry-run --diff
+Found 2 of 104 files that can be fixed:
+   1) bin/worker
+   2) bin/create-admin
+```
+Neither flagged file is part of this change (`git diff HEAD~1 --name-only` lists only the 7 files from commit `4f45ce8`, and `bin/worker`/`bin/create-admin` are not among them) — pre-existing style drift, out of scope for spec 046. None of this spec's own changed files were flagged.
 
 **AC1** — PATCH to `viagem_vip` persists value + recomputes packaging_cost:
 - Created test order (`POST /api/orders`, item id 72 "Beterraba", qty 1, `dining_option: local`) → order id 124, item_id 191, initial `packaging_cost: 0`.
@@ -250,4 +262,4 @@ No syntax errors detected in src/Repositories/OrderRepository.php
 
 **Cleanup:** order #127 was cancelled via `POST /api/orders/127/cancel` after verification (same soft-cancel used for the earlier API-level test orders; no hard delete, no schema/data changes).
 
-All acceptance criteria (1-8) and functional requirements referenced above now have real, recorded evidence. `php-cs-fixer`/`phpstan` remain unrun (noted above) — recommended before merge but not required for this spec's acceptance criteria.
+All acceptance criteria (1-8) and functional requirements referenced above now have real, recorded evidence. `phpstan`/`php-cs-fixer` were run after commit `4f45ce8` with clean results for every file this spec changed (see above).
