@@ -14,6 +14,7 @@ class RequestContext
 {
     private ?string $requestId = null;
     private ?int $userId = null;
+    private ?string $username = null;
 
     public function getRequestId(): ?string
     {
@@ -33,5 +34,19 @@ class RequestContext
     public function setUserId(int $userId): void
     {
         $this->userId = $userId;
+    }
+
+    /**
+     * The JWT's own username claim, set alongside setUserId() (spec 043) — cheap to carry since
+     * JwtMiddleware already has it decoded at that point, and it saves AuditLogger a lookup.
+     */
+    public function getUsername(): ?string
+    {
+        return $this->username;
+    }
+
+    public function setUsername(string $username): void
+    {
+        $this->username = $username;
     }
 }

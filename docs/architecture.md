@@ -158,6 +158,37 @@ stayed `null` even when resolved through the container in the HTTP path; `src/Ap
 just that one parameter with `\DI\autowire(JobService::class)->constructorParameter('requestContext',
 \DI\get(RequestContext::class))`, verified empirically before relying on it.
 
+## Audit history
+
+**Business-level trail of sensitive administrative actions, deliberately separate from
+`app.log` (spec 043).** The roadmap asks for the two to stay conceptually distinct, so this is
+its own table (`audit_log`, migration `018_audit_log.sql`), append-only and never pruned —
+unlike `jobs`/`events`, whose whole point is short-lived operational state, an audit trail's
+whole point is to persist. `App\Services\AuditLogger` (a plain concrete class — nothing here
+needs more than one implementation, unlike `EventPublisher`) reuses the same `RequestContext`
+spec 042 built for request correlation to identify the actor (`user_id`/`username`, snapshotted
+at write time so a later username change never rewrites history), rather than re-deriving it
+from `$request->getAttribute('user')` at each call site.
+
+Four call sites, deliberately not uniform in which layer they live in — each matches the real
+layering of its own domain rather than forcing one rule: `MenuService::updateItem()` (the
+Service layer that domain already has), `SettingsController::updateSettings()` and
+`OrderController::uncomplete()` (Controllers directly — `SettingsController` has no Service
+layer at all, and inventing one just for this would violate `CLAUDE.md`'s own rule against
+layering for symmetry), and `bin/create-admin` (the only way to create a user — there is no
+HTTP endpoint for it — with a never-populated `RequestContext` correctly producing a `null`
+actor, not a fake one, since no authenticated actor exists in a CLI process).
+
+Two of the roadmap's five named examples turned out to be one endpoint: "changed restaurant
+settings" and "changed printer configuration" both go through the same
+`PUT /api/admin/settings`, since `printer_ip`/`printer_port` are just two more keys in the
+generic `settings` table (confirmed via `PrintService::getPrinterConfig()`) — there was never a
+separate printer-configuration endpoint to instrument.
+
+Read path mirrors `LogController`/`logs.php` (spec 033) exactly: `GET /api/admin/audit-log`
+(admin-only, stricter than `manager` — matching that same existing bar, not a new one) and
+`public/admin/audit-log.php`.
+
 ## Persistence
 
 Eloquent (`illuminate/database ^10`) via `Illuminate\Database\Capsule\Manager`, booted in `src/Database.php`. Initial schema: `common/sql/001_schema.sql`, mounted into the `db` container's `docker-entrypoint-initdb.d` (only runs on first volume init). Incremental changes: 13 files under `common/migrations/*.sql` (currently up to `014_order_item_name_snapshot.sql`), applied by the custom `App\Database\MigrationRunner` through `bin/migrate`, which tracks applied files in a `migrations` table. There is no ORM-style migration framework — migrations are forward-only, with no `down()`/rollback semantics.

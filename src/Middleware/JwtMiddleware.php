@@ -43,6 +43,9 @@ class JwtMiddleware implements MiddlewareInterface
             // Adiciona os dados do usuário ao request para uso posterior
             $request = $request->withAttribute('user', $decoded);
             $this->context?->setUserId((int) $decoded->sub);
+            if (isset($decoded->username)) {
+                $this->context?->setUsername((string) $decoded->username);
+            }
         } catch (ExpiredException $e) {
             return ApiResponse::error(new Response(), 401, 'TOKEN_EXPIRED', 'Token expirado.');
         } catch (\Throwable $e) {

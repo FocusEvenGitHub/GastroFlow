@@ -14,7 +14,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use App\Logging\RequestContext;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Settings;
 use App\Database as DB;
 
@@ -71,10 +73,19 @@ if ($password !== $confirmation) {
     exit(1);
 }
 
-User::create([
+$user = User::create([
     'username' => $username,
     'password' => password_hash($password, PASSWORD_BCRYPT),
     'role'     => $role,
+]);
+
+// A fresh, never-populated RequestContext: this runs outside any HTTP request, so there is
+// genuinely no authenticated actor, not merely a missing one (spec 043).
+$auditLogger = new AuditLogger(new RequestContext());
+$auditLogger->record('user.created', 'user', $user->id, [
+    'username' => $username,
+    'role'     => $role,
+    'source'   => 'cli',
 ]);
 
 fwrite(STDOUT, "\n✓ Usuário \"$username\" ($role) criado com sucesso.\n");

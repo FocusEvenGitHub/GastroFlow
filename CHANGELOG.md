@@ -2,9 +2,12 @@
 
 ## v1.8.0 — Reliability & Quality (em andamento, sem tag)
 
-Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: histórico de auditoria, health checks, confiabilidade de migração, LF/CRLF, backup & restore.
+Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: health checks, confiabilidade de migração, LF/CRLF, backup & restore.
 
 > ⚠️ **Mudança de comportamento visível ao atualizar (spec 038):** instalações com a impressora não configurada vão começar a acumular jobs de impressão com status `failed`, onde antes tudo parecia bem. É o alarme correto — antes esses pedidos constavam impressos sem nada ter saído. Configure `printer_ip` ou crie os pedidos com `print_ticket=false`.
+
+### Novidades
+- **Histórico de auditoria para operações administrativas sensíveis**: mudança de item de cardápio (`PATCH /api/admin/items/{id}`), mudança de configurações incluindo as chaves de impressora (`PUT /api/admin/settings`, que já é o mesmo endpoint para as duas coisas — não existiam endpoints separados), reabertura de pedido (`POST /api/orders/{id}/uncomplete`) e criação de usuário via `bin/create-admin` (não existe endpoint HTTP para isso; coberto mesmo assim, com ator nulo — não existe usuário autenticado num processo de CLI). Tabela `audit_log` própria, nunca podada (ao contrário de `jobs`/`events`), conceitualmente separada do `app.log` técnico por pedido explícito do roadmap. Nova tela `GET /api/admin/audit-log` + `public/admin/audit-log.php`, no mesmo padrão do visualizador de logs técnicos (spec 043)
 
 ### Observabilidade
 - **Correlation ID por requisição**: todo request HTTP recebe um `request_id` (propagado de `X-Request-Id` quando o cliente já manda um, gerado como 32 caracteres hex quando não) — presente no header da resposta e no contexto de **todo** log emitido durante aquele request, inclusive o do handler de erro global. Autenticado, o log também carrega `user_id` (o `sub` do JWT); anônimo, a chave nem aparece (spec 042)
