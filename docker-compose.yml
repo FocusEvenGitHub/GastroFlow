@@ -32,6 +32,10 @@ services:
       - ./phpstan.neon:/var/www/html/phpstan.neon
       - ./phpstan-baseline.neon:/var/www/html/phpstan-baseline.neon
       - ./.php-cs-fixer.dist.php:/var/www/html/.php-cs-fixer.dist.php
+      # Read-only: lets VersionController run `git describe` to show which
+      # tag/branch is currently checked out. Never served over HTTP — outside
+      # public/, and `git` itself is already installed in the image (for Composer).
+      - ./.git:/var/www/html/.git:ro
       - ./.env:/var/www/html/.env
       - ./vendor:/var/www/html/vendor
       - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
