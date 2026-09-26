@@ -11,6 +11,9 @@ function cashierApp() {
         toasts: [],
         loading: true,
         submitting: false,
+        // Modal de confirmação antes de enviar (spec 046): reduz o esquecimento de
+        // marcar "para viagem" dando uma última chance de revisar os itens.
+        confirmingOrder: false,
         printTicket: true,
         // Estado da impressora (spec 039). Bloqueio nunca impede criar pedido — a regra
         // dura do roadmap diz que falha de impressora não invalida pedido.
@@ -297,6 +300,26 @@ function cashierApp() {
             setTimeout(() => {
                 this.toasts = this.toasts.filter(t => t.id !== id);
             }, 5000);
+        },
+
+        // Abre o modal de confirmação (spec 046) em vez de enviar direto.
+        openConfirmModal() {
+            if (!this.orderNumber || this.selectedItems.length === 0 || this.submitting) return;
+            this.confirmingOrder = true;
+        },
+
+        closeConfirmModal() {
+            this.confirmingOrder = false;
+        },
+
+        // Confirma no modal e então envia. submitOrder() esvazia selectedItems só em
+        // caso de sucesso, então usamos isso para decidir se o modal fecha ou continua
+        // aberto (erro já é mostrado via toast pelo próprio submitOrder()).
+        async confirmAndSubmit() {
+            await this.submitOrder();
+            if (this.selectedItems.length === 0) {
+                this.confirmingOrder = false;
+            }
         },
 
         // Envia o pedido para a API

@@ -395,7 +395,7 @@ function kitchenApp() {
                     const itemRes = await fetch(`/api/orders/${this.editingOrder.id}/items/${item.item_id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ quantity: item.quantity, notes: item.notes })
+                        body: JSON.stringify({ quantity: item.quantity, notes: item.notes, dining_option: item.dining_option })
                     });
                     const itemData = await itemRes.json();
                     if (!itemRes.ok || itemData.error) throw new Error(itemData.error || 'Erro ao salvar item');
