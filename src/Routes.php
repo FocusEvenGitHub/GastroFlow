@@ -17,6 +17,7 @@ use App\Controllers\LogController;
 use App\Controllers\PrinterController;
 use App\Controllers\ReportController;
 use App\Controllers\SettingsController;
+use App\Controllers\VersionController;
 use App\Logging\RequestContext;
 use App\Middleware\JwtMiddleware;
 use App\Middleware\RoleMiddleware;
@@ -35,6 +36,10 @@ class Routes
         $app->get('/', function (Request $request, Response $response) {
             return $response->withHeader('Location', '/cashier/')->withStatus(302);
         });
+
+        // Público e sem middleware, de propósito: só um indicador cosmético de
+        // versão para o rodapé do caixa/cozinha/admin, nenhum dado sensível.
+        $app->get('/version', [VersionController::class, 'current']);
 
         $app->group('/api', function ($group) {
             $group->get('/menu', [MenuController::class, 'index']);
