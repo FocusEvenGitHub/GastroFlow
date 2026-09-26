@@ -210,10 +210,11 @@ Five picks that best represent how this project trades things off — full table
 - **Realtime kitchen updates rebuilt on MySQL** (spec 041): replaced a signal-file SSE mechanism that was invisible across the `web`/`print-worker` container boundary with a `EventPublisher` interface backed by an `events` table — reliable event IDs, `Last-Event-ID` reconnection, and retention via `bin/events-prune`
 - **Structured logging with request/correlation IDs** (spec 042): every HTTP request gets a `request_id` (and `user_id` once authenticated) carried automatically into every log line it causes, including into the async print job it dispatches — tracing `HTTP Request → Order → Job → Printing` across process boundaries in one `app.log`
 - **Audit history for sensitive administrative operations** (spec 043): menu item changes, settings changes (including printer configuration — the same endpoint as general settings), order reopening, and user creation via `bin/create-admin` each write a permanent, queryable `audit_log` row (who, what, when) — deliberately separate from the technical `app.log`, with its own `GET /api/admin/audit-log` endpoint and admin viewer page
+- **Database backup and restore** (spec 045): `bin/backup-db` / `bin/restore-db`, host-run scripts that shell out to the `db` container's own `mysqldump`/`mysql` (the `web` container has no MySQL client installed, only `pdo_mysql`) — no new dependency anywhere. `bin/restore-db` defaults to the most recent file under `backups/`, accepts a named one otherwise, and requires typing `RESTAURAR` (or `--yes`) before running, since a restore drops and recreates every table. The round-trip was actually exercised against a throwaway database, not just implemented
 
 Full detail for all of the above in [`CHANGELOG.md`](CHANGELOG.md).
 
-**Next up** (same milestone): `/health/live` + `/health/ready` endpoints, migration reliability, consistent LF line endings on Windows, backup & restore.
+**Next up** (same milestone): `/health/live` + `/health/ready` endpoints, migration reliability, consistent LF line endings on Windows.
 
 **Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
 
@@ -276,6 +277,18 @@ docker compose exec web composer remove package-name
 # equivalent, using the container name directly
 docker exec -it restaurant_web composer update
 ```
+
+### Backup & restore
+
+```bash
+./bin/backup-db
+# ✔ Backup criado: backups/gastroflow-restaurant-20260926-012450.sql.gz (12K)
+
+./bin/restore-db                                                # most recent backup
+./bin/restore-db gastroflow-restaurant-20260901-030000.sql.gz    # a specific one
+```
+
+Both run on the **host** (not inside `web`, which has no MySQL client) and shell out to the `db` container's own `mysqldump`/`mysql` — no extra dependency to install. `bin/restore-db` is destructive (it drops and recreates every table), so it asks you to type `RESTAURAR` to confirm, or pass `--yes` for scripted use. Backups land in `backups/` (gitignored — never committed).
 
 ---
 

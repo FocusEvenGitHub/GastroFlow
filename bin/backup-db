@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+#
+# GastroFlow — Backup do banco de dados
+#
+# Uso:
+#   ./bin/backup-db
+#
+# Roda no HOST (não dentro do container web) — usa `docker compose exec` para
+# rodar o mysqldump que já vem na imagem oficial mysql:8.0 do serviço `db`.
+# Nenhum cliente MySQL precisa existir na imagem do `web`/`print-worker`, e o
+# script nunca lê o `.env`: usuário/senha/banco são lidos das variáveis de
+# ambiente que o próprio docker-compose.yml já injeta no container `db`.
+#
+# Gera backups/gastroflow-<banco>-<timestamp>.sql.gz (spec 045).
+
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+backups_dir="backups"
+mkdir -p "$backups_dir"
+
+if ! docker compose exec -T db sh -c 'command -v mysqldump >/dev/null 2>&1'; then
+    echo "Erro: mysqldump não encontrado no container db. O serviço está no ar?" >&2
+    exit 1
+fi
+
+database="$(docker compose exec -T db sh -c 'echo "$MYSQL_DATABASE"' | tr -d '\r\n')"
+if [ -z "$database" ]; then
+    echo "Erro: não foi possível determinar MYSQL_DATABASE no container db." >&2
+    exit 1
+fi
+
+timestamp="$(date +%Y%m%d-%H%M%S)"
+final_file="$backups_dir/gastroflow-${database}-${timestamp}.sql.gz"
+tmp_file="${final_file}.tmp"
+
+if ! docker compose exec -T db sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysqldump --no-tablespaces -u"$MYSQL_USER" "$MYSQL_DATABASE" | gzip' > "$tmp_file"; then
+    echo "Erro: falha ao gerar o backup." >&2
+    rm -f "$tmp_file"
+    exit 1
+fi
+
+if [ ! -s "$tmp_file" ]; then
+    echo "Erro: backup gerado está vazio." >&2
+    rm -f "$tmp_file"
+    exit 1
+fi
+
+mv "$tmp_file" "$final_file"
+
+size="$(du -h "$final_file" | cut -f1)"
+echo "✔ Backup criado: $final_file ($size)"

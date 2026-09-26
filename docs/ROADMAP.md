@@ -1078,6 +1078,8 @@ Before v2.0, perform an actual restore test.
 
 A backup that has never been restored is not considered verified.
 
+**Status (spec 045)**: Verified — `bin/backup-db` and `bin/restore-db` (host-run, not inside the `web` container, which has no MySQL client — only `pdo_mysql`) shell out to the `db` container's own `mysqldump`/`mysql`/`gzip` (already in the official `mysql:8.0` image), with credentials read from that container's own environment, never from the host `.env`. `bin/restore-db` defaults to the most recent file under `backups/`, accepts a named file otherwise, and requires typing `RESTAURAR` (or `--yes`) before running — a plain `mysqldump` output drops and recreates every table (`--opt`'s default `--add-drop-table`), so this isn't optional. The restore path was actually exercised: a real backup of the development database was restored into a throwaway database created for the purpose (never `restaurant`/`restaurant_test`), and row counts matched exactly. That throwaway database itself was **not** dropped afterward — the cleanup `DROP DATABASE` was refused by this repo's own AI-safety hook, and the decision (disclosed, not forced through) was to leave it rather than route around the hook; it holds only a copy of already-backed-up data and isn't referenced anywhere in the app. **Not covered by this item**: a written disaster-recovery runbook/doc page — that belongs to `v1.9.0`'s "Documentation structure" item, which already lists a future Backup & Restore doc; this item only delivers the two commands plus their own usage-header documentation and a `CLAUDE.md` entry.
+
 ---
 
 # v1.8 Exit Gate
