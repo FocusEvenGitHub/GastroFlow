@@ -1021,6 +1021,8 @@ GET /health/ready
 
 Readiness should reflect important dependencies such as database availability.
 
+**Status (spec 044)**: Verified — `GET /health/live` always returns `200` with no dependency check; `GET /health/ready` runs a real query through the existing Eloquent/Capsule connection and returns `200`/`503 DB_UNAVAILABLE` accordingly, verified manually against the local Docker Compose stack (stopped `db`, observed `503`, restarted `db`, observed `200` again). Both are unauthenticated, matching the existing `/api/printer/status` precedent. Deliberately **not done** as part of this item: wiring a Docker Compose `HEALTHCHECK` directive to these endpoints — the current image has no `curl`/`wget` installed, and adding one is an unrequested dependency change; left as an explicit, non-blocking follow-up if wanted.
+
 ---
 
 ## Migration reliability
