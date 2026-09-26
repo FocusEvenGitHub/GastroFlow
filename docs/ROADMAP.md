@@ -1040,6 +1040,15 @@ Ensure:
 
 Do not replace it solely for framework consistency.
 
+**Refined 2026-09-26 (external review of this milestone's remaining items).** `App\Database\MigrationRunner` already orders `.sql` files deterministically (`strcmp` on filename) and records each applied file's name + md5 in a `migrations` table, aborting on the first failure. What it does **not** do today, and what this item should actually close:
+
+* **Hash-divergence detection**: the md5 is recorded but never compared afterward — an already-applied migration file edited in place (accidentally or otherwise) goes undetected. At minimum, `bin/migrate` should refuse to proceed (or loudly warn) when a tracked migration's current file hash no longer matches what was recorded at apply time.
+* **Fresh-install test**: CI already runs `common/sql/001_schema.sql` + `bin/migrate` against an empty database (see `.github/workflows/ci.yml`), which covers this reasonably well — worth confirming explicitly as a named, intentional test rather than an incidental side effect of the CI job ordering.
+* **A real upgrade test, `v1.7.x → HEAD`**: distinct from the fresh-install case above — start from a database at the last `v1.7.x` tag's schema state, run every migration since, and confirm both success and that historical data survives. CI's current setup always starts empty; it does not exercise this path.
+* **Rollback sophistication is explicitly de-prioritized.** The above three points matter more for Community than a `down()`/rollback mechanism — forward-only remains the right choice per this item's own existing instruction not to replace the system for framework consistency alone.
+
+Tracked in Trello card "[v1.8] Migration reliability".
+
 ---
 
 ## Line endings (LF vs CRLF)
@@ -1222,6 +1231,8 @@ Open GastroFlow
 ```
 
 No source-code editing should be required for normal installation.
+
+**Added 2026-09-26.** The concrete test for this milestone: someone other than the person who wrote GastroFlow can download it, configure it, create an administrator, bring up `web` + MySQL + `print-worker`, configure the printer, take a backup, and upgrade to a newer version — all without the original author touching their terminal. Not a new requirement, just this milestone's existing goal stated as a pass/fail scenario, so it doesn't get diluted into a checklist of smaller, individually-satisfiable items that miss the real test.
 
 ---
 
@@ -1633,7 +1644,7 @@ Every other Community workflow (cashier, kitchen, printing, reports) must keep w
 **Labels:** `type: fiscal`, `area: admin`, `area: security`
 **Description:** Add a `Fiscal / NFC-e` section to the existing Admin settings area (`public/admin/settings.php`), alongside `Restaurant` and `Impressão Térmica`, not a separate settings screen. Fields to actually model (enabled/disabled, environment, CNPJ, IE, CRT, series/number strategy, CSC, A1 upload, certificate status/expiration, SEFAZ connectivity test) are confirmed during `/spec-plan`, not assumed from this roadmap. The A1 `.pfx` is uploaded through this screen; `.pfx` never lives under `public/`, is never returned by any API response, and the certificate password/CSC are treated as write-only secrets. Homologation is the default/safe environment; switching to production requires an explicit action.
 **Files likely involved:** `public/admin/settings.php` (+ its JS), a new `FiscalSettingsController`/`FiscalSettingsService` (or extension of an existing settings path — decided in `/spec-plan`), storage location for the certificate file outside `public/`, `.gitignore`.
-**Dependencies:** RBAC (`v1.6.0`), Docker/secret handling discipline (`v1.6.0`).
+**Dependencies:** RBAC (`v1.6.0`), Docker/secret handling discipline (`v1.6.0`), **and a prerequisite added 2026-09-26**: `SettingsController::updateSettings()`'s audit logging (`v1.8.0`'s "Audit history", spec 043) currently records every changed setting's `old`/`new` value verbatim into `audit_log` with no redaction — confirmed in code, see `docs/architecture.md`'s "Audit history" section. Fiscal settings must not be wired into the generic `settings` table's update path until that call site gains a sensitive-field redaction rule or an explicit allowlist of auditable keys — otherwise a certificate password or CSC lands permanently in `audit_log` the first time someone changes it.
 **Acceptance criteria:**
 - [ ] `.pfx`/`.p12` files, certificate passwords and CSC values are never committed to Git (verified via `.gitignore` and a manual check before merge).
 - [ ] The certificate file is stored outside `public/` and is not reachable via a direct URL.
@@ -1642,6 +1653,7 @@ Every other Community workflow (cashier, kitchen, printing, reports) must keep w
 - [ ] Certificate upload validates file type/format/content before accepting it.
 - [ ] Production environment is not the default; enabling it is an explicit, separate action from enabling the fiscal feature.
 - [ ] Automated tests never use production fiscal credentials.
+- [ ] Changing a fiscal setting never writes its raw value into `audit_log` — redacted or excluded per the redaction rule above.
 
 ---
 
