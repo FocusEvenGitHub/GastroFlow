@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Middleware;
 
 use App\ApiResponse;
+use App\Logging\RequestContext;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Firebase\JWT\ExpiredException;
@@ -18,7 +19,13 @@ class JwtMiddleware implements MiddlewareInterface
 {
     private string $secret;
 
-    public function __construct(string $secret)
+    /**
+     * Optional (null in any test/context that builds this middleware directly, without a DI
+     * container) so a successful decode can attach the user id to the shared request context
+     * for logging (spec 042) — mirrors the "optional, DI-supplied in HTTP" pattern already used
+     * by JobService for LoggerInterface/Settings.
+     */
+    public function __construct(string $secret, private readonly ?RequestContext $context = null)
     {
         $this->secret = $secret;
     }
@@ -35,6 +42,7 @@ class JwtMiddleware implements MiddlewareInterface
             $decoded = JWT::decode($token, new Key($this->secret, 'HS256'));
             // Adiciona os dados do usuário ao request para uso posterior
             $request = $request->withAttribute('user', $decoded);
+            $this->context?->setUserId((int) $decoded->sub);
         } catch (ExpiredException $e) {
             return ApiResponse::error(new Response(), 401, 'TOKEN_EXPIRED', 'Token expirado.');
         } catch (\Throwable $e) {

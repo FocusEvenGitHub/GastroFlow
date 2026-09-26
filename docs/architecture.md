@@ -31,7 +31,7 @@ flowchart TD
     Services -.->|"async on order create"| Jobs["jobs table + bin/worker"]
     Jobs --> Printer["ESC/POS thermal printer<br/>mike42/escpos-php"]
 
-    Services -.->|"signal file"| SSE["public/api/events/stream.php<br/>SSE, polls a temp file"]
+    Services -.->|"EventPublisher"| SSE["public/api/events/stream.php<br/>SSE, polls the events table (spec 041)"]
     SSE -.->|"near real-time update"| Views
 ```
 
@@ -126,7 +126,37 @@ Successful jobs are kept as history (`completed_at`) and pruned after `QUEUE_RET
 
 Three **permanently failed** print jobs in a row block printing globally. The counter lives in `settings` rather than being derived from the `jobs` table, because `bin/jobs-prune` deletes completed rows and keeps failed ones — after retention, a real `fail, fail, success, fail` sequence would read as three consecutive failures that never happened. Blocking is enforced **server-side** in `OrderService` (`createOrder()` and `printOrder()` skip the dispatch), not only in the UI, so an API client cannot keep piling up doomed jobs. **The order is still created and still returns `201`**: the roadmap's rule that a printer failure must never invalidate an order takes precedence over the block. Reactivation is manual, through `POST /api/printer/reset`, and touches no job.
 
-The kitchen and cashier screens poll `GET /api/printer/status` every 15s. Polling rather than SSE because the print worker runs in a **separate container** and the SSE mechanism below is a file in each container's own `sys_get_temp_dir()` — a failure emitted by the worker is invisible to the container serving the stream. The `jobs` table is the only state both see. Both endpoints are public for the same reason `/api/orders*` is (spec 018): neither screen has a login.
+The kitchen and cashier screens poll `GET /api/printer/status` every 15s, rather than using the SSE stream below, because this predates it (spec 039) and nothing has since needed to unify the two. **Corrected 2026-09-25 (spec 042): this paragraph used to justify the choice by the SSE mechanism being a per-container temp file, which stopped being true when spec 041 moved it to the `events` table** — that specific cross-container argument no longer applies, but polling here was never revisited since, so it remains a separate endpoint. The `jobs` table is the only state both screens and the worker share for printer failures. Both endpoints are public for the same reason `/api/orders*` is (spec 018): neither screen has a login.
+
+## Logging and request tracing
+
+**`request_id`/`user_id` correlation, and a traceable HTTP → Order → Job → Printing chain
+(spec 042).** `App\Middleware\CorrelationIdMiddleware`, added globally in `src/App.php`, runs
+first: it accepts an incoming `X-Request-Id` header when it matches `^[A-Za-z0-9._-]{1,64}$`
+(rejecting anything else, since a header is attacker-controlled input a log line shouldn't
+trust verbatim), or generates a 32-character hex id otherwise, stores it on
+`App\Logging\RequestContext`, and echoes it back on the response header. `App\Logging\RequestIdProcessor`,
+attached to the DI-bound `LoggerInterface`, then stamps `request_id` (and `user_id`, once
+`JwtMiddleware` decodes a token) onto **every** log record for that request automatically — no
+call site needs to pass them explicitly, including the global error handler.
+
+That mechanism only reaches the synchronous HTTP path. Printing happens later, in a genuinely
+separate OS process (`bin/worker`, no DI container, no shared `RequestContext`), so `request_id`
+instead rides inside the job's own `payload` JSON: `JobService::dispatch()` stamps it onto the
+job's `data` when a `RequestContext` with one is available, and `PrintOrderJob` reads it back out
+to build the context `PrintService` logs with. This is the same technique the `events` table uses
+to cross the container boundary (spec 041) — the shared MySQL row, not the process, is what
+survives. `PrintService` and `JobService`'s own failure logging carry `order_id`/`job_id`/`event`
+as structured Monolog context rather than string-concatenated messages, so an operator can follow
+one `request_id` from the HTTP summary line through to the print attempt in one `app.log`.
+
+**A PHP-DI pitfall worth knowing if this pattern is reused**: autowiring never resolves a
+constructor parameter that already has a default value — regardless of its type hint or
+nullability — it just uses the default. `JobService`'s `?RequestContext $requestContext = null`
+(kept optional so `new JobService()` still works in `bin/worker`) would otherwise have silently
+stayed `null` even when resolved through the container in the HTTP path; `src/App.php` overrides
+just that one parameter with `\DI\autowire(JobService::class)->constructorParameter('requestContext',
+\DI\get(RequestContext::class))`, verified empirically before relying on it.
 
 ## Persistence
 

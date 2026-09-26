@@ -45,6 +45,13 @@ class PrintOrderJob
                 'max_attempts' => $job->max_attempts,
             ];
         }
+        // Present only when JobService::dispatch() had a RequestContext with a request_id set
+        // (i.e. the job was dispatched from an HTTP request) — closes the HTTP Request -> Order
+        // -> Job -> Printing trace chain (spec 042). No handle() signature change: it just
+        // rides along in the same $data array that already carries order_id.
+        if (isset($data['request_id']) && is_string($data['request_id'])) {
+            $jobContext['request_id'] = $data['request_id'];
+        }
 
         $printService = new PrintService($logger, $settings, new PricingService());
 
@@ -55,7 +62,7 @@ class PrintOrderJob
             // repetida pelo JobService (spec 008), e contá-la bloquearia a impressora por
             // causa de um único pedido (spec 039).
             if ($job !== null && $job->attempts >= $job->max_attempts) {
-                $printService->recordPrintFailure($order->id, $e->getMessage());
+                $printService->recordPrintFailure($order->id, $e->getMessage(), $jobContext);
             }
 
             throw $e;

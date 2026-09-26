@@ -200,18 +200,23 @@ Five picks that best represent how this project trades things off — full table
 - **`v1.7.0` — Domain & Architecture**: concurrency-safe `order_number` generation, explicit order lifecycle (`pending ⇄ done`, soft cancellation, invalid transitions rejected), `App\Money`-based exact pricing, historical order/receipt snapshots, order input validation, standardized API error format, `AdminController` split into `Settings`/`Printer`/`Log` controllers, `IngredientController` moved behind a Service+Repository, sargable date filters on reports — full detail in [`CHANGELOG.md`](CHANGELOG.md)
 - **`v1.7.1`** (client work, outside the roadmap milestones): "Monte Seu Prato" — a dish assembled at the cashier from the Adicionais, priced server-side and snapshotted per order item; kitchen side panel toggle between the ingredient summary and a per-dish count; `GET /api/admin/reports/main-dishes` + a "Pratos Principais Vendidos" report section; kitchen order-age timezone fix and highlighted item notes — full detail in [`CHANGELOG.md`](CHANGELOG.md)
 
-**In progress** (`docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality`, first item)
+**In progress** (`docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality`)
 
-- **Job-queue reliability** (spec 033, branch `033`, not yet merged): a worker that died mid-job used to leave the job reserved forever, never retried and invisible; reservations now carry a deadline and are swept back into the queue, jobs have an explicit `status`/`last_error`/`failed_at`/`completed_at`, completed jobs are kept and pruned by retention, and `bin/jobs-status` plus Monolog logging give the operator a way to see failures
+- **Job-queue reliability** (spec 033): a worker that died mid-job used to leave the job reserved forever, never retried and invisible; reservations now carry a deadline and are swept back into the queue, jobs have an explicit `status`/`last_error`/`failed_at`/`completed_at`, completed jobs are kept and pruned by retention, and `bin/jobs-status` gives the operator a way to see failures
+- **Static analysis, code style and CI** (spec 034): PHPStan level 5, PHP-CS-Fixer (PSR-12), both gating `composer validate` → `composer audit` → PHPStan → PHP-CS-Fixer → PHPUnit in GitHub Actions
+- **Integration and browser test suites** (specs 035, 040): 44+ tests against real MySQL, including genuine multi-process concurrency, plus a Playwright suite covering only what breaks exclusively in a browser
+- **Job deadlock fixed, found by the integration suite** (spec 037): a completion `UPDATE` deadlocking under contention used to re-queue an already-executed job, duplicating the work; execution and result-recording are now separate phases with an at-most-once guarantee
+- **Printing reliability** (specs 038, 039): an unconfigured printer no longer reports a ticket as sent when nothing printed; three consecutive permanent failures block printing until an operator reactivates it, without ever invalidating the order itself
+- **Realtime kitchen updates rebuilt on MySQL** (spec 041): replaced a signal-file SSE mechanism that was invisible across the `web`/`print-worker` container boundary with a `EventPublisher` interface backed by an `events` table — reliable event IDs, `Last-Event-ID` reconnection, and retention via `bin/events-prune`
+- **Structured logging with request/correlation IDs** (spec 042): every HTTP request gets a `request_id` (and `user_id` once authenticated) carried automatically into every log line it causes, including into the async print job it dispatches — tracing `HTTP Request → Order → Job → Printing` across process boundaries in one `app.log`
 
-**Next up** (same milestone)
+Full detail for all of the above in [`CHANGELOG.md`](CHANGELOG.md).
 
-- Static analysis (PHPStan) and code style tooling, integration/E2E tests (including the two-worker concurrency case the unit suite can't cover), printing/realtime reliability, structured logging, health checks, backup & restore
+**Next up** (same milestone): audit history for sensitive admin operations, `/health/live` + `/health/ready` endpoints, migration reliability, consistent LF line endings on Windows, backup & restore.
 
 **Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
 
 - Frontend modularization: shared `common.js` (toasts, theme, fetch wrapper), a real build step (Vite) instead of CDN-loaded dependencies
-- Replace the signal-file SSE mechanism with Redis pub/sub or a MySQL-backed `events` table
 
 ---
 

@@ -82,7 +82,12 @@ class PrintService
      * Registra uma falha PERMANENTE de impressão e retorna o total consecutivo.
      * Ao atingir MAX_CONSECUTIVE_FAILURES, a impressão fica bloqueada (spec 039).
      */
-    public function recordPrintFailure(?int $orderId = null, ?string $error = null): int
+    /**
+     * @param array $context Optional job/request context to attach to the block-log line
+     *                        (job_id, attempt, max_attempts, request_id — spec 042). Appended
+     *                        last, and defaulted, so existing positional callers keep working.
+     */
+    public function recordPrintFailure(?int $orderId = null, ?string $error = null, array $context = []): int
     {
         $failures = $this->consecutiveFailures() + 1;
 
@@ -92,10 +97,14 @@ class PrintService
 
         if ($failures >= self::MAX_CONSECUTIVE_FAILURES && !$this->isPrintingBlocked()) {
             Setting::setValue(self::KEY_BLOCKED_AT, date('Y-m-d H:i:s'));
-            $this->logger->error(sprintf(
-                'Impressão bloqueada após %d falhas consecutivas. Operador precisa reativar.',
-                $failures
-            ));
+            $this->logger->error(
+                sprintf('Impressão bloqueada após %d falhas consecutivas. Operador precisa reativar.', $failures),
+                $this->logContext($context, [
+                    'event'    => 'print.blocked',
+                    'order_id' => $orderId,
+                    'failures' => $failures,
+                ])
+            );
         }
 
         return $failures;
@@ -193,15 +202,17 @@ class PrintService
     {
         $config = $this->getPrinterConfig();
 
-        $ctx = $this->labelContext($context, $config);
-
         // Returning here used to mark the job 'completed', so an order was recorded as
         // printed when nothing was printed and bin/jobs-status showed nothing wrong.
         // A ticket was asked for and not produced: that is a failure (spec 038). A
         // restaurant deliberately running without a printer sends print_ticket=false,
         // which never enqueues a job at all.
         if (empty($config['ip'])) {
-            $this->logger->error('Print failed' . $ctx . ' order=' . $order->id . ' ' . self::ERROR_NO_IP);
+            $this->logger->error('Print failed', $this->logContext($context, [
+                'event'    => 'print.failed',
+                'order_id' => $order->id,
+                'error'    => self::ERROR_NO_IP,
+            ]));
             throw new \RuntimeException(self::ERROR_NO_IP);
         }
 
@@ -212,26 +223,30 @@ class PrintService
             $this->buildReceipt($printer, $order, $config['name']);
 
             $printer->close();
-            $this->logger->info('Print success' . $ctx . ' order=' . $order->id . ' printer=' . $config['ip'] . ':' . $config['port']);
+            $this->logger->info('Print success', $this->logContext($context, [
+                'event'    => 'print.success',
+                'order_id' => $order->id,
+                'printer'  => $config['ip'] . ':' . $config['port'],
+            ]));
         } catch (\Throwable $e) {
-            $this->logger->error('Print failed' . $ctx . ' order=' . $order->id . ' printer=' . $config['ip'] . ':' . $config['port'] . ' error="' . $e->getMessage() . '"');
+            $this->logger->error('Print failed', $this->logContext($context, [
+                'event'    => 'print.failed',
+                'order_id' => $order->id,
+                'printer'  => $config['ip'] . ':' . $config['port'],
+                'error'    => $e->getMessage(),
+            ]));
             throw $e;
         }
     }
 
     /**
-     * Build a log suffix with useful job context, when available.
+     * Merges caller-supplied job/request context (job_id, attempt, max_attempts, request_id —
+     * whatever PrintOrderJob passed, spec 042) with this call site's own fields. Caller context
+     * comes first so a specific field below always wins if both happen to set the same key.
      */
-    private function labelContext(array $context, array $config): string
+    private function logContext(array $callerContext, array $ownFields): array
     {
-        $parts = [];
-        if (!empty($context['job_id'])) {
-            $parts[] = ' print_job=' . $context['job_id'];
-        }
-        if (isset($context['attempt'])) {
-            $parts[] = ' attempt=' . $context['attempt'] . '/' . $context['max_attempts'];
-        }
-        return implode('', $parts);
+        return array_merge($callerContext, $ownFields);
     }
 
     /**

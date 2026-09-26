@@ -2,9 +2,13 @@
 
 ## v1.8.0 — Reliability & Quality (em andamento, sem tag)
 
-Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: logging estruturado, histórico de auditoria, health checks, confiabilidade de migração, LF/CRLF, backup & restore.
+Milestone `v1.8.0` do `ROADMAP.md`. Esta seção é atualizada conforme cada etapa entra em `master`; a tag `v1.8.0` só é criada quando **todos** os itens do milestone estiverem concluídos. Itens ainda abertos: histórico de auditoria, health checks, confiabilidade de migração, LF/CRLF, backup & restore.
 
 > ⚠️ **Mudança de comportamento visível ao atualizar (spec 038):** instalações com a impressora não configurada vão começar a acumular jobs de impressão com status `failed`, onde antes tudo parecia bem. É o alarme correto — antes esses pedidos constavam impressos sem nada ter saído. Configure `printer_ip` ou crie os pedidos com `print_ticket=false`.
+
+### Observabilidade
+- **Correlation ID por requisição**: todo request HTTP recebe um `request_id` (propagado de `X-Request-Id` quando o cliente já manda um, gerado como 32 caracteres hex quando não) — presente no header da resposta e no contexto de **todo** log emitido durante aquele request, inclusive o do handler de erro global. Autenticado, o log também carrega `user_id` (o `sub` do JWT); anônimo, a chave nem aparece (spec 042)
+- **A cadeia HTTP → Pedido → Job → Impressão agora é rastreável em um único `app.log`**: o `request_id` de quem criou o pedido viaja dentro do `payload` do job (sem migração — é só mais uma chave no JSON que já existia) e chega ao log da tentativa de impressão, feita minutos depois por um processo totalmente separado (`bin/worker`). `PrintService` e as falhas de fila do `JobService` passam a logar contexto estruturado (`order_id`, `job_id`, `event`, `request_id`) em vez de mensagem concatenada em string (spec 042)
 
 ### Correções
 - **Eventos em tempo real deixam de se perder entre containers**: a cozinha descobria pedidos novos via SSE lendo um arquivo em `sys_get_temp_dir()`, que é por container — um evento publicado pelo worker de impressão nunca chegava à cozinha, servida pelo container `web`. Confirmado quebrado três vezes nas specs 038-040 sem ser o assunto delas, até a 040 ter que desabilitar o SSE inteiro no servidor de teste. `OrderService` agora depende só da interface `EventPublisher`, nunca do transporte, implementada por uma tabela `events` no MySQL — o mesmo banco que todo container já compartilha (spec 041)
