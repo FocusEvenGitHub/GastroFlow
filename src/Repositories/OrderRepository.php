@@ -446,7 +446,7 @@ class OrderRepository
     }
 
     /**
-     * Update quantity/notes of one existing order item.
+     * Update quantity/notes/dining_option of one existing order item.
      * Throws ModelNotFoundException if the item doesn't belong to $orderId.
      */
     public function updateOrderItem(int $orderId, int $itemId, array $data): void
@@ -457,11 +457,25 @@ class OrderRepository
         }
         $item = OrderItem::where('id', $itemId)->where('order_id', $orderId)->firstOrFail();
 
+        $recomputePackaging = isset($data['quantity']) || isset($data['dining_option']);
+
         if (isset($data['quantity'])) {
             $item->quantity = (int) $data['quantity'];
         }
         if (array_key_exists('notes', $data)) {
             $item->notes = $data['notes'] ?? '';
+        }
+        if (isset($data['dining_option'])) {
+            $item->dining_option = $data['dining_option'];
+        }
+
+        // dining_option and quantity both feed the packaging fee (spec 026) — recompute
+        // whenever either changes, using the resulting values above (spec 046; previously
+        // packaging_cost was never recomputed here at all, even for a quantity-only change).
+        if ($recomputePackaging) {
+            $item->packaging_cost = $this->pricingService
+                ->packagingFeeFor($item->dining_option, (int) $item->quantity)
+                ->toReais();
         }
 
         $item->save();

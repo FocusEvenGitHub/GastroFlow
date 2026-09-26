@@ -319,7 +319,7 @@
                             <strong>Total:</strong>
                             <strong class="h5 text-success">R$ <span x-text="total.toFixed(2)"></span></strong>
                         </div>
-                        <button class="btn btn-success btn-lg w-100 mt-2" @click="submitOrder"
+                        <button class="btn btn-success btn-lg w-100 mt-2" @click="openConfirmModal()"
                                 :disabled="!orderNumber || selectedItems.length === 0 || submitting">
                             <span x-show="!submitting"><i class="fas fa-paper-plane me-2"></i>Enviar Pedido</span>
                             <span x-show="submitting"><span class="spinner-border spinner-border-sm me-2"></span>Enviando...</span>
@@ -391,6 +391,61 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Confirmação do pedido antes de enviar (spec 046) -->
+    <div class="modal fade" id="confirmOrderModal" tabindex="-1" data-bs-backdrop="static"
+         x-effect="(() => { const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmOrderModal')); confirmingOrder ? modal.show() : modal.hide(); })()">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-clipboard-check text-primary me-2"></i>Confirmar pedido</h5>
+                    <button type="button" class="btn-close" @click="closeConfirmModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Confira a opção de consumo de cada item antes de enviar para a cozinha.</p>
+                    <template x-for="(item, index) in selectedItems" :key="'confirm-' + item.uid">
+                        <div class="d-flex justify-content-between align-items-start border-bottom py-2">
+                            <div>
+                                <strong x-text="item.quantity + 'x ' + item.name"></strong>
+                                <div x-show="item.notes" class="small text-muted"><i class="fas fa-sticky-note"></i> <span x-text="item.notes"></span></div>
+                                <!-- Seletor de onde comer, editável direto no modal (spec 046) -->
+                                <div x-show="item.category_name === 'Pratos Principais' || item.category_name === 'Adicionais'"
+                                     class="btn-group btn-group-sm mt-1">
+                                    <button class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                            :class="item.diningOption === 'local' ? 'btn-success' : 'btn-outline-success'"
+                                            @click="setDiningOption(index, 'local')" title="Consumo no local">
+                                        Local
+                                    </button>
+                                    <button class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                            :class="item.diningOption === 'viagem_simples' ? 'btn-warning' : 'btn-outline-warning'"
+                                            @click="setDiningOption(index, 'viagem_simples')" title="Viagem Simples (+R$ 1,00)">
+                                        Simples
+                                    </button>
+                                    <button class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                            :class="item.diningOption === 'viagem_vip' ? 'btn-danger' : 'btn-outline-danger'"
+                                            @click="setDiningOption(index, 'viagem_vip')" title="Viagem VIP (+R$ 2,00)">
+                                        VIP
+                                    </button>
+                                </div>
+                            </div>
+                            <span class="text-success fw-bold">R$ <span x-text="itemTotal(index).toFixed(2)"></span></span>
+                        </div>
+                    </template>
+                    <div class="d-flex justify-content-between mt-3 pt-2 border-top">
+                        <strong>Total:</strong>
+                        <strong class="h5 text-success">R$ <span x-text="total.toFixed(2)"></span></strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" @click="closeConfirmModal()">Voltar</button>
+                    <button class="btn btn-success" @click="confirmAndSubmit()" :disabled="submitting">
+                        <span x-show="!submitting"><i class="fas fa-paper-plane me-2"></i>Confirmar e enviar</span>
+                        <span x-show="submitting"><span class="spinner-border spinner-border-sm me-2"></span>Enviando...</span>
+                    </button>
                 </div>
             </div>
         </div>

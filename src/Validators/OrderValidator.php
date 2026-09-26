@@ -115,6 +115,8 @@ class OrderValidator
         $this->v->rule('max', 'quantity', self::MAX_ITEM_QUANTITY);
         $this->v->rule('optional', 'notes');
         $this->v->rule('lengthMax', 'notes', self::MAX_NOTES_LENGTH);
+        $this->v->rule('optional', 'dining_option');
+        $this->v->rule('in', 'dining_option', self::DINING_OPTIONS);
         return $this->v->validate();
     }
 

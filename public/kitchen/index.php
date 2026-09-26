@@ -415,6 +415,24 @@
                                         <input type="text" class="form-control form-control-sm" placeholder="Observação"
                                                x-model="item.notes">
                                     </div>
+                                    <!-- Seletor de onde comer (spec 046) -->
+                                    <div class="btn-group btn-group-sm mt-1">
+                                        <button type="button" class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                                :class="item.dining_option === 'local' ? 'btn-success' : 'btn-outline-success'"
+                                                @click="item.dining_option = 'local'" title="Consumo no local">
+                                            Local
+                                        </button>
+                                        <button type="button" class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                                :class="item.dining_option === 'viagem_simples' ? 'btn-warning' : 'btn-outline-warning'"
+                                                @click="item.dining_option = 'viagem_simples'" title="Viagem Simples (+R$ 1,00)">
+                                            Simples
+                                        </button>
+                                        <button type="button" class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                                :class="item.dining_option === 'viagem_vip' ? 'btn-danger' : 'btn-outline-danger'"
+                                                @click="item.dining_option = 'viagem_vip'" title="Viagem VIP (+R$ 2,00)">
+                                            VIP
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="btn-group btn-group-sm">
