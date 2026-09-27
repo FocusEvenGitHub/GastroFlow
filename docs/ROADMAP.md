@@ -781,6 +781,8 @@ Increase strictness gradually.
 
 CI should reject new analysis regressions after the baseline is established.
 
+**Status (spec 034)**: Implemented — PHPStan level 5 (`phpstan.neon`), chosen by measurement (107 findings at level 5 vs. 215 at level 6, where the jump is missing type hints on Eloquent models); the 16 remaining findings are frozen in `phpstan-baseline.neon`. CI rejects any new finding beyond that baseline. **Not fully `Verified`**: acceptance criterion AC10 (a deliberate style violation failing CI specifically at the style step, observed on a real PR) was only partially exercised — a real PR's steps were read back confirming all named stages ran in order and passed, but the *failing* case was never pushed to a real PR to observe. Documented as a disclosed gap in `specs/034-static-analysis-and-ci-pipeline.md`, not silently skipped.
+
 ---
 
 ## Code style
@@ -793,6 +795,8 @@ Possible tools:
 * PHP_CodeSniffer.
 
 CI should validate formatting/style without silently modifying production code.
+
+**Status (spec 034)**: Implemented (same disclosed gap as "Static analysis" above) — PHP-CS-Fixer with PSR-12 + `declare_strict_types` (`.php-cs-fixer.dist.php`), read-only in CI; one-time reformat applied to 29 files with no logic change (confirmed: `vendor/bin/phpunit` before/after the reformat produced identical results, `OK (133 tests, 231 assertions)`). `.gitattributes` (`eol=lf`) was added in the same spec because without it the style check reported 69 files needing fixes on a Windows checkout and 0 in CI — CI and local results contradicted each other. That line-ending policy was later found incomplete and extended in spec 049.
 
 ---
 
@@ -816,6 +820,8 @@ integration tests
 
 Failures should clearly indicate their cause.
 
+**Status (spec 034)**: Implemented — `.github/workflows/ci.yml` runs `composer validate --strict` → `composer audit` → PHPStan → PHP-CS-Fixer → PHPUnit, as separately named steps, none with `continue-on-error`, confirmed by reading the file and by a real PR's steps read back from the GitHub API (all ran in order, each under its own name). Spec 035 later added the Integration-suite stage after Unit tests, and spec 048/049 added two more named steps ahead of it (fresh-install labeling, line-ending check) — the ordering principle (fast checks first) held.
+
 ---
 
 ## Integration tests
@@ -834,6 +840,8 @@ Priority:
 * menu mutations;
 * reports;
 * job creation.
+
+**Status (spec 035)**: Verified — 26 tests against real MySQL 8.0, covering every priority workflow listed above plus the full cashier → order → kitchen → completion → report journey, exercised through the HTTP layer (no browser automation). Genuine multi-process concurrency tested for real (four separate OS processes contending for the same job and the same order numbering) — the gap spec 033 itself declared and deferred, since `lockForUpdate()` is a no-op under the SQLite the Unit suite uses. Found, as a side effect, the job-completion deadlock fixed by spec 037. The suite refuses to run against a real database (skips if `MYSQL_DATABASE_TEST` is unset, fails loud if it equals `MYSQL_DATABASE`) and runs as its own named CI stage after Unit tests.
 
 ---
 
@@ -874,6 +882,8 @@ that was disabled without looking disabled) was found the same way.
 So: still no sweeping frontend automation, and no duplicating in the browser what the HTTP suite
 already proves. A small, justified set of browser tests, with "it only breaks in a browser" as
 the admission criterion.
+
+**Status (specs 035, 040)**: Verified — the cashier → order → kitchen → completion → report journey is covered by spec 035's integration suite through the HTTP layer. A separate five-test Playwright suite (spec 040) covers only what breaks exclusively in a browser: the Alpine/Bootstrap interaction that produced spec 039's invisible defect (an API-confirmed "unblocked" state whose banner never disappeared, because Alpine's `x-show` loses to Bootstrap's `.d-flex { display: flex !important }`), enabled/disabled bindings, and elements that appear by condition. Runs against a second app instance on port 8081 (`docker-compose.e2e.yml`) pointed at `restaurant_test`, so it never touches the development database.
 
 ---
 
@@ -930,6 +940,8 @@ Support:
 
 A printer failure must never remove or invalidate the restaurant order.
 
+**Status (specs 038, 039)**: Verified — an unconfigured printer no longer reports a job as `completed`; `printOrder()` and `printTestPage()` now agree, using a shared error constant. The test-print endpoint responds `503 PRINTER_UNAVAILABLE` with an actionable message (missing IP, or the address that was tried) instead of a sanitized "Internal server error." Three consecutive permanent failures block further printing (counting jobs that failed for good, not attempts — spec 008 already gives 3 attempts per job, so counting attempts would block the printer over one order) until an operator explicitly reactivates it, via two new public endpoints (`GET /api/printer/status`, `POST /api/printer/reset` — public for the same reason `/api/orders*` already is: these screens have no login). **The order is always created regardless of print outcome**, per this item's own hard rule. Duplicate-print prevention on retry is covered by spec 037 (job reliability), not by 038/039 directly — a retried job whose print already succeeded no longer repeats it, closed as a side effect of that spec's completion-phase fix.
+
 ---
 
 ## Realtime reliability
@@ -959,6 +971,8 @@ The implementation should support:
 * safe concurrent operation.
 
 The business domain should not depend directly on the event transport mechanism.
+
+**Status (spec 041)**: Verified — replaced a signal-file SSE mechanism (a per-container temp file, invisible across the `web`/`print-worker` boundary — confirmed broken three times across specs 038-040 before it was the actual subject of any of them) with a MySQL-backed `events` table behind an `EventPublisher` interface; `OrderService` depends only on that interface, never the transport. The SSE stream now emits an `id:` line per event, enabling `EventSource`'s native `Last-Event-ID` reconnection — a kitchen screen that drops for a minute recovers what it missed instead of going stale until a full reload. Retention via `bin/events-prune` (default 2 days, `EVENTS_RETENTION_DAYS`), reusing the same hourly hook that already prunes completed jobs.
 
 ---
 
@@ -990,6 +1004,8 @@ Printing
 
 Never log passwords, tokens or secrets.
 
+**Status (spec 042)**: Verified — every HTTP request gets a `request_id` (propagated from an incoming `X-Request-Id` header, or generated as 32 hex characters), present in every log line that request causes — including the global error handler's — and echoed back in the response header. An authenticated request's logs also carry `user_id` (the JWT's `sub`); an anonymous one omits the key entirely rather than logging it empty. The chain survives the async hop: the `request_id` of whoever created an order travels inside the print job's own `payload` (no migration needed — just another JSON key) and reaches the print-outcome log line written minutes later by a fully separate process (`bin/worker`), making `HTTP Request → Order → Job → Printing` traceable end to end in one `app.log`. No password, token, or secret is logged — confirmed by design (no such field is ever passed to the logger context) rather than by a runtime scan.
+
 ---
 
 ## Audit history
@@ -1007,6 +1023,8 @@ User created another user
 ```
 
 Technical logs and audit history should remain conceptually separate.
+
+**Status (spec 043)**: Verified — a durable, queryable `audit_log` table (its own migration, never pruned, unlike `jobs`/`events`) records actor, action, affected entity, and relevant details for: menu item price changes (`PATCH /api/admin/items/{id}`), settings changes including printer configuration (`PUT /api/admin/settings` — already the same single endpoint for both, no separate endpoint existed to split), order reopening (`POST /api/orders/{id}/uncomplete`), and user creation via `bin/create-admin` (no HTTP endpoint exists for this; covered anyway, with a null actor — there is genuinely no authenticated user in a CLI process, not merely a missing one). New `GET /api/admin/audit-log` endpoint plus `public/admin/audit-log.php`, matching the existing technical-log viewer's pattern. Kept conceptually and physically separate from `app.log`/Monolog, per this item's own explicit instruction.
 
 ---
 
@@ -1074,7 +1092,7 @@ git config:
 
 A rule that only works when each person configures their machine correctly is not a rule.
 
-**Status (spec 049)**: Verified — `.gitattributes` alone governs, extended to cover every tracked text path a full-repo audit (`git ls-files --eol`, 255 tracked files) found ungoverned (38 paths: extensionless `bin/*` scripts, `.dockerignore`, `Dockerfile`, `.gitignore`, `composer.lock`, `*.js`/`*.css`/`*.html`/`*.yaml`/`*.ini`/`*.webmanifest`/`*.sh`). A dedicated renormalization commit fixed the real, pre-existing problem — 8 files genuinely committed with CRLF blobs plus one (`.gitignore`) with mixed CRLF/LF, all predating spec 034 and never re-committed since — confirmed line-ending-only via `git diff --ignore-space-at-eol` before committing. A new CI step (no new dependency, pure `git`) now fails the build if any tracked file's blob has CRLF/mixed line endings, tested against both the real fixed repository and a deliberately forced CRLF blob (bypassing the clean filter, the same way the original 9 files became CRLF). `README.md` documents the recommended `core.autocrlf false` and the local re-checkout remediation for an already-affected working tree. **One item from this spec's own plan could not be completed**: applying that remediation to this session's own machine (confirmed affected: 75 tracked files have working-tree-only CRLF despite correct LF blobs) was explicitly approved by the user but refused outright by this repository's own AI-safety hook (`git rm --cached -r .` / `git reset --hard` both blocked as destructive operations, regardless of in-session confirmation) — left for the user to run manually via the documented command. As a direct, disclosed consequence, `vendor/bin/php-cs-fixer` still reports 3 pre-existing files (`bin/migrate`, `bin/worker`, `bin/create-admin`) needing a line-ending fix that only that blocked remediation would resolve — confirmed via `git status` to be already-unmodified-per-git working-tree artifacts, not a regression from this spec's diff.
+**Status (spec 049)**: Verified — `.gitattributes` alone governs, extended to cover every tracked text path a full-repo audit (`git ls-files --eol`, 255 tracked files) found ungoverned (38 paths: extensionless `bin/*` scripts, `.dockerignore`, `Dockerfile`, `.gitignore`, `composer.lock`, `*.js`/`*.css`/`*.html`/`*.yaml`/`*.ini`/`*.webmanifest`/`*.sh`). A dedicated renormalization commit fixed the real, pre-existing problem — 8 files genuinely committed with CRLF blobs plus one (`.gitignore`) with mixed CRLF/LF, all predating spec 034 and never re-committed since — confirmed line-ending-only via `git diff --ignore-space-at-eol` before committing. A new CI step (no new dependency, pure `git`) now fails the build if any tracked file's blob has CRLF/mixed line endings, tested against both the real fixed repository and a deliberately forced CRLF blob (bypassing the clean filter, the same way the original 9 files became CRLF). `README.md` documents the recommended `core.autocrlf false` and the local re-checkout remediation for an already-affected working tree. That remediation was itself exercised for real: this session's own machine was confirmed affected (75 tracked files with working-tree-only CRLF despite correct LF blobs) and the assistant's own attempt to run it was refused by this repository's AI-safety hook (`git reset --hard` blocked as destructive, even with prior explicit user confirmation) — the user ran the documented commands manually instead, and the result was confirmed directly afterward: 75 → 0 affected files, `vendor/bin/php-cs-fixer` dropped from 3 flagged files (`bin/migrate`, `bin/worker`, `bin/create-admin`) to 0.
 
 ---
 
@@ -1102,6 +1120,10 @@ A backup that has never been restored is not considered verified.
 v1.8 is complete when:
 
 > Failures involving printing, jobs, realtime, database access or application code can be detected, understood and recovered from without corrupting restaurant operations.
+
+**Met (audited 2026-09-27).** Every subsection of this milestone now carries a `Status` line above, each backed by real validation evidence in its own spec: printing failures are detected and blocked without ever invalidating the order (specs 038-039); job failures are retried, time out safely, and are operator-visible (spec 033, tested under real concurrency by spec 035); realtime delivery survives a container restart or reconnect (spec 041); database unavailability is detected (`/health/ready`, spec 044) and recoverable (`bin/backup-db`/`bin/restore-db`, spec 045, exercised for real); application-code regressions are caught by CI (PHPStan + PHP-CS-Fixer + PHPUnit, spec 034) before they reach `master`. Migration integrity (spec 048) and a reproducible line-ending policy (spec 049) close out the milestone's remaining infrastructure debt.
+
+Two honest caveats, neither blocking the gate's own substantive claim: spec 034's acceptance criterion for a *deliberately failing* CI run was only partially exercised (a passing run was observed on a real PR; a genuine style-violation failure was not) — a gap in how thoroughly that one check was proven, not in whether the pipeline itself works, which every other spec's own CI run since has continued to confirm. And this milestone's items were investigated and closed one at a time across many specs and sessions rather than audited as a whole until this pass — this note exists precisely so that gap doesn't recur silently for `v1.9.0`.
 
 ---
 

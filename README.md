@@ -200,7 +200,7 @@ Five picks that best represent how this project trades things off — full table
 - **`v1.7.0` — Domain & Architecture**: concurrency-safe `order_number` generation, explicit order lifecycle (`pending ⇄ done`, soft cancellation, invalid transitions rejected), `App\Money`-based exact pricing, historical order/receipt snapshots, order input validation, standardized API error format, `AdminController` split into `Settings`/`Printer`/`Log` controllers, `IngredientController` moved behind a Service+Repository, sargable date filters on reports — full detail in [`CHANGELOG.md`](CHANGELOG.md)
 - **`v1.7.1`** (client work, outside the roadmap milestones): "Monte Seu Prato" — a dish assembled at the cashier from the Adicionais, priced server-side and snapshotted per order item; kitchen side panel toggle between the ingredient summary and a per-dish count; `GET /api/admin/reports/main-dishes` + a "Pratos Principais Vendidos" report section; kitchen order-age timezone fix and highlighted item notes — full detail in [`CHANGELOG.md`](CHANGELOG.md)
 
-**In progress** (`docs/ROADMAP.md`'s `v1.8.0 — Reliability & Quality`)
+**`v1.8.0` — Reliability & Quality** (exit gate met 2026-09-27, per `docs/ROADMAP.md`; not yet tagged)
 
 - **Job-queue reliability** (spec 033): a worker that died mid-job used to leave the job reserved forever, never retried and invisible; reservations now carry a deadline and are swept back into the queue, jobs have an explicit `status`/`last_error`/`failed_at`/`completed_at`, completed jobs are kept and pruned by retention, and `bin/jobs-status` gives the operator a way to see failures
 - **Static analysis, code style and CI** (spec 034): PHPStan level 5, PHP-CS-Fixer (PSR-12), both gating `composer validate` → `composer audit` → PHPStan → PHP-CS-Fixer → PHPUnit in GitHub Actions
@@ -213,10 +213,9 @@ Five picks that best represent how this project trades things off — full table
 - **Health checks** (spec 044): `GET /health/live` always confirms the PHP process is routing requests; `GET /health/ready` runs a real query through the existing database connection and returns `503 DB_UNAVAILABLE` (a fixed, generic message — never the underlying exception) when the database is unreachable. Both are unauthenticated, matching the existing `/api/printer/status` precedent for infrastructure-facing endpoints
 - **Database backup and restore** (spec 045): `bin/backup-db` / `bin/restore-db`, host-run scripts that shell out to the `db` container's own `mysqldump`/`mysql` (the `web` container has no MySQL client installed, only `pdo_mysql`) — no new dependency anywhere. `bin/restore-db` defaults to the most recent file under `backups/`, accepts a named one otherwise, and requires typing `RESTAURAR` (or `--yes`) before running, since a restore drops and recreates every table. The round-trip was actually exercised against a throwaway database, not just implemented
 - **Migration reliability** (spec 048): `bin/migrate` now refuses to proceed if an already-applied migration's current content no longer matches what was recorded, comparing line-ending-normalized hashes so a `.gitattributes` line-ending normalization (spec 034) is never mistaken for tampering; `bin/migrate --trust-current-hashes` reconciles that explicitly, never automatically — confirmed necessary in practice against both the shared test database and this project's own development database. CI's fresh-install steps are now named as such, and a new test builds the exact `v1.7.1`-tagged database state and proves both a successful upgrade to `HEAD` and that historical data survives it
+- **Line endings, LF everywhere** (spec 049): `.gitattributes` alone governs, extended to every tracked text path a full-repo audit found ungoverned; a dedicated commit fixed the 9 files genuinely committed with CRLF/mixed line endings, and a new CI step stops that from happening again. See "Line endings (Windows)" above for Windows setup
 
 Full detail for all of the above in [`CHANGELOG.md`](CHANGELOG.md).
-
-**Next up** (same milestone): consistent LF line endings on Windows.
 
 **Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
 
