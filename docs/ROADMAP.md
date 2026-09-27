@@ -1049,6 +1049,8 @@ Do not replace it solely for framework consistency.
 
 Tracked in Trello card "[v1.8] Migration reliability".
 
+**Status (spec 048)**: Verified — `MigrationRunner` now refuses to proceed when an already-tracked migration file's current content no longer matches what was recorded at apply time, comparing line-ending-normalized hashes so a `.gitattributes` normalization (spec 034) is never mistaken for tampering; confirmed necessary in practice, since 10 of the 14 migrations that existed at `v1.7.1` differ from today's checkout by line endings alone. An explicit, non-default `bin/migrate --trust-current-hashes` reconciles the one-time consequence for a database migrated before this shipped — exercised for real against both the shared `restaurant_test` database and this project's own development database. CI's fresh-install steps are now named as such. A new `tests/Integration/MigrationUpgradeTest.php` builds the exact `v1.7.1`-tagged schema/migration state (via `git show`, requiring CI's checkout to fetch full history/tags now), seeds a historical row, runs the current `MigrationRunner`, and confirms both success and that the row survives to `HEAD`. Rollback sophistication remains explicitly out of scope, per this item's own instruction. **Not covered by this item**: the pre-existing duplicate migration-number filenames (`009`/`010` collisions) found during investigation — unsafe to rename retroactively, left as a separate follow-up; and a tracked migration whose file was deleted (rather than edited) is not detected.
+
 ---
 
 ## Line endings (LF vs CRLF)

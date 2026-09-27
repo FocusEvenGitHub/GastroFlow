@@ -33,7 +33,12 @@ jobs:
       JWT_SECRET: ci-placeholder-secret-not-for-production
 
     steps:
+      # fetch-depth: 0 (full history + tags) is required by MigrationUpgradeTest (spec 048),
+      # which reads the v1.7.1 tag's schema/migration files via `git show`. The default
+      # shallow clone would not contain that commit.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up PHP 8.2
         uses: shivammathur/setup-php@v2
@@ -59,7 +64,11 @@ jobs:
       - name: Code style (PHP-CS-Fixer)
         run: vendor/bin/php-cs-fixer fix --dry-run --diff
 
-      - name: Wait for MySQL and load base schema
+      # Fresh install test (docs/ROADMAP.md v1.8.0 "Migration reliability", spec 048): this
+      # step and the next two build a database from nothing but 001_schema.sql + bin/migrate,
+      # exactly what a brand-new installation runs. Naming it here makes that intentional,
+      # not just an incidental side effect of this job's step ordering.
+      - name: Fresh install - wait for MySQL and load base schema
         run: |
           for i in $(seq 1 30); do
             mysqladmin ping -h127.0.0.1 -uroot -proot --silent && break
@@ -77,7 +86,7 @@ jobs:
           JWT_SECRET=$JWT_SECRET
           EOF
 
-      - name: Run migrations
+      - name: Fresh install - run migrations
         run: php bin/migrate
 
       - name: Unit tests (PHPUnit)
@@ -95,10 +104,25 @@ jobs:
         env:
           MYSQL_DATABASE_TEST: restaurant_test
 
+      # Upgrade test (spec 048): a dedicated third database, separate from restaurant_test,
+      # so MigrationUpgradeTest can build an old (v1.7.1) schema/migration state in it without
+      # ever touching the shared, always-at-HEAD schema the rest of the Integration suite
+      # depends on. Same skip-if-unset / fail-if-equal-to-a-real-database safety pattern.
+      - name: Create migration upgrade test database
+        run: |
+          mysql -h127.0.0.1 -uroot -proot -e "
+            CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE_TEST_UPGRADE}
+              CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE_TEST_UPGRADE}\`.* TO '${MYSQL_USER}'@'%';
+            FLUSH PRIVILEGES;"
+        env:
+          MYSQL_DATABASE_TEST_UPGRADE: restaurant_test_upgrade
+
       - name: Integration tests (PHPUnit, MySQL)
         run: vendor/bin/phpunit --testsuite Integration
         env:
           MYSQL_DATABASE_TEST: restaurant_test
+          MYSQL_DATABASE_TEST_UPGRADE: restaurant_test_upgrade
 
       # Testes de navegador (spec 040). Rodam neste mesmo job, e não num job separado, porque
       # o banco restaurant_test e seu schema acabaram de ser construídos pelo passo acima —

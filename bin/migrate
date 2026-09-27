@@ -8,9 +8,21 @@ declare(strict_types=1);
  *
  * Uso:
  *   php bin/migrate
+ *   php bin/migrate --trust-current-hashes
  *
- * Executa todos os arquivos .sql em common/sql/ que ainda
+ * Executa todos os arquivos .sql em common/migrations/ que ainda
  * não foram aplicados ao banco de dados.
+ *
+ * Antes de aplicar qualquer migração pendente, recusa continuar se o conteúdo
+ * atual de uma migração já aplicada não bater com o hash registrado na
+ * primeira execução (spec 048) — sinal de edição pós-aplicação, incluindo o
+ * caso legítimo de uma normalização de fim de linha (`.gitattributes`, spec
+ * 034) ter mudado os bytes sem mudar o significado.
+ *
+ * --trust-current-hashes: em vez de aplicar migrações pendentes, atualiza o
+ * hash registrado de toda migração já rastreada para o conteúdo atual em
+ * disco, e encerra. Rode uma vez para reconciliar, depois rode `bin/migrate`
+ * normalmente. Nunca acontece sozinho — é preciso pedir explicitamente.
  */
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -40,7 +52,9 @@ DB::boot($settings);
 
 echo "=== GastroFlow Migrations ===\n\n";
 
+$trustCurrentHashes = in_array('--trust-current-hashes', $argv, true);
+
 $runner = new MigrationRunner();
-$runner->run();
+$runner->run($trustCurrentHashes);
 
 echo "\n✓ Concluído.\n";
