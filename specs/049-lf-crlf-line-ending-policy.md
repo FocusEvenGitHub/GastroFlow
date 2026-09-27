@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-09-27
 - Updated: 2026-09-27
 - Owner: Henry
@@ -152,7 +152,7 @@ This project has real automated test infrastructure (PHPUnit, PHPStan, PHP-CS-Fi
 - [x] Renormalization commit (9 files, line-endings only)
 - [x] CI line-ending check step
 - [x] `README.md` "Line endings (Windows)" subsection
-- [ ] Local working-tree remediation on this machine — **blocked**: user confirmed via `AskUserQuestion`, but this repo's own AI-safety hook refuses `git rm --cached -r .` / `git reset --hard` outright (`PreToolUse:Bash hook error: Blocked by GastroFlow AI safety policy: destructive operation`), regardless of in-session confirmation. Not bypassed (no `--no-verify`, no hook-disabling). Left for the user to run manually if wanted — command is documented in `README.md`'s new subsection.
+- [x] Local working-tree remediation on this machine — the assistant's own attempt was refused by the repo's AI-safety hook; the user ran the documented commands manually, and the result (0 remaining working-tree CRLF/mixed files, `git status` clean) was confirmed by the assistant afterward.
 - [x] PHPStan + PHP-CS-Fixer re-run (PHPStan clean; PHP-CS-Fixer reports 3 pre-existing, unrelated working-tree-only files — see Implementation log)
 - [x] Update `CLAUDE.md`, `docs/ROADMAP.md`, `docs/technical-decisions.md`, `CHANGELOG.md`, Trello card
 - [ ] `/spec-review`
@@ -165,6 +165,7 @@ This project has real automated test infrastructure (PHPUnit, PHPStan, PHP-CS-Fi
 - **Local remediation blocked by this repo's own AI-safety hook.** Step 5 (`git rm --cached -r . && git reset --hard`) was explicitly approved by the user via `AskUserQuestion` beforehand. Both `git status` (clean) and the command's own safety (no tracked, uncommitted work exists to lose) were confirmed first. The command was still refused outright: `PreToolUse:Bash hook error: Blocked by GastroFlow AI safety policy: destructive operation`. Not bypassed (no `--no-verify`, no disabling the hook) — this project's own rules treat hook feedback as authoritative and something to work within, not around. Left as a manual step for the user, documented in `README.md`.
 - **Direct, disclosed consequence of the above**: `vendor/bin/php-cs-fixer fix --dry-run --diff` still reports `bin/migrate`, `bin/worker`, `bin/create-admin` needing a fix — all three confirmed via `git status --short` to be unmodified per git (pre-existing working-tree artifacts, not something this spec's own diff touched or introduced). Only the blocked remediation would clear these.
 - `docs/ROADMAP.md`'s v1.8.0 milestone intro note was **not** changed to declare the milestone's exit gate met — verifying every other subsection's roadmap `Status` line reflects real, current completion is outside this spec's own scope (it's specifically about line endings), and several v1.8.0 subsections were observed during spec 048's own investigation to lack an explicit `Status` line despite the corresponding work clearly having shipped. Flagged to the user directly instead of silently declared.
+- **Resolved after initial implementation**: the user ran the documented local remediation (`git rm --cached -r .` / `git reset --hard`) manually, since the assistant's own attempt was refused by the repository's AI-safety hook even with prior explicit confirmation. Result confirmed directly by the assistant afterward: working-tree CRLF/mixed count went from 75 to 0, `git status` clean, and `vendor/bin/php-cs-fixer` dropped from 3 flagged files to 0. Acceptance criterion 7 and the PHP-CS-Fixer half of criterion 8 upgraded from "not met" to "met" as a result — `Status` raised from `Implemented` to `Verified`.
 
 ## Validation evidence
 
@@ -210,12 +211,12 @@ All commands run directly against this repository/machine, 2026-09-27.
 
 6. **`README.md` subsection**: present, titled "Line endings (Windows)", under "Getting started", with `git config core.autocrlf false` and the `git rm --cached -r . && git reset --hard` remediation. **Met.**
 
-7. **This machine's own working tree, post-remediation**: **Not executed.** User approved via `AskUserQuestion`, but the repository's own AI-safety hook refused `git rm --cached -r .`/`git reset --hard` outright (`Blocked by GastroFlow AI safety policy: destructive operation`), regardless of the in-session confirmation. Before-state is recorded for whoever runs it manually:
+7. **This machine's own working tree, post-remediation**: the Claude session itself was refused by the repository's AI-safety hook (`Blocked by GastroFlow AI safety policy: destructive operation`) when attempting `git rm --cached -r .`/`git reset --hard` directly, even with the user's prior explicit confirmation. The exact commands were handed to the user instead, who ran them manually. Before/after:
    ```
-   $ git -c core.autocrlf=false ls-files --eol | grep -vE 'tests/e2e/(node_modules|playwright-report|test-results)/' | grep -cE 'w/(crlf|mixed)'
-   75
+   Before: git -c core.autocrlf=false ls-files --eol | grep -cE 'w/(crlf|mixed)'  →  75
+   After:  git -c core.autocrlf=false ls-files --eol | grep -cE 'w/(crlf|mixed)'  →  0
    ```
-   **Not met** — explicitly not silently marked as passing.
+   `git status` after the remediation: clean (no stray changes — confirms the discard-nothing claim in `README.md`'s note). **Met** — executed by the user, result confirmed directly by the assistant afterward, not assumed.
 
 8. **PHPStan and PHP-CS-Fixer**:
    ```
@@ -224,8 +225,9 @@ All commands run directly against this repository/machine, 2026-09-27.
    ```
    ```
    $ docker compose exec -T web vendor/bin/php-cs-fixer fix --dry-run --diff
-   Found 3 of 107 files that can be fixed
+   (before criterion 7's remediation) Found 3 of 107 files that can be fixed — bin/migrate, bin/worker, bin/create-admin
+   (after criterion 7's remediation)  Found 0 of 107 files that can be fixed
    ```
-   PHPStan: **Met.** PHP-CS-Fixer: **Not fully met** — `bin/migrate`, `bin/worker`, `bin/create-admin` are flagged, all three confirmed via `git status --short bin/migrate bin/worker bin/create-admin` (empty output) to be pre-existing working-tree-only artifacts unrelated to this spec's diff, and exactly what criterion 7's blocked remediation would fix. Not a regression introduced here.
+   **Met** — both clean, confirmed after the working-tree remediation resolved the last pre-existing artifact.
 
-**Overall**: 6 of 8 acceptance criteria fully met with direct evidence; 2 (7 and 8's PHP-CS-Fixer half) are explicitly blocked by this repository's own safety hook, not by any gap in the implementation itself, and are reported here rather than hidden.
+**Overall**: all 8 acceptance criteria met with direct evidence. Criterion 7 required a manual step outside the assistant's own tool access (blocked by this repository's own AI-safety hook even after explicit user confirmation) — the user ran it, and the before/after result was independently confirmed by the assistant afterward, not taken on trust.
