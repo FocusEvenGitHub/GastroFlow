@@ -41,6 +41,7 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 
 - `declare(strict_types=1)` is now in **every** PHP file under `src/`, `bin/` and `tests/` (measured during spec 034), and PHP-CS-Fixer's `declare_strict_types` rule keeps it that way — a new file without it fails the style check.
 - Style is PSR-12, enforced mechanically (spec 034). Don't hand-format against the fixer; run it.
+- Line endings are LF everywhere, governed solely by `.gitattributes` (every tracked text path has an explicit `eol=lf` rule — spec 049); CI fails the build if a tracked file's committed blob has CRLF/mixed line endings. On Windows, also run `git config core.autocrlf false` — see `README.md`'s "Line endings (Windows)" section for the one-time remediation if a working tree was already affected before that.
 - Mixed style: older files use manual constructor property assignment, newer files (e.g. `ReportController`) use PHP 8 promoted `private readonly` properties — prefer promoted properties in new code.
 - Docblocks/domain comments in English; user-facing error strings and some domain comments in Portuguese — keep that split, don't translate one into the other wholesale.
 - Controllers catch exceptions and return JSON manually (`json_encode` + `Content-Type` header); there's no shared response helper except in `ReportController`. Don't introduce a new one unless a spec calls for it.
