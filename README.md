@@ -292,6 +292,21 @@ docker exec -it restaurant_web composer update
 
 Both run on the **host** (not inside `web`, which has no MySQL client) and shell out to the `db` container's own `mysqldump`/`mysql` — no extra dependency to install. `bin/restore-db` is destructive (it drops and recreates every table), so it asks you to type `RESTAURAR` to confirm, or pass `--yes` for scripted use. Backups land in `backups/` (gitignored — never committed).
 
+### Line endings (Windows)
+
+`.gitattributes` is the single source of truth for line endings — every tracked text path has an explicit `eol=lf` rule (spec 049). On Windows, also set:
+
+```bash
+git config core.autocrlf false
+```
+
+so checkout doesn't fight that rule (Git for Windows' installer defaults `core.autocrlf` to `true`, which can still leave files as CRLF on disk despite `.gitattributes` saying LF). If your working tree was already affected before setting this — files git considers unmodified but that a tool like PHP-CS-Fixer reports as needing a full-file fix — force a clean re-checkout (make sure `git status` is clean first, since this discards nothing tracked but does rebuild every file from the index):
+
+```bash
+git rm --cached -r .
+git reset --hard
+```
+
 ---
 
 ## Using the app
