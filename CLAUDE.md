@@ -19,7 +19,7 @@ PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Elo
 
 - `docker compose up -d` — starts `db` (MySQL 8.0) and `web` (container name `restaurant_web`, port `8080:80`).
 - `docker compose exec web composer install|update|require|remove`
-- `bin/migrate` — apply pending SQL migrations.
+- `bin/migrate` — apply pending SQL migrations. Refuses to proceed if an already-applied migration's current content no longer matches what was recorded (line-ending-only differences are tolerated, not flagged). `bin/migrate --trust-current-hashes` re-baselines the recorded hash of every already-tracked migration to its current on-disk content, for legitimate cases (e.g. a `.gitattributes` line-ending normalization) — explicit, non-default, never automatic (spec 048).
 - `bin/create-admin <username>` — create an administrator (prompts for a password, minimum 8 characters; no default credentials are seeded).
 - `bin/worker [--once] [queue]` — process the DB-backed job queue (e.g. print jobs).
 - `bin/jobs-status [queue]` — list jobs needing attention (permanent failures + expired reservations). Read-only.
