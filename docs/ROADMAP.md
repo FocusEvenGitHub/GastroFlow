@@ -1,8 +1,8 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.7.1
+> **Current version:** v1.8.0
 > **Target:** v2.0.0
-> **Current milestone:** v1.8.0 — Reliability & Quality
+> **Current milestone:** v1.9.0 — Community Productization
 > **Edition:** GastroFlow Community
 > **Scope:** Self-hosted restaurant management for a single restaurant/location.
 
@@ -764,6 +764,8 @@ Numbered `v1.7.1` rather than the strict-SemVer `v1.8.0` that its `feat` commits
 ---
 
 # v1.8.0 — Reliability & Quality
+
+**Status: Complete.** Tagged `v1.8.0`, documented in `CHANGELOG.md`. Per-subsection status is noted inline below (specs 033-049, excluding the out-of-milestone client work in 036, 046 and 047). The v2 cycle continues with `v1.9.0 — Community Productization`.
 
 ## Objective
 

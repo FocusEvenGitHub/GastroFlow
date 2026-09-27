@@ -1,14 +1,21 @@
 # Changelog
 
-## v1.8.0 — Reliability & Quality (exit gate cumprido em 2026-09-27, ainda sem tag)
+## v1.8.0 (2026-09-27) — Reliability & Quality
 
-Milestone `v1.8.0` do `ROADMAP.md`. Todos os itens têm uma seção "Status" registrada em `docs/ROADMAP.md`, e o exit gate do milestone foi auditado e considerado cumprido em 2026-09-27 (ver `docs/ROADMAP.md` › "v1.8 Exit Gate"). A tag `v1.8.0` em si ainda não foi cortada — por instrução do projeto, tags exigem confirmação explícita separada, mesmo com o gate cumprido.
+Milestone `v1.8.0` do `ROADMAP.md`, concluído. Todos os itens têm uma seção "Status" registrada em `docs/ROADMAP.md`, e o exit gate do milestone foi auditado e considerado cumprido em 2026-09-27 (ver `docs/ROADMAP.md` › "v1.8 Exit Gate", incluindo os dois ressalvos registrados junto).
 
 > ⚠️ **Mudança de comportamento visível ao atualizar (spec 049):** se o seu working tree no Windows já foi afetado por fim de linha CRLF antes desta spec (`vendor/bin/php-cs-fixer` aponta um arquivo inteiro como diff, mas `git status`/`git diff` não mostram nada), veja `README.md` › "Line endings (Windows)" para o comando de recheckout limpo. Não é automático — precisa ser rodado manualmente.
 
 > ⚠️ **Mudança de comportamento visível ao atualizar (spec 048):** `bin/migrate` passa a recusar rodar se o conteúdo de uma migração já aplicada não bater mais com o hash registrado — inclusive em instalações já existentes, porque a normalização de fim de linha da spec 034 (CRLF→LF) já muda esse hash sozinha para 10 dos 14 arquivos de migração anteriores à `v1.7.1`. É o alarme correto funcionando pela primeira vez, não uma regressão: rode `bin/migrate --trust-current-hashes` uma vez (reconcilia o hash registrado com o conteúdo atual, sem aplicar nada) e depois `bin/migrate` normalmente.
 
 > ⚠️ **Mudança de comportamento visível ao atualizar (spec 038):** instalações com a impressora não configurada vão começar a acumular jobs de impressão com status `failed`, onde antes tudo parecia bem. É o alarme correto — antes esses pedidos constavam impressos sem nada ter saído. Configure `printer_ip` ou crie os pedidos com `print_ticket=false`.
+
+> ⚠️ **Mudança de dados ao rodar `bin/migrate`:** as migrações `009_dishes_default_menu.sql` e `010_empanado_protein.sql` reescrevem o cardápio de "Pratos Principais" (13 pratos com nome, descrição e preço canônicos; "Barça" vira três pratos; "Picadinho" vira "Picadinho da Alegria") e os componentes empanados. São dados específicos do restaurante atual, não estrutura — exatamente o tipo de conteúdo que o item "Clean initial database" do `v1.9.0` pretende separar do schema.
+
+### Trabalho de cliente, fora do milestone
+- **Corrigir a opção de consumo de um item já enviado**: o modal "Editar Pedido" da cozinha passa a permitir trocar `local`/`viagem_simples`/`viagem_vip` por item, com o custo de embalagem, a reimpressão e os relatórios refletindo a mudança. No caixa, um modal de confirmação obrigatório entre "Enviar Pedido" e o envio real lista cada item com sua opção de consumo, para pegar o erro antes de sair (spec 046)
+- **Modal "Editar Pedido" da cozinha redesenhado**: cada item em seu próprio card, botões de opção de consumo e contador de quantidade com área de toque confortável, cabeçalho e rodapé fixos com corpo rolável para pedidos grandes. Sem mudança de comportamento — mesmos bindings Alpine, mesmas chamadas de API (spec 047)
+- **Cardápio padrão de pratos principais e proteínas empanadas**: as duas migrações descritas no aviso acima. Entraram em `master` num commit fora da convenção (`130450e`), junto com dois arquivos de spec cuja numeração colide com specs já existentes (`specs/006-dishes-default-menu.md`, `specs/007-empanado-protein.md`) — registrado aqui para o histórico ficar completo; a colisão de numeração segue como pendência separada
 
 ### Infraestrutura / Qualidade
 - **Auditoria do exit gate do milestone**: as 9 seções do roadmap que ainda não tinham uma linha "Status" registrada (análise estática, estilo de código, pipeline de CI, testes de integração, testes E2E, confiabilidade de impressão, confiabilidade de realtime, logging estruturado, histórico de auditoria) foram conferidas contra o `CHANGELOG.md`/specs reais e agora têm uma. O exit gate do `v1.8.0` foi então avaliado e considerado cumprido — ver `docs/ROADMAP.md` › "v1.8 Exit Gate" para os dois ressalvos honestos registrados junto
