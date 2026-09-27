@@ -40,6 +40,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Fastest possible check, no dependency install needed: a tracked file whose blob has
+      # CRLF/mixed line endings would go undetected on this Linux runner otherwise (spec 049).
+      - name: Line endings (no CRLF/mixed blobs)
+        run: |
+          bad=$(git -c core.autocrlf=false ls-files --eol | grep -E '^i/(crlf|mixed)' || true)
+          if [ -n "$bad" ]; then
+            echo "$bad"
+            echo "The files above are committed with CRLF or mixed line endings."
+            echo "Fix: add an explicit 'eol=lf' rule in .gitattributes if one is missing," \
+                 "then run 'git add --renormalize .' and commit."
+            exit 1
+          fi
+          echo "No CRLF/mixed line endings found in tracked files."
+
       - name: Set up PHP 8.2
         uses: shivammathur/setup-php@v2
         with:
