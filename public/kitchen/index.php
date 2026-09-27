@@ -61,6 +61,19 @@
         .dish-total { background: var(--primary); color: #fff; }
         .dish-total-count { font-size: 2.2rem; font-weight: 800; line-height: 1; }
         .dish-variant { font-size: 0.95rem; border-left: 3px solid var(--primary); }
+        /* ── Modal "Editar Pedido" (redesign) ── */
+        .edit-order-fields { background: var(--bg); border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.9rem 1rem 0.6rem; }
+        .edit-items-heading { font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 1.15rem 0 0.6rem; display: flex; justify-content: space-between; align-items: center; }
+        .edit-item-card { border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.85rem 1rem; margin-bottom: 0.75rem; }
+        .edit-item-title { font-size: 1.05rem; }
+        .edit-item-remove { color: var(--text-muted); }
+        .edit-item-remove:hover { color: var(--danger); }
+        .dining-toggle .btn { font-size: 0.8rem; padding: 0.35rem 0.7rem; font-weight: 600; }
+        .qty-stepper .btn { font-size: 1.1rem; font-weight: 700; padding: 0.35rem 0.8rem; }
+        .qty-stepper .qty-value { font-weight: 700; min-width: 1.6rem; text-align: center; }
+        .add-item-card { border: 1px dashed var(--border); border-radius: 0.6rem; padding: 0.85rem 1rem; }
+        [data-theme="dark"] .edit-item-card,
+        [data-theme="dark"] .edit-order-fields { background: rgba(255,255,255,0.03); }
     </style>
     <script>
         if (localStorage.getItem('gastroflow_darkMode') === 'true') {
@@ -385,69 +398,74 @@
 <!-- Modal de editar/remover pedido -->
 <div class="modal fade" id="editOrderModal" tabindex="-1" data-bs-backdrop="static"
      x-effect="(() => { const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editOrderModal')); editingOrder ? modal.show() : modal.hide(); })()">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="font-size: 1rem;">
             <template x-if="editingOrder">
-                <div>
+                <div class="d-flex flex-column" style="max-height: 85vh;">
                     <div class="modal-header">
-                        <h5 class="modal-title">Editar Pedido <span x-text="'#' + editingOrder.id"></span></h5>
+                        <h5 class="modal-title"><i class="fas fa-pencil-alt text-primary me-2"></i>Editar Pedido <span x-text="'#' + editingOrder.id"></span></h5>
                         <button type="button" class="btn-close" @click="closeEditModal()"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Senha</label>
+                    <div class="modal-body" style="overflow-y: auto;">
+                        <div class="edit-order-fields row g-3">
+                            <div class="col-sm-5">
+                                <label class="form-label small fw-bold mb-1">Senha</label>
                                 <input type="text" class="form-control" x-model="editingOrder.order_number">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Cliente</label>
-                                <input type="text" class="form-control" x-model="editingOrder.customer_name">
+                            <div class="col-sm-7">
+                                <label class="form-label small fw-bold mb-1">Cliente</label>
+                                <input type="text" class="form-control" placeholder="Nome do cliente (opcional)" x-model="editingOrder.customer_name">
                             </div>
                         </div>
-                        <hr>
-                        <h6>Itens do pedido</h6>
+
+                        <div class="edit-items-heading">
+                            <span>Itens do pedido</span>
+                            <span class="badge bg-secondary" x-text="editingOrder.items.length"></span>
+                        </div>
+
                         <template x-for="item in editingOrder.items" :key="item.item_id">
-                            <div class="d-flex justify-content-between align-items-start border-bottom py-2">
-                                <div class="flex-grow-1 me-3">
-                                    <strong x-text="item.name"></strong>
-                                    <span class="badge bg-secondary ms-1" x-text="item.category_name || 'Sem categoria'"></span>
-                                    <div class="mt-1">
-                                        <input type="text" class="form-control form-control-sm" placeholder="Observação"
-                                               x-model="item.notes">
+                            <div class="edit-item-card">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="edit-item-title fw-bold" x-text="item.name"></span>
+                                        <span class="badge bg-secondary ms-1" x-text="item.category_name || 'Sem categoria'"></span>
                                     </div>
+                                    <button class="btn btn-sm btn-link edit-item-remove p-0" @click="removeItemFromModal(item.item_id)" :disabled="removingItemId === item.item_id" title="Remover item">
+                                        <span x-show="removingItemId !== item.item_id"><i class="fas fa-trash"></i></span>
+                                        <span x-show="removingItemId === item.item_id"><span class="spinner-border spinner-border-sm"></span></span>
+                                    </button>
+                                </div>
+                                <input type="text" class="form-control form-control-sm mb-2" placeholder="Observação (opcional)"
+                                       x-model="item.notes">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                                     <!-- Seletor de onde comer (spec 046) -->
-                                    <div class="btn-group btn-group-sm mt-1">
-                                        <button type="button" class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                    <div class="btn-group dining-toggle" role="group">
+                                        <button type="button" class="btn"
                                                 :class="item.dining_option === 'local' ? 'btn-success' : 'btn-outline-success'"
                                                 @click="item.dining_option = 'local'" title="Consumo no local">
                                             Local
                                         </button>
-                                        <button type="button" class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                        <button type="button" class="btn"
                                                 :class="item.dining_option === 'viagem_simples' ? 'btn-warning' : 'btn-outline-warning'"
                                                 @click="item.dining_option = 'viagem_simples'" title="Viagem Simples (+R$ 1,00)">
                                             Simples
                                         </button>
-                                        <button type="button" class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
+                                        <button type="button" class="btn"
                                                 :class="item.dining_option === 'viagem_vip' ? 'btn-danger' : 'btn-outline-danger'"
                                                 @click="item.dining_option = 'viagem_vip'" title="Viagem VIP (+R$ 2,00)">
                                             VIP
                                         </button>
                                     </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="btn-group btn-group-sm">
+                                    <div class="btn-group qty-stepper" role="group">
                                         <button class="btn btn-outline-secondary" @click="item.quantity = Math.max(1, item.quantity - 1)">−</button>
-                                        <span class="mx-2" x-text="item.quantity"></span>
+                                        <span class="qty-value d-flex align-items-center px-2" x-text="item.quantity"></span>
                                         <button class="btn btn-outline-secondary" @click="item.quantity++">+</button>
                                     </div>
-                                    <button class="btn btn-sm btn-outline-danger" @click="removeItemFromModal(item.item_id)" :disabled="removingItemId === item.item_id" title="Remover item">
-                                        <span x-show="removingItemId !== item.item_id"><i class="fas fa-trash"></i></span>
-                                        <span x-show="removingItemId === item.item_id"><span class="spinner-border spinner-border-sm"></span></span>
-                                    </button>
                                 </div>
                             </div>
                         </template>
-                        <div class="d-flex gap-2 align-items-end mt-3 pt-3 border-top">
+
+                        <div class="add-item-card d-flex flex-wrap gap-2 align-items-end">
                             <div class="flex-grow-1">
                                 <label class="form-label small mb-1">Adicionar item</label>
                                 <select class="form-select form-select-sm" x-model.number="newItemId">
@@ -472,9 +490,9 @@
                             <i class="fas fa-ban me-1"></i>Cancelar Pedido
                         </button>
                         <div>
-                            <button class="btn btn-outline-secondary me-2" @click="closeEditModal()">Cancelar</button>
+                            <button class="btn btn-outline-secondary me-2" @click="closeEditModal()">Fechar</button>
                             <button class="btn btn-primary" @click="saveOrderChanges()" :disabled="savingOrder">
-                                <span x-show="!savingOrder">Salvar</span>
+                                <span x-show="!savingOrder"><i class="fas fa-save me-1"></i>Salvar</span>
                                 <span x-show="savingOrder"><span class="spinner-border spinner-border-sm"></span></span>
                             </button>
                         </div>
