@@ -14,5 +14,33 @@
 # Adicionado pela spec 040, junto com os primeiros arquivos TypeScript do repositório.
 *.ts text eol=lf
 
+# Adicionado pela spec 049: cobertura completa, achada por auditoria real
+# (`git ls-files --eol`) do repositório inteiro — todo caminho de texto rastreado
+# que não tinha uma regra `eol` explícita antes. Sem isso, um arquivo pode ser
+# commitado com CRLF e nunca mais ser corrigido sozinho (attributes só valem
+# para `git add`s futuros, nunca retroativamente).
+*.css text eol=lf
+*.js text eol=lf
+*.html text eol=lf
+*.yaml text eol=lf
+*.ini text eol=lf
+*.webmanifest text eol=lf
+*.sh text eol=lf
+
+.gitattributes text eol=lf
+.gitignore text eol=lf
+.dockerignore text eol=lf
+.env.example text eol=lf
+Dockerfile text eol=lf
+composer.lock text eol=lf
+phpunit.xml text eol=lf
+public/.htaccess text eol=lf
+
 bin/backup-db text eol=lf
 bin/restore-db text eol=lf
+bin/migrate text eol=lf
+bin/worker text eol=lf
+bin/create-admin text eol=lf
+bin/jobs-status text eol=lf
+bin/jobs-prune text eol=lf
+bin/events-prune text eol=lf
