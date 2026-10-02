@@ -1129,6 +1129,19 @@ Two honest caveats, neither blocking the gate's own substantive claim: spec 034'
 
 ---
 
+# v1.8.1 — client work, outside the milestones
+
+**Status: In progress.** Not tagged yet; tracked in `CHANGELOG.md` under "Não lançado".
+
+Not part of any milestone — client-requested work landing on `master` after `v1.8.0`:
+
+- Packaging fee for `viagem_simples`/`viagem_vip` taken from the price of the linked Admin menu item instead of hardcoded R$ 1,00/2,00 (spec 050, `Verified`, PR #29).
+- Planned next: Admin UI redesign (spec 051), then refreshing item prices from the Admin when the kitchen saves "Editar Pedido" (follow-up recorded in spec 050; no spec number yet).
+
+Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for the milestone below.
+
+---
+
 # v1.9.0 — Community Productization
 
 ## Objective

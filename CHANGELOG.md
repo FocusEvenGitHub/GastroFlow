@@ -1,5 +1,14 @@
 # Changelog
 
+## Não lançado — trabalho de cliente (próximo patch: `v1.8.1`)
+
+Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`**, que entrou em `master` depois de `v1.8.0`. Pela regra já usada no `v1.7.1`, sai como patch (`v1.8.1`) para não ocupar o `v1.9.0`, reservado ao milestone `Community Productization`. Tag só com confirmação explícita.
+
+> ⚠️ **Rodar `bin/migrate` antes de subir o código novo (spec 050):** a migração `019_menu_item_packaging_option.sql` cria a coluna `menu_items.packaging_option`, que o código novo consulta em todo pedido de viagem. Código novo sem a migração = pedido de viagem e edição de item na cozinha falhando com erro de SQL.
+
+### Novidades
+- **Taxa de embalagem Simples/VIP vinda do cardápio do Admin**: as opções `viagem_simples` e `viagem_vip` passam a cobrar o preço do item do cardápio vinculado a cada uma ("Embalagem Simples" e "Embalagem Especial", vinculados pela migração 019), em vez de R$ 1,00 / R$ 2,00 fixos no `PricingService` e no caixa. Mudar o preço no Admin muda a taxa no caixa, na cozinha e no pedido gravado; o Admin mostra um badge nos dois itens. Sem item vinculado, vale o valor antigo — o pedido nunca falha. Pedidos já gravados mantêm o `packaging_cost` da venda, **exceto** quando a cozinha salva o "Editar Pedido": aí a embalagem dos itens enviados é recalculada pelo preço atual (decisão do cliente). `/api/menu` e `/api/admin/menu` ganham o campo `packaging_option` (mudança aditiva). O caixa só mostra o preço novo depois de recarregar a página (spec 050, PR #29)
+
 ## v1.8.0 (2026-09-27) — Reliability & Quality
 
 Milestone `v1.8.0` do `ROADMAP.md`, concluído. Todos os itens têm uma seção "Status" registrada em `docs/ROADMAP.md`, e o exit gate do milestone foi auditado e considerado cumprido em 2026-09-27 (ver `docs/ROADMAP.md` › "v1.8 Exit Gate", incluindo os dois ressalvos registrados junto).
