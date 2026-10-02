@@ -93,7 +93,7 @@ Eloquent (`illuminate/database ^10`) via `Illuminate\Database\Capsule\Manager`, 
 |---|---|---|
 | `User` | `users` | `username`, `password`, `role` |
 | `Category` | `categories` | `name`, `type` |
-| `MenuItem` | `menu_items` | `category_id`, `name`, `description`, `price`, `available` |
+| `MenuItem` | `menu_items` | `category_id`, `name`, `description`, `price`, `available` — **note 2026-10-02**: columns added since this snapshot include `position`, `food_category`, `is_customizable` and `packaging_option` (spec 050: links the item whose price is the `viagem_simples`/`viagem_vip` packaging fee) |
 | `Ingredient` | `ingredients` | `name`, `unit`, `category` |
 | `Order` | `orders` | `table_number`, `customer_name`, `status` |
 | `OrderItem` | `order_items` | `order_id`, `menu_item_id`, `quantity`, `notes`, `dining_option`, `unit_price`, `packaging_cost` |
