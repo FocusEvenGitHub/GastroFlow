@@ -1,6 +1,6 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.8.0
+> **Current version:** v1.8.1
 > **Target:** v2.0.0
 > **Current milestone:** v1.9.0 — Community Productization
 > **Edition:** GastroFlow Community
@@ -1131,13 +1131,13 @@ Two honest caveats, neither blocking the gate's own substantive claim: spec 034'
 
 # v1.8.1 — client work, outside the milestones
 
-**Status: In progress.** Not tagged yet; tracked in `CHANGELOG.md` under "Não lançado".
+**Status: Released.** Tagged `v1.8.1` (2026-10-02), documented in `CHANGELOG.md`.
 
 Not part of any milestone — client-requested work landing on `master` after `v1.8.0`:
 
 - Packaging fee for `viagem_simples`/`viagem_vip` taken from the price of the linked Admin menu item instead of hardcoded R$ 1,00/2,00 (spec 050, `Verified`, PR #29).
 - Admin UI redesign: shared layout/sidebar for the 6 admin pages, one login + session helper (`public/admin/auth.js`), Cardápio toolbar and modals (spec 051, `Verified`, PR #31).
-- Planned next: refreshing item prices from the Admin when the kitchen saves "Editar Pedido" (follow-up recorded in spec 050; no spec number yet).
+- Next client follow-up, after this tag: refreshing item prices from the Admin when the kitchen saves "Editar Pedido" (recorded in spec 050).
 
 Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for the milestone below.
 
