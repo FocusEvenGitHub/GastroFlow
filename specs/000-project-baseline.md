@@ -37,7 +37,7 @@ A restaurant order-management web app covering cashier order entry, kitchen orde
 
 - **Cashier** (`public/cashier/`) — static Alpine.js page, no dedicated backend controller; calls `/api/menu` and `/api/orders`.
 - **Kitchen** (`public/kitchen/`) — Alpine.js page backed by `KitchenController`/`KitchenService` plus the generic orders endpoints and an SSE stream.
-- **Admin** (`public/admin/`) — menu/ingredients/settings/logs/reports pages backed by `MenuController`, `IngredientController`, `AdminController`, `ReportController`.
+- **Admin** (`public/admin/`) — menu/ingredients/settings/logs/reports pages backed by `MenuController`, `IngredientController`, `AdminController`, `ReportController`. **Note 2026-10-02**: since this snapshot, `AdminController` was split into `Settings`/`Printer`/`Log` controllers (spec 028), an audit-log page was added (`AuditLogController`, spec 043), and spec 051 put all six pages on a shared layout (`public/admin/_partials/`) with a single login/session helper (`public/admin/auth.js`).
 - **API** (`public/api/`) — `public/api/docs/` (static OpenAPI viewer, `openapi.yaml`) and `public/api/events/stream.php` (SSE endpoint, plain PHP script outside the Slim app).
 
 ### Architecture observed (confirmed in code)
