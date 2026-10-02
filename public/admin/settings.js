@@ -1,12 +1,5 @@
 function settingsApp() {
-    return {
-        loggedIn: false,
-        token: localStorage.getItem('admin_token') || '',
-        username: localStorage.getItem('admin_username') || '',
-        loginForm: { username: '', password: '' },
-        logging: false,
-        loginError: '',
-
+    return GFAdmin.page({
         form: {
             restaurant_name: '',
             printer_ip: '',
@@ -15,65 +8,20 @@ function settingsApp() {
         logoUrl: '/assets/img/logo.png?' + Date.now(),
         saving: false,
         testing: false,
-        toasts: [],
-        darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
 
         init() {
-            this.applyTheme();
-            if (this.token) {
-                this.loggedIn = true;
-                this.loadSettings();
-                this.checkLogo();
-            }
+            if (!this.guard()) return;
+            this.loadSettings();
+            this.checkLogo();
         },
 
-        // --- Auth ---
-        async doLogin() {
-            this.logging = true;
-            this.loginError = '';
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(this.loginForm)
-                });
-                const data = await res.json();
-                if (!res.ok || !data.token) {
-                    throw new Error(data.error || 'Falha no login');
-                }
-                this.token = data.token;
-                this.username = data.username || 'Admin';
-                localStorage.setItem('admin_token', data.token);
-                localStorage.setItem('admin_username', this.username);
-                this.loggedIn = true;
-                this.loadSettings();
-                this.checkLogo();
-            } catch (err) {
-                this.loginError = err.message;
-            } finally {
-                this.logging = false;
-            }
-        },
-
-        logout() {
-            this.token = '';
-            this.username = '';
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('admin_username');
-            this.loggedIn = false;
-        },
-
-        // --- Settings ---
         getHeaders() {
-            return {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + this.token
-            };
+            return { 'Content-Type': 'application/json' };
         },
 
         async loadSettings() {
             try {
-                const res = await fetch('/api/admin/settings', {
+                const res = await this.api('/api/admin/settings', {
                     headers: this.getHeaders()
                 });
                 const data = await res.json();
@@ -83,6 +31,8 @@ function settingsApp() {
                     this.form.printer_port = data.settings.printer_port || '9100';
                 }
             } catch (err) {
+                // 403 (manager) vira o painel "Sem permissão" (spec 051).
+                if (err.forbidden || err.unauthorized) { this.handleError(err); return; }
                 console.error('Erro ao carregar configurações:', err);
             }
         },
@@ -90,7 +40,7 @@ function settingsApp() {
         async saveSettings() {
             this.saving = true;
             try {
-                const res = await fetch('/api/admin/settings', {
+                const res = await this.api('/api/admin/settings', {
                     method: 'PUT',
                     headers: this.getHeaders(),
                     body: JSON.stringify({
@@ -107,7 +57,7 @@ function settingsApp() {
                 }
                 this.showMessage('Configurações salvas com sucesso!', 'success');
             } catch (err) {
-                this.showMessage(err.message, 'danger');
+                this.handleError(err);
             } finally {
                 this.saving = false;
             }
@@ -134,11 +84,8 @@ function settingsApp() {
             formData.append('logo', file);
 
             try {
-                const res = await fetch('/api/admin/settings/logo', {
+                const res = await this.api('/api/admin/settings/logo', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + this.token
-                    },
                     body: formData
                 });
                 const data = await res.json();
@@ -148,7 +95,7 @@ function settingsApp() {
                 this.logoUrl = '/assets/img/logo.png?' + Date.now();
                 this.showMessage('Logo atualizada com sucesso!', 'success');
             } catch (err) {
-                this.showMessage(err.message, 'danger');
+                this.handleError(err);
             }
         },
 
@@ -157,7 +104,7 @@ function settingsApp() {
             this.testing = true;
             try {
                 // Envia um pedido de teste para a impressora
-                const res = await fetch('/api/admin/settings/test-print', {
+                const res = await this.api('/api/admin/settings/test-print', {
                     method: 'POST',
                     headers: this.getHeaders()
                 });
@@ -167,29 +114,10 @@ function settingsApp() {
                 }
                 this.showMessage('Teste enviado para a impressora!', 'success');
             } catch (err) {
-                this.showMessage(err.message, 'danger');
+                this.handleError(err);
             } finally {
                 this.testing = false;
             }
-        },
-
-        // --- Helpers ---
-        showMessage(text, type = 'info') {
-            const id = Date.now() + Math.random();
-            this.toasts.push({ id, text, type });
-            setTimeout(() => {
-                this.toasts = this.toasts.filter(t => t.id !== id);
-            }, 5000);
-        },
-
-        applyTheme() {
-            document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
-        },
-
-        toggleDarkMode() {
-            this.darkMode = !this.darkMode;
-            localStorage.setItem('gastroflow_darkMode', this.darkMode);
-            this.applyTheme();
         }
-    };
+    });
 }

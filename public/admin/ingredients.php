@@ -1,66 +1,27 @@
+<?php
+$pageTitle = 'Ingredientes';
+$activePage = 'ingredients.php';
+$pageScripts = ['/admin/ingredients.js'];
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin – Ingredientes</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
-    <script>
-        if (localStorage.getItem('gastroflow_darkMode') === 'true') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    </script>
+<?php include __DIR__ . '/_partials/head.php'; ?>
 </head>
-<body>
+<body class="gf-admin">
 <div x-data="ingredientsApp()">
-    <!-- Navbar -->
-    <nav class="gastro-nav">
-        <a href="/cashier/" class="gastro-nav-brand">
-            <i class="fas fa-utensils"></i>
-            <span>GastroFlow</span>
-        </a>
-        <div class="gastro-nav-links">
-            <a href="/cashier/"><i class="fas fa-cash-register"></i>Caixa</a>
-            <a href="/kitchen/"><i class="fas fa-fire"></i>Cozinha</a>
-            <a href="/admin/" class="active"><i class="fas fa-cog"></i>Admin</a>
-        </div>
-        <button class="dark-toggle" @click="toggleDarkMode()" title="Alternar tema">
-            <i class="fas" :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
-        </button>
-    </nav>
+<?php include __DIR__ . '/_partials/shell-start.php'; ?>
 
-    <!-- Toast container -->
-    <div class="toast-container" x-show="toasts.length">
-        <template x-for="toast in toasts" :key="toast.id">
-            <div class="gastro-toast" :class="toast.type">
-                <i class="fas gastro-toast-icon"
-                   :class="toast.type === 'success' ? 'fa-check-circle' : toast.type === 'danger' ? 'fa-exclamation-circle' : toast.type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'"></i>
-                <span class="gastro-toast-text" x-text="toast.text"></span>
-                <button class="gastro-toast-close" @click="toasts = toasts.filter(t => t.id !== toast.id)">&times;</button>
-            </div>
-        </template>
+    <div class="gf-page-header">
+        <div>
+            <h1>Ingredientes</h1>
+            <p class="gf-subtitle">Cadastro de ingredientes usados nos pratos.</p>
+        </div>
     </div>
-
-    <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0">Gerenciar Ingredientes</h1>
-            <div class="d-flex gap-2">
-                <a href="/admin/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Cardápio</a>
-                <a href="reports.php" class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-bar"></i> Relatórios</a>
-                <a href="logs.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-list"></i> Logs</a>
-            </div>
-        </div>
 
     <!-- Formulário de novo ingrediente -->
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white">
+        <div class="card-header">
             <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Adicionar Ingrediente</h5>
         </div>
         <div class="card-body">
@@ -98,12 +59,12 @@
     </div>
 
     <!-- Lista de ingredientes -->
-    <h3 class="mb-3"><i class="fas fa-list me-2"></i>Ingredientes Cadastrados</h3>
+    <h2 class="h5 mb-3"><i class="fas fa-list me-2"></i>Ingredientes Cadastrados</h2>
     <div x-show="loading" class="text-center py-5">
         <div class="spinner-border text-primary"></div>
     </div>
-    <div x-show="!loading">
-        <table class="table table-striped table-hover">
+    <div x-show="!loading" class="card"><div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
             <thead>
             <tr>
                 <th>Nome</th>
@@ -120,21 +81,24 @@
                     <td x-text="ing.category"></td>
                     <td>
                         <button class="btn btn-sm btn-outline-warning me-1" @click="editIngredient(ing)"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-sm btn-outline-danger" @click="deleteIngredient(ing.id)"><i class="fas fa-trash"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" @click="deleteIngredient(ing)"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             </template>
             </tbody>
         </table>
-    </div>
+    </div></div>
 
     <!-- Modal de edição (simples com campos alteráveis) -->
-    <div class="modal fade" id="editModal" tabindex="-1" x-show="editMode" x-transition>
-        <div class="modal-dialog">
+    <!-- spec 051: x-show numa .modal do Bootstrap nunca a exibia (o CSS mantém display:none);
+         mesmo padrão x-effect do modal de edição do Cardápio. -->
+    <div class="modal fade" id="editModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="editIngredientTitle"
+         x-effect="const m = bootstrap.Modal.getOrCreateInstance($el); editMode ? m.show() : m.hide()">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Editar Ingrediente</h5>
-                    <button type="button" class="btn-close" @click="editMode = false"></button>
+                    <h5 class="modal-title" id="editIngredientTitle">Editar Ingrediente</h5>
+                    <button type="button" class="btn-close" @click="editMode = false" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -164,11 +128,8 @@
                 </div>
             </div>
         </div>
-    </div> <!-- /container -->
-</div> <!-- /x-data -->
 
-<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="ingredients.js"></script>
+<?php include __DIR__ . '/_partials/shell-end.php'; ?>
+</div>
 </body>
 </html>
