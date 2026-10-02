@@ -1,18 +1,9 @@
 function reportsApp() {
-    return {
-        // Auth
-        loggedIn: false,
-        token: localStorage.getItem('admin_token') || '',
-        loginForm: { username: '', password: '' },
-        loginError: '',
-        logging: false,
-        username: '',
-
+    return GFAdmin.page({
         // Filters
         dateFrom: '',
         dateTo: '',
         loading: false,
-        toasts: [],
 
         // Data
         summary: { orders: 0, revenue: 0, avg_ticket: 0, items_sold: 0 },
@@ -29,18 +20,10 @@ function reportsApp() {
         chartPeakHours: null,
         chartPrepTime: null,
 
-        // Dark mode
-        darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
-
         async init() {
-            this.applyTheme();
+            if (!this.guard()) return;
             this.setCurrentMonth();
-
-            if (this.token) {
-                this.loggedIn = true;
-                this.username = localStorage.getItem('admin_username') || 'Admin';
-                await this.loadData();
-            }
+            await this.loadData();
         },
 
         // Não use toISOString(): converte para UTC, e em UTC-3 a partir das 21:00
@@ -58,38 +41,6 @@ function reportsApp() {
             this.dateTo = this._localDate(now);
         },
 
-        async doLogin() {
-            this.logging = true;
-            this.loginError = '';
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(this.loginForm),
-                });
-                const data = await res.json();
-                if (!data.success) throw new Error(data.error || 'Login inválido');
-                this.token = data.token;
-                this.username = data.user?.username || this.loginForm.username;
-                localStorage.setItem('admin_token', this.token);
-                localStorage.setItem('admin_username', this.username);
-                this.loggedIn = true;
-                await this.loadData();
-            } catch (err) {
-                this.loginError = err.message;
-            } finally {
-                this.logging = false;
-            }
-        },
-
-        logout() {
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('admin_username');
-            this.loggedIn = false;
-            this.token = '';
-            this.username = '';
-        },
-
         destroyCharts() {
             if (this.chartSales) { this.chartSales.destroy(); this.chartSales = null; }
             if (this.chartPeakHours) { this.chartPeakHours.destroy(); this.chartPeakHours = null; }
@@ -97,26 +48,18 @@ function reportsApp() {
         },
 
         async loadData() {
-            if (!this.token) return;
             this.loading = true;
             this.destroyCharts();
             try {
-                const headers = { 'Authorization': 'Bearer ' + this.token };
-
                 const [salesRes, topRes, mainDishesRes, diningRes, peakRes, prepRes, monthRes] = await Promise.all([
-                    fetch(`/api/admin/reports/sales?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
-                    fetch(`/api/admin/reports/top-items?date_from=${this.dateFrom}&date_to=${this.dateTo}&limit=10`, { headers }),
-                    fetch(`/api/admin/reports/main-dishes?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
-                    fetch(`/api/admin/reports/dining-options?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
-                    fetch(`/api/admin/reports/peak-hours?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
-                    fetch(`/api/admin/reports/prep-time?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
-                    fetch(`/api/admin/reports/month-comparison?date_from=${this.dateFrom}&date_to=${this.dateTo}`, { headers }),
+                    this.api(`/api/admin/reports/sales?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
+                    this.api(`/api/admin/reports/top-items?date_from=${this.dateFrom}&date_to=${this.dateTo}&limit=10`),
+                    this.api(`/api/admin/reports/main-dishes?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
+                    this.api(`/api/admin/reports/dining-options?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
+                    this.api(`/api/admin/reports/peak-hours?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
+                    this.api(`/api/admin/reports/prep-time?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
+                    this.api(`/api/admin/reports/month-comparison?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
                 ]);
-
-                if (salesRes.status === 401) {
-                    this.logout();
-                    return;
-                }
 
                 const salesData = await salesRes.json();
                 if (salesData.success) {
@@ -156,7 +99,8 @@ function reportsApp() {
                     this.renderPrepTimeChart();
                 });
             } catch (err) {
-                this.showMessage('Erro ao carregar relatórios: ' + err.message, 'danger');
+                if (err.forbidden || err.unauthorized) this.handleError(err);
+                else this.showMessage('Erro ao carregar relatórios: ' + err.message, 'danger');
             } finally {
                 this.loading = false;
             }
@@ -352,28 +296,6 @@ function reportsApp() {
                     },
                 },
             });
-        },
-
-        showMessage(text, type = 'info') {
-            const id = Date.now() + Math.random();
-            this.toasts.push({ id, text, type });
-            setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 4000);
-        },
-
-        applyTheme() {
-            document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
-        },
-
-        toggleDarkMode() {
-            this.darkMode = !this.darkMode;
-            localStorage.setItem('gastroflow_darkMode', this.darkMode);
-            this.applyTheme();
-            this.$nextTick(() => {
-                this.destroyCharts();
-                this.renderSalesChart();
-                this.renderPeakHoursChart();
-                this.renderPrepTimeChart();
-            });
-        },
-    };
+        }
+    });
 }

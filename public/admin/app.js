@@ -1,8 +1,7 @@
 function adminApp() {
-    return {
-        loggedIn: false,
-        token: localStorage.getItem('admin_token') || '',
-        username: localStorage.getItem('admin_username') || '',
+    return GFAdmin.page({
+        // Login fica só aqui (spec 051); as outras páginas mandam para cá com ?next=.
+        loggedIn: !!GFAdmin.token,
         loginForm: { username: '', password: '' },
         logging: false,
         loginError: '',
@@ -10,11 +9,12 @@ function adminApp() {
         menu: [],
         categories: [],
         searchQuery: '',
+        categoryFilter: 'all',
         loading: true,
         newItem: { name: '', price: '', category_name: '', description: '' },
+        newItemOpen: false,
         saving: false,
-        toasts: [],
-        viewMode: localStorage.getItem('adminViewMode') || 'grid',
+        viewMode: GFAdmin.read('adminViewMode') || 'grid',
 
         editingItem: null,
         editForm: { name: '', price: '', category_name: '', description: '' },
@@ -22,32 +22,33 @@ function adminApp() {
         availableComponents: [],
         tomSelect: null,
 
-        darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
-
         init() {
             this.applyTheme();
-            if (this.token) {
-                this.loggedIn = true;
+            if (this.loggedIn) {
+                if (this.goToNext()) return;
                 this.loadMenu();
             }
+        },
+
+        // Volta para a página que pediu o login, se for uma página do Admin.
+        goToNext() {
+            const next = GFAdmin.safeNext(new URLSearchParams(location.search).get('next'));
+            if (!next) return false;
+            location.href = next;
+            return true;
         },
 
         async doLogin() {
             this.logging = true;
             this.loginError = '';
             try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(this.loginForm)
-                });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Falha na autenticação');
-                this.token = data.token;
-                this.username = data.user.username;
-                localStorage.setItem('admin_token', this.token);
-                localStorage.setItem('admin_username', this.username);
+                await GFAdmin.login(this.loginForm.username, this.loginForm.password);
+                this.username = GFAdmin.username;
+                this.role = GFAdmin.role;
+                this.loginForm = { username: '', password: '' };
                 this.loggedIn = true;
+                if (this.goToNext()) return;
+                history.replaceState(null, '', '/admin/');
                 this.loadMenu();
             } catch (err) {
                 this.loginError = err.message;
@@ -56,44 +57,49 @@ function adminApp() {
             }
         },
 
-        logout() {
-            this.token = '';
-            this.username = '';
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('admin_username');
-            this.loggedIn = false;
-            this.menu = [];
-            this.categories = [];
-        },
-
         async loadMenu() {
             this.loading = true;
             try {
-                const res = await fetch('/api/admin/menu', {
-                    headers: { 'Authorization': `Bearer ${this.token}` }
-                });
-                if (res.status === 401) { this.logout(); return; }
+                const res = await this.api('/api/admin/menu');
                 if (!res.ok) throw new Error('Erro ao carregar cardápio');
                 this.menu = await res.json();
                 this.categories = this.sortPratoDoDiaFirst([...new Set(this.menu.map(c => c.category_name))]);
                 this.menu = this.sortMenuPratoDoDiaFirst(this.menu);
                 const adicionais = this.menu.find(c => c.category_name === 'Adicionais');
                 this.availableComponents = adicionais ? adicionais.items : [];
+                if (this.categoryFilter !== 'all' && !this.categories.includes(this.categoryFilter)) {
+                    this.categoryFilter = 'all';
+                }
             } catch (err) {
-                this.showMessage(err.message, 'danger');
+                this.handleError(err);
             } finally {
                 this.loading = false;
             }
         },
 
-        // Menu filtrado pela busca por nome
+        get totalItems() {
+            return this.menu.reduce((sum, cat) => sum + cat.items.length, 0);
+        },
+
+        // Menu filtrado pela categoria escolhida e pela busca por nome
         get filteredMenu() {
             const query = this.searchQuery.trim().toLowerCase();
-            if (!query) return this.menu;
-
             return this.menu
-                .map(cat => ({ ...cat, items: cat.items.filter(item => item.name.toLowerCase().includes(query)) }))
+                .filter(cat => this.categoryFilter === 'all' || cat.category_name === this.categoryFilter)
+                .map(cat => query
+                    ? { ...cat, items: cat.items.filter(item => item.name.toLowerCase().includes(query)) }
+                    : cat)
                 .filter(cat => cat.items.length > 0);
+        },
+
+        openNewItem() {
+            this.newItem = {
+                name: '',
+                price: '',
+                category_name: this.categoryFilter !== 'all' ? this.categoryFilter : '',
+                description: ''
+            };
+            this.newItemOpen = true;
         },
 
         async addItem() {
@@ -103,22 +109,18 @@ function adminApp() {
             }
             this.saving = true;
             try {
-                const res = await fetch('/api/admin/items', {
+                const res = await this.api('/api/admin/items', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.token}`
-                    },
-                    body: JSON.stringify({...this.newItem, price: parseFloat(this.newItem.price)})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...this.newItem, price: parseFloat(this.newItem.price) })
                 });
                 const data = await res.json();
-                if (res.status === 401) { this.logout(); return; }
                 if (!res.ok || data.error) throw new Error(data.error || 'Erro ao adicionar');
                 this.showMessage('Item adicionado!', 'success');
-                this.newItem = { name: '', price: '', category_name: '', description: '' };
+                this.newItemOpen = false;
                 this.loadMenu();
             } catch (err) {
-                this.showMessage(err.message, 'danger');
+                this.handleError(err);
             } finally {
                 this.saving = false;
             }
@@ -200,18 +202,14 @@ function adminApp() {
             }
             this.saving = true;
             try {
-                const res = await fetch(`/api/admin/items/${this.editingItem.id}`, {
+                const res = await this.api(`/api/admin/items/${this.editingItem.id}`, {
                     method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.token}`
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...this.editForm,
                         price: parseFloat(this.editForm.price)
                     })
                 });
-                if (res.status === 401) { this.logout(); return; }
                 const data = await res.json();
                 if (!res.ok || data.error) throw new Error(data.error || 'Erro ao atualizar');
 
@@ -221,7 +219,7 @@ function adminApp() {
                 this.cancelEdit();
                 this.loadMenu();
             } catch (err) {
-                this.showMessage(err.message, 'danger');
+                this.handleError(err);
             } finally {
                 this.saving = false;
             }
@@ -229,30 +227,22 @@ function adminApp() {
 
         async saveComponents(dishId) {
             if (this.editForm.category_name !== 'Pratos Principais') return;
-            const res = await fetch(`/api/admin/items/${dishId}/components`, {
+            const res = await this.api(`/api/admin/items/${dishId}/components`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.token}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ components: this.editComponents })
             });
-            if (res.status === 401) { this.logout(); return; }
             const data = await res.json();
             if (!res.ok || data.error) throw new Error(data.error || 'Erro ao salvar componentes');
         },
 
         async toggleAvailability(itemId, newAvailable) {
             try {
-                const res = await fetch(`/api/admin/items/${itemId}`, {
+                const res = await this.api(`/api/admin/items/${itemId}`, {
                     method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.token}`
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ available: newAvailable })
                 });
-                if (res.status === 401) { this.logout(); return; }
                 const data = await res.json();
                 if (!res.ok || data.error) throw new Error(data.error || 'Erro');
                 const cat = this.menu.find(c => c.items.some(i => i.id === itemId));
@@ -262,52 +252,30 @@ function adminApp() {
                 }
                 this.showMessage(`Item ${newAvailable ? 'ativado' : 'desativado'}!`, 'success');
             } catch (err) {
-                this.showMessage(err.message, 'danger');
+                this.handleError(err);
             }
         },
 
-        confirmDelete(item) {
-            if (!confirm(`Tem certeza que deseja excluir "${item.name}"?`)) return;
-            this.deleteItem(item.id);
+        async confirmDelete(item) {
+            const ok = await this.askConfirm(`Tem certeza que deseja excluir "${item.name}"? Esta ação não pode ser desfeita.`);
+            if (ok) this.deleteItem(item.id);
         },
 
         async deleteItem(itemId) {
             try {
-                const res = await fetch(`/api/admin/items/${itemId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${this.token}` }
-                });
-                if (res.status === 401) { this.logout(); return; }
+                const res = await this.api(`/api/admin/items/${itemId}`, { method: 'DELETE' });
                 const data = await res.json();
                 if (!res.ok || data.error) throw new Error(data.error || 'Erro ao excluir');
                 this.showMessage('Item excluído com sucesso!', 'success');
                 this.loadMenu();
             } catch (err) {
-                this.showMessage(err.message, 'danger');
+                this.handleError(err);
             }
-        },
-
-        showMessage(text, type = 'info') {
-            const id = Date.now() + Math.random();
-            this.toasts.push({ id, text, type });
-            setTimeout(() => {
-                this.toasts = this.toasts.filter(t => t.id !== id);
-            }, 4000);
         },
 
         toggleView(mode) {
             this.viewMode = mode;
             localStorage.setItem('adminViewMode', mode);
-        },
-
-        applyTheme() {
-            document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
-        },
-
-        toggleDarkMode() {
-            this.darkMode = !this.darkMode;
-            localStorage.setItem('gastroflow_darkMode', this.darkMode);
-            this.applyTheme();
         },
 
         sortPratoDoDiaFirst(arr) {
@@ -321,5 +289,5 @@ function adminApp() {
             const others = menu.filter(c => c.category_name !== 'Prato do Dia');
             return prato ? [prato, ...others] : menu;
         }
-    };
+    });
 }

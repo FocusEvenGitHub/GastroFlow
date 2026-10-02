@@ -1,270 +1,237 @@
+<?php
+$pageTitle = 'Cardápio';
+$activePage = 'index.php';
+$gate = true;
+$pageScripts = ['https://cdn.jsdelivr.net/npm/tom-select@2/dist/js/tom-select.complete.min.js', '/admin/app.js'];
+$extraHead = '<link href="https://cdn.jsdelivr.net/npm/tom-select@2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">';
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin – Gestão</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-    <style>
-        .menu-item-card { transition: all 0.2s; }
-        .menu-item-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .price { font-size: 1.25rem; color: var(--success); }
-        /* Alternância grade / lista */
-        .view-toggle .btn { border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.85rem; }
-        .view-list .menu-item-col { width: 100%; flex: 0 0 100%; max-width: 100%; }
-        .view-list .menu-item-card { flex-direction: row; align-items: center; }
-        .view-list .menu-item-card .card-body { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; }
-        .view-list .menu-item-card .card-body .item-desc { display: none; }
-        .view-list .menu-item-card .card-body .item-actions { white-space: nowrap; }
-    </style>
-    <script>
-        if (localStorage.getItem('gastroflow_darkMode') === 'true') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    </script>
+<?php include __DIR__ . '/_partials/head.php'; ?>
 </head>
-<body>
+<body class="gf-admin">
 <div x-data="adminApp()">
-    <!-- Navbar -->
-    <nav class="gastro-nav">
-        <a href="/cashier/" class="gastro-nav-brand">
-            <i class="fas fa-utensils"></i>
-            <span>GastroFlow</span>
-        </a>
-        <div class="gastro-nav-links">
-            <a href="/cashier/"><i class="fas fa-cash-register"></i>Caixa</a>
-            <a href="/kitchen/"><i class="fas fa-fire"></i>Cozinha</a>
-            <a href="/admin/" class="active"><i class="fas fa-cog"></i>Admin</a>
-        </div>
-        <button class="dark-toggle" @click="toggleDarkMode()" title="Alternar tema">
-            <i class="fas" :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
-        </button>
-    </nav>
-
-    <!-- Toast container -->
-    <div class="toast-container" x-show="toasts.length">
-        <template x-for="toast in toasts" :key="toast.id">
-            <div class="gastro-toast" :class="toast.type">
-                <i class="fas gastro-toast-icon"
-                   :class="toast.type === 'success' ? 'fa-check-circle' : toast.type === 'danger' ? 'fa-exclamation-circle' : toast.type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'"></i>
-                <span class="gastro-toast-text" x-text="toast.text"></span>
-                <button class="gastro-toast-close" @click="toasts = toasts.filter(t => t.id !== toast.id)">&times;</button>
-            </div>
-        </template>
-    </div>
-
-    <div class="container py-4">
-        <!-- Login -->
-        <div x-show="!loggedIn" class="row justify-content-center pt-4">
-            <div class="col-md-5">
-                <div class="card shadow">
-                    <div class="card-body">
-                        <h3 class="card-title mb-4">Login Administrativo</h3>
-                        <div x-show="loginError" class="alert alert-danger" x-text="loginError"></div>
-                        <form @submit.prevent="doLogin">
-                            <div class="mb-3">
-                                <label class="form-label">Usuário</label>
-                                <input type="text" x-model="loginForm.username" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Senha</label>
-                                <input type="password" x-model="loginForm.password" class="form-control" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100" :disabled="logging">
-                                <span x-show="!logging">Entrar</span>
-                                <span x-show="logging"><span class="spinner-border spinner-border-sm me-1"></span> Entrando...</span>
-                            </button>
-                        </form>
+    <!-- Login (único ponto de login do Admin — spec 051) -->
+    <div x-show="!loggedIn" x-cloak class="gf-login">
+        <div class="card shadow gf-login-card">
+            <div class="card-body p-4">
+                <div class="gf-login-brand"><i class="fas fa-utensils"></i> GastroFlow</div>
+                <p class="text-muted mb-4">Entre para gerenciar o restaurante.</p>
+                <div x-show="loginError" class="alert alert-danger" x-text="loginError"></div>
+                <form @submit.prevent="doLogin">
+                    <div class="mb-3">
+                        <label class="form-label" for="loginUser">Usuário</label>
+                        <input type="text" id="loginUser" x-model="loginForm.username" class="form-control" autocomplete="username" required>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Admin -->
-        <div x-show="loggedIn" x-transition>
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">Gerenciar Cardápio</h1>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="view-toggle btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'grid' }"
-                                @click="toggleView('grid')" title="Visualização em grade">
-                            <i class="fas fa-th-large"></i>
-                        </button>
-                        <button class="btn btn-outline-secondary" :class="{ 'btn-primary active': viewMode === 'list' }"
-                                @click="toggleView('list')" title="Visualização em lista">
-                            <i class="fas fa-list"></i>
-                        </button>
+                    <div class="mb-4">
+                        <label class="form-label" for="loginPass">Senha</label>
+                        <input type="password" id="loginPass" x-model="loginForm.password" class="form-control" autocomplete="current-password" required>
                     </div>
-                    <a href="settings.php" class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-cog"></i> Configurações
-                    </a>
-                    <a href="reports.php" class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-chart-bar"></i> Relatórios
-                    </a>
-                    <a href="logs.php" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-list"></i> Logs
-                    </a>
-                    <span class="me-2">Olá, <strong x-text="username"></strong></span>
-                    <button @click="logout" class="btn btn-outline-secondary btn-sm">Sair</button>
-                </div>
-            </div>
-
-        <!-- Adicionar Item -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Adicionar Novo Item</h5>
-            </div>
-            <div class="card-body">
-                <form @submit.prevent="addItem">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Nome *</label>
-                            <input type="text" x-model="newItem.name" class="form-control" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Preço (R$) *</label>
-                            <input type="number" step="0.01" x-model="newItem.price" class="form-control" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Categoria *</label>
-                            <select x-model="newItem.category_name" class="form-select" required>
-                                <option value="">Selecione...</option>
-                                <template x-for="cat in categories" :key="cat">
-                                    <option :value="cat" x-text="cat"></option>
-                                </template>
-                            </select>
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100" :disabled="saving">
-                                <span x-show="!saving"><i class="fas fa-save me-1"></i> Salvar</span>
-                                <span x-show="saving"><span class="spinner-border spinner-border-sm me-1"></span> Salvando...</span>
-                            </button>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Descrição</label>
-                            <textarea x-model="newItem.description" class="form-control" rows="2"></textarea>
-                        </div>
-                    </div>
+                    <button type="submit" class="btn btn-primary w-100" :disabled="logging">
+                        <span x-show="!logging">Entrar</span>
+                        <span x-show="logging"><span class="spinner-border spinner-border-sm me-1"></span> Entrando...</span>
+                    </button>
                 </form>
             </div>
         </div>
+    </div>
 
-        <!-- Cardápio -->
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <h3 class="mb-0"><i class="fas fa-list me-2"></i>Cardápio Atual</h3>
-            <div class="input-group" style="max-width: 320px;">
-                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                <input type="text" x-model="searchQuery" class="form-control"
-                       placeholder="Buscar item pelo nome...">
-                <button class="btn btn-outline-secondary" type="button" x-show="searchQuery"
-                        @click="searchQuery = ''" title="Limpar busca">
-                    <i class="fas fa-times"></i>
+<?php include __DIR__ . '/_partials/shell-start.php'; ?>
+
+    <div class="gf-page-header">
+        <div>
+            <h1>Cardápio</h1>
+            <p class="gf-subtitle" x-text="totalItems + ' itens em ' + menu.length + ' categorias'"></p>
+        </div>
+        <div class="gf-page-actions">
+            <button class="btn btn-primary" @click="openNewItem()">
+                <i class="fas fa-plus me-1"></i> Novo item
+            </button>
+        </div>
+    </div>
+
+    <!-- Toolbar: busca + grade/lista + categorias -->
+    <div class="gf-toolbar">
+        <div class="input-group input-group-sm gf-search">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="search" x-model="searchQuery" class="form-control" placeholder="Buscar item pelo nome..." aria-label="Buscar item pelo nome">
+            <button class="btn btn-outline-secondary" type="button" x-show="searchQuery" @click="searchQuery = ''" title="Limpar busca">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="btn-group btn-group-sm ms-auto" role="group" aria-label="Visualização">
+            <button class="btn btn-outline-secondary" :class="{ 'active': viewMode === 'grid' }" :aria-pressed="viewMode === 'grid'"
+                    @click="toggleView('grid')" title="Visualização em grade">
+                <i class="fas fa-th-large"></i>
+            </button>
+            <button class="btn btn-outline-secondary" :class="{ 'active': viewMode === 'list' }" :aria-pressed="viewMode === 'list'"
+                    @click="toggleView('list')" title="Visualização em lista">
+                <i class="fas fa-list"></i>
+            </button>
+        </div>
+        <div class="gf-pills" role="group" aria-label="Filtrar por categoria">
+            <button class="gf-pill" :class="{ active: categoryFilter === 'all' }" :aria-pressed="categoryFilter === 'all'"
+                    @click="categoryFilter = 'all'">Todos</button>
+            <template x-for="cat in menu" :key="cat.category_name">
+                <button class="gf-pill" :class="{ active: categoryFilter === cat.category_name }"
+                        :aria-pressed="categoryFilter === cat.category_name"
+                        @click="categoryFilter = cat.category_name">
+                    <span x-text="cat.category_name"></span><span class="gf-pill-count" x-text="cat.items.length"></span>
                 </button>
-            </div>
-        </div>
-        <div x-show="loading" class="text-center py-5">
-            <div class="spinner-border text-primary"></div>
-        </div>
-        <div x-show="!loading && filteredMenu.length === 0 && searchQuery" class="text-muted mb-3">
-            Nenhum item encontrado para "<span x-text="searchQuery"></span>".
-        </div>
-        <div x-show="!loading">
-            <template x-for="category in filteredMenu" :key="category.category_name">
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-header">
-                        <h4 class="mb-0"><i class="fas" :class="category.type === 'food' ? 'fa-utensils' : 'fa-glass-cheers'"></i> <span x-text="category.category_name"></span></h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="row" :class="viewMode === 'list' ? 'view-list' : ''">
-                            <template x-for="item in category.items" :key="item.id">
-                                <div class="menu-item-col col-md-4 col-sm-6 mb-3">
-                                    <div class="card h-100 menu-item-card">
-                                        <div class="card-body">
-                                            <h5 class="card-title mb-1" x-text="item.name"></h5>
-                                            <!-- Preço deste item = taxa da opção de viagem (spec 050) -->
-                                            <template x-if="item.packaging_option">
-                                                <span class="badge mb-1"
-                                                      :class="item.packaging_option === 'viagem_vip' ? 'bg-danger' : 'bg-warning text-dark'"
-                                                      :title="'Preço usado como taxa de embalagem da opção ' + (item.packaging_option === 'viagem_vip' ? 'VIP' : 'Simples')"
-                                                      x-text="item.packaging_option === 'viagem_vip' ? 'Embalagem VIP' : 'Embalagem Simples'"></span>
-                                            </template>
-                                            <template x-if="category.category_name !== 'Pratos Principais'">
-                                                <p class="card-text text-muted small item-desc" x-text="item.description || ''"></p>
-                                            </template>
-                                            <template x-if="category.category_name === 'Pratos Principais'">
-                                                <p class="card-text text-muted small item-desc">
-                                                    <i class="fas fa-layer-group me-1 text-primary"></i>
-                                                    <span x-text="(item.components || []).map(c => c.name + ' x' + c.quantity).join(', ')"></span>
-                                                </p>
-                                            </template>
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <span class="price">R$ <span x-text="parseFloat(item.price).toFixed(2)"></span></span>
-                                                <div class="btn-group item-actions">
-                                                    <button class="btn btn-sm btn-outline-primary" @click="startEdit(item)">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm"
-                                                            :class="item.available ? 'btn-outline-danger' : 'btn-outline-success'"
-                                                            @click="toggleAvailability(item.id, !item.available)">
-                                                        <i class="fas" :class="item.available ? 'fa-ban' : 'fa-check'"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(item)">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </div>
             </template>
         </div>
     </div>
 
+    <div x-show="loading" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+    </div>
+    <div x-show="!loading && filteredMenu.length === 0" class="text-muted text-center py-5">
+        <i class="fas fa-search fa-2x mb-2 d-block opacity-50"></i>
+        Nenhum item encontrado<span x-show="searchQuery"> para "<span x-text="searchQuery"></span>"</span>.
+    </div>
+
+    <div x-show="!loading">
+        <template x-for="category in filteredMenu" :key="category.category_name">
+            <section class="gf-category">
+                <h2 class="gf-category-title">
+                    <i class="fas" :class="category.type === 'food' ? 'fa-utensils' : 'fa-glass-cheers'"></i>
+                    <span x-text="category.category_name"></span>
+                    <span class="badge" x-text="category.items.length"></span>
+                </h2>
+                <div class="row" :class="viewMode === 'list' ? 'view-list' : ''">
+                    <template x-for="item in category.items" :key="item.id">
+                        <div class="menu-item-col col-xl-3 col-lg-4 col-sm-6 mb-3">
+                            <div class="card gf-item-card" :class="{ unavailable: !item.available }">
+                                <div class="card-body">
+                                    <h3 class="card-title" x-text="item.name"></h3>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <!-- Preço deste item = taxa da opção de viagem (spec 050) -->
+                                        <template x-if="item.packaging_option">
+                                            <span class="badge"
+                                                  :class="item.packaging_option === 'viagem_vip' ? 'bg-danger' : 'bg-warning text-dark'"
+                                                  :title="'Preço usado como taxa de embalagem da opção ' + (item.packaging_option === 'viagem_vip' ? 'VIP' : 'Simples')"
+                                                  x-text="item.packaging_option === 'viagem_vip' ? 'Embalagem VIP' : 'Embalagem Simples'"></span>
+                                        </template>
+                                        <span class="badge bg-secondary" x-show="!item.available">Indisponível</span>
+                                    </div>
+                                    <template x-if="category.category_name !== 'Pratos Principais'">
+                                        <p class="item-desc" x-text="item.description || ''"></p>
+                                    </template>
+                                    <template x-if="category.category_name === 'Pratos Principais'">
+                                        <p class="item-desc">
+                                            <i class="fas fa-layer-group me-1 text-primary"></i>
+                                            <span x-text="(item.components || []).map(c => c.name + ' x' + c.quantity).join(', ')"></span>
+                                        </p>
+                                    </template>
+                                    <div class="gf-item-footer">
+                                        <span class="gf-price">R$ <span x-text="parseFloat(item.price).toFixed(2)"></span></span>
+                                        <div class="btn-group gf-item-actions">
+                                            <button class="btn btn-sm btn-outline-primary" @click="startEdit(item)" title="Editar" :aria-label="'Editar ' + item.name">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm"
+                                                    :class="item.available ? 'btn-outline-secondary' : 'btn-outline-success'"
+                                                    :title="item.available ? 'Desativar' : 'Ativar'"
+                                                    :aria-label="(item.available ? 'Desativar ' : 'Ativar ') + item.name"
+                                                    @click="toggleAvailability(item.id, !item.available)">
+                                                <i class="fas" :class="item.available ? 'fa-ban' : 'fa-check'"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(item)" title="Excluir" :aria-label="'Excluir ' + item.name">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </section>
+        </template>
+    </div>
+
+    <!-- Modal Novo Item -->
+    <div class="modal fade" id="newItemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="newItemTitle"
+         x-effect="const m = bootstrap.Modal.getOrCreateInstance($el); newItemOpen ? m.show() : m.hide()">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form @submit.prevent="addItem">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="newItemTitle"><i class="fas fa-plus-circle me-2"></i>Novo item</h5>
+                        <button type="button" class="btn-close" @click="newItemOpen = false" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="newName">Nome *</label>
+                            <input type="text" id="newName" x-model="newItem.name" class="form-control" required>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-5">
+                                <label class="form-label" for="newPrice">Preço (R$) *</label>
+                                <input type="number" id="newPrice" step="0.01" min="0" x-model="newItem.price" class="form-control" required>
+                            </div>
+                            <div class="col-sm-7">
+                                <label class="form-label" for="newCategory">Categoria *</label>
+                                <select id="newCategory" x-model="newItem.category_name" class="form-select" required>
+                                    <option value="">Selecione...</option>
+                                    <template x-for="cat in categories" :key="cat">
+                                        <option :value="cat" x-text="cat"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" for="newDescription">Descrição</label>
+                            <textarea id="newDescription" x-model="newItem.description" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @click="newItemOpen = false">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" :disabled="saving">
+                            <span x-show="!saving"><i class="fas fa-save me-1"></i> Salvar</span>
+                            <span x-show="saving"><span class="spinner-border spinner-border-sm me-1"></span> Salvando...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Editar Item -->
-    <div class="modal fade" id="editModal" tabindex="-1" data-bs-backdrop="static"
-         x-data x-effect="() => { const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal'));
-         editingItem ? modal.show() : modal.hide(); }">
-        <div class="modal-dialog modal-lg">
+    <div class="modal fade" id="editModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="editItemTitle"
+         x-effect="const m = bootstrap.Modal.getOrCreateInstance($el); editingItem ? m.show() : m.hide()">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Item</h5>
-                    <button type="button" class="btn-close" @click="cancelEdit"></button>
+                    <h5 class="modal-title" id="editItemTitle"><i class="fas fa-edit me-2"></i>Editar item</h5>
+                    <button type="button" class="btn-close" @click="cancelEdit" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
                     <form @submit.prevent="updateItem">
                         <div class="mb-3">
-                            <label class="form-label">Nome *</label>
-                            <input type="text" x-model="editForm.name" class="form-control" required>
+                            <label class="form-label" for="editName">Nome *</label>
+                            <input type="text" id="editName" x-model="editForm.name" class="form-control" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Preço (R$) *</label>
-                            <input type="number" step="0.01" x-model="editForm.price" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Categoria *</label>
-                            <select x-model="editForm.category_name" class="form-select" required>
-                                <option value="">Selecione...</option>
-                                <template x-for="cat in categories" :key="cat">
-                                    <option :value="cat" x-text="cat"></option>
-                                </template>
-                            </select>
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-5">
+                                <label class="form-label" for="editPrice">Preço (R$) *</label>
+                                <input type="number" id="editPrice" step="0.01" x-model="editForm.price" class="form-control" required>
+                            </div>
+                            <div class="col-sm-7">
+                                <label class="form-label" for="editCategory">Categoria *</label>
+                                <select id="editCategory" x-model="editForm.category_name" class="form-select" required>
+                                    <option value="">Selecione...</option>
+                                    <template x-for="cat in categories" :key="cat">
+                                        <option :value="cat" x-text="cat"></option>
+                                    </template>
+                                </select>
+                            </div>
                         </div>
                         <!-- Descrição (esconder para Pratos Principais) -->
                         <div class="mb-3" x-show="editForm.category_name !== 'Pratos Principais'">
-                            <label class="form-label">Descrição</label>
-                            <textarea x-model="editForm.description" class="form-control" rows="2"></textarea>
+                            <label class="form-label" for="editDescription">Descrição</label>
+                            <textarea id="editDescription" x-model="editForm.description" class="form-control" rows="2"></textarea>
                         </div>
 
                         <!-- Componentes (substitui descrição para Pratos Principais) -->
@@ -272,13 +239,9 @@
                             <hr>
                             <h6><i class="fas fa-layer-group me-1"></i> Componentes do Prato</h6>
                             <p class="text-muted small">Selecione os adicionais que compõem este prato.</p>
-                            <select multiple id="component-select" class="tom-select"
-                                    x-ref="componentSelect"
-                                    style="width:100%">
+                            <select multiple id="component-select" class="tom-select" x-ref="componentSelect" style="width:100%">
                                 <template x-for="comp in availableComponents" :key="comp.id">
-                                    <option :value="comp.id"
-                                            :selected="isComponentSelected(comp.id)"
-                                            x-text="comp.name"></option>
+                                    <option :value="comp.id" :selected="isComponentSelected(comp.id)" x-text="comp.name"></option>
                                 </template>
                             </select>
 
@@ -306,7 +269,7 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @click="cancelEdit">Cancelar</button>
+                    <button type="button" class="btn btn-outline-secondary" @click="cancelEdit">Cancelar</button>
                     <button type="button" class="btn btn-primary" @click="updateItem" :disabled="saving">
                         <span x-show="!saving"><i class="fas fa-save me-1"></i> Salvar</span>
                         <span x-show="saving"><span class="spinner-border spinner-border-sm me-1"></span> Salvando...</span>
@@ -314,14 +277,9 @@
                 </div>
             </div>
         </div>
-    </div> <!-- /loggedIn -->
-    </div> <!-- /container -->
-</div> <!-- /x-data -->
+    </div>
 
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2/dist/js/tom-select.complete.min.js"></script>
-<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="app.js"></script>
-<script src="/assets/js/version-badge.js"></script>
+<?php include __DIR__ . '/_partials/shell-end.php'; ?>
+</div>
 </body>
 </html>

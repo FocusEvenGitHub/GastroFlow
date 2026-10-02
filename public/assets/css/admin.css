@@ -1,0 +1,144 @@
+/* ═══════════════════════════════════════════
+   GastroFlow Admin shell (spec 051)
+   Só layout do Admin — style.css continua sendo a fonte dos tokens e é
+   compartilhado com caixa/cozinha, por isso não é alterado.
+   ═══════════════════════════════════════════ */
+
+[x-cloak] { display: none !important; }
+
+:root { --gf-sidebar-w: 240px; --gf-topbar-h: 60px; }
+
+body.gf-admin { min-height: 100vh; }
+
+/* ── Top bar (reaproveita .gastro-nav) ── */
+.gf-topbar { position: sticky; top: 0; z-index: 1030; gap: 0.25rem; }
+.gf-menu-btn {
+  background: none; border: none; color: rgba(255,255,255,0.75);
+  font-size: 1.15rem; padding: 0.4rem 0.6rem; margin-right: 0.35rem;
+  border-radius: var(--radius-sm); line-height: 1;
+}
+.gf-menu-btn:hover, .gf-menu-btn:focus-visible { color: #fff; background: rgba(255,255,255,0.08); }
+.gf-topbar-user { margin-left: auto; display: flex; align-items: center; gap: 0.35rem; }
+.gf-topbar-user .dark-toggle { margin-left: 0; }
+.gf-user { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-right: 0.25rem; white-space: nowrap; }
+.gf-user i { margin-right: 0.2rem; }
+.gf-logout {
+  background: none; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.8);
+  border-radius: var(--radius-sm); padding: 0.3rem 0.7rem; font-size: 0.85rem; white-space: nowrap;
+}
+.gf-logout:hover, .gf-logout:focus-visible { color: #fff; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.06); }
+
+/* ── Layout ── */
+.gf-layout { display: flex; align-items: stretch; min-height: calc(100vh - var(--gf-topbar-h)); }
+
+.gf-sidebar {
+  --bs-offcanvas-width: 270px;
+  --bs-offcanvas-bg: var(--surface);
+  --bs-offcanvas-color: var(--text);
+}
+.gf-side-nav { display: flex; flex-direction: column; gap: 2px; padding: 1rem 0.75rem 1.5rem; }
+.gf-side-section {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-muted); padding: 1rem 0.75rem 0.4rem;
+}
+.gf-side-section:first-child { padding-top: 0.25rem; }
+.gf-side-link {
+  display: flex; align-items: center; gap: 0.7rem;
+  padding: 0.6rem 0.75rem; border-radius: var(--radius-sm);
+  color: var(--text); text-decoration: none; font-weight: 500; font-size: 0.92rem;
+  position: relative; transition: background 0.15s, color 0.15s;
+}
+.gf-side-link i { color: var(--text-muted); transition: color 0.15s; }
+.gf-side-link:hover { background: var(--bg); color: var(--text); }
+.gf-side-link:hover i { color: var(--primary); }
+.gf-side-link.active { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
+.gf-side-link.active i { color: var(--primary); }
+.gf-side-link.active::before {
+  content: ''; position: absolute; left: -0.75rem; top: 0.45rem; bottom: 0.45rem;
+  width: 3px; border-radius: 0 3px 3px 0; background: var(--primary);
+}
+.gf-side-link:focus-visible, .gf-pill:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+[data-theme="dark"] .gf-side-link.active { color: #fff; }
+
+@media (min-width: 992px) {
+  .gf-sidebar {
+    flex: 0 0 var(--gf-sidebar-w); width: var(--gf-sidebar-w);
+    background: var(--surface) !important;
+    border-right: 1px solid var(--border);
+    position: sticky; top: var(--gf-topbar-h);
+    height: calc(100vh - var(--gf-topbar-h)); overflow-y: auto;
+  }
+}
+
+.gf-main { flex: 1 1 auto; min-width: 0; padding: 1.75rem 2rem 3rem; }
+.gf-main > div { max-width: 1280px; }
+@media (max-width: 575.98px) { .gf-main { padding: 1.25rem 1rem 2.5rem; } }
+
+/* ── Page header / toolbar ── */
+.gf-page-header {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 0.75rem 1rem; margin-bottom: 1.5rem;
+}
+.gf-page-header h1 { font-size: 1.6rem; margin: 0; letter-spacing: -0.02em; }
+.gf-page-header .gf-subtitle { color: var(--text-muted); font-size: 0.9rem; margin: 0.15rem 0 0; }
+.gf-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
+.gf-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;
+  background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  padding: 0.75rem; margin-bottom: 1.25rem;
+}
+.gf-toolbar .gf-search { flex: 1 1 240px; max-width: 360px; }
+.gf-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; flex: 1 1 100%; }
+.gf-pill {
+  border: 1px solid var(--border); background: transparent; color: var(--text);
+  border-radius: 999px; padding: 0.3rem 0.85rem; font-size: 0.82rem; font-weight: 500;
+  transition: all 0.15s; white-space: nowrap;
+}
+.gf-pill:hover { border-color: var(--primary); color: var(--primary); }
+.gf-pill.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.gf-pill .gf-pill-count { opacity: 0.65; margin-left: 0.3rem; font-size: 0.75rem; }
+
+/* ── Forbidden panel ── */
+.gf-main > .gf-forbidden {
+  text-align: center; max-width: 460px; margin: 4rem auto; padding: 2.5rem 2rem;
+  background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+}
+.gf-forbidden > i { font-size: 2.25rem; color: var(--primary); margin-bottom: 1rem; }
+
+/* ── Login (index) ── */
+.gf-login {
+  min-height: 100vh; display: grid; place-items: center; padding: 1.5rem 1rem;
+  background:
+    radial-gradient(circle at 15% 20%, var(--primary-light) 0, transparent 45%),
+    var(--bg);
+}
+.gf-login-card { width: 100%; max-width: 400px; }
+.gf-login-brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 800; font-size: 1.35rem; margin-bottom: 0.25rem; }
+.gf-login-brand i { color: var(--primary); }
+
+/* ── Cardápio ── */
+.gf-category { margin-bottom: 1.75rem; }
+.gf-category-title {
+  display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-weight: 700;
+  margin: 0 0 0.75rem; color: var(--text);
+}
+.gf-category-title i { color: var(--primary); }
+.gf-category-title .badge { background: var(--bg); color: var(--text-muted); font-weight: 600; }
+.gf-item-card { height: 100%; border-left: 3px solid transparent !important; }
+.gf-item-card:hover { transform: translateY(-2px); }
+.gf-item-card.unavailable { opacity: 0.55; border-left-color: var(--text-muted) !important; }
+.gf-item-card .card-body { display: flex; flex-direction: column; gap: 0.35rem; padding: 1rem 1.1rem; }
+.gf-item-card .card-title { font-size: 1rem; margin: 0; }
+.gf-item-card .item-desc { font-size: 0.8rem; color: var(--text-muted); margin: 0; }
+.gf-item-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: auto; padding-top: 0.35rem; }
+.gf-price { font-size: 1.15rem; font-weight: 700; color: var(--success); white-space: nowrap; }
+.gf-item-actions .btn { padding: 0.25rem 0.5rem; }
+
+/* Lista */
+.view-list .menu-item-col { width: 100%; flex: 0 0 100%; max-width: 100%; margin-bottom: 0.5rem !important; }
+.view-list .gf-item-card .card-body { flex-direction: row; align-items: center; flex-wrap: wrap; padding: 0.6rem 1rem; }
+.view-list .gf-item-card .item-desc { display: none; }
+.view-list .gf-item-card .gf-item-footer { margin: 0 0 0 auto; padding: 0; }
+.view-list .gf-item-card:hover { transform: none; }
+[data-theme="dark"] .gf-toolbar .input-group-text { background: var(--bg); border-color: var(--border); color: var(--text-muted); }
