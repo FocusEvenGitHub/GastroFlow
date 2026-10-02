@@ -28,6 +28,7 @@ class MenuRepository
                     'available'     => $item->available,
                     'food_category' => $item->food_category,
                     'is_customizable' => (bool) $item->is_customizable,
+                    'packaging_option' => $item->packaging_option,
                     'category_name' => $catName,
                     'components'    => $item->relationLoaded('components')
                         ? $item->components->map(fn ($c) => [

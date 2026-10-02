@@ -16,16 +16,26 @@ use App\Money;
 class PricingService
 {
     /**
-     * Packaging fee for one order item, by dining option. Moved verbatim
-     * from OrderRepository::packagingCostFor() — same values, same rule.
+     * Per-unit packaging fee used when no menu item is linked to the dining
+     * option (spec 050) — the values hardcoded before that spec.
      */
-    public function packagingFeeFor(string $diningOption, int $quantity): Money
+    public const DEFAULT_PACKAGING_FEES = [
+        'viagem_simples' => 1.0,
+        'viagem_vip'     => 2.0,
+    ];
+
+    /**
+     * Packaging fee for one order item, by dining option. $unitFee is the
+     * price of the menu item linked to that option (spec 050); null falls
+     * back to DEFAULT_PACKAGING_FEES. Non-"viagem" options are always free.
+     */
+    public function packagingFeeFor(string $diningOption, int $quantity, ?Money $unitFee = null): Money
     {
-        return match ($diningOption) {
-            'viagem_simples' => Money::fromReais(1.0)->multipliedBy($quantity),
-            'viagem_vip'     => Money::fromReais(2.0)->multipliedBy($quantity),
-            default          => Money::zero(),
-        };
+        if (!isset(self::DEFAULT_PACKAGING_FEES[$diningOption])) {
+            return Money::zero();
+        }
+        $unitFee ??= Money::fromReais(self::DEFAULT_PACKAGING_FEES[$diningOption]);
+        return $unitFee->multipliedBy($quantity);
     }
 
     /**

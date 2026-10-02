@@ -447,12 +447,12 @@
                                         </button>
                                         <button type="button" class="btn"
                                                 :class="item.dining_option === 'viagem_simples' ? 'btn-warning' : 'btn-outline-warning'"
-                                                @click="item.dining_option = 'viagem_simples'" title="Viagem Simples (+R$ 1,00)">
+                                                @click="item.dining_option = 'viagem_simples'" :title="packagingTitle('Viagem Simples', 'viagem_simples')">
                                             Simples
                                         </button>
                                         <button type="button" class="btn"
                                                 :class="item.dining_option === 'viagem_vip' ? 'btn-danger' : 'btn-outline-danger'"
-                                                @click="item.dining_option = 'viagem_vip'" title="Viagem VIP (+R$ 2,00)">
+                                                @click="item.dining_option = 'viagem_vip'" :title="packagingTitle('Viagem VIP', 'viagem_vip')">
                                             VIP
                                         </button>
                                     </div>

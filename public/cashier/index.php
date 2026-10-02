@@ -286,12 +286,12 @@
                                 </button>
                                 <button class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
                                         :class="item.diningOption === 'viagem_simples' ? 'btn-warning' : 'btn-outline-warning'"
-                                        @click="setDiningOption(index, 'viagem_simples')" title="Viagem Simples (+R$ 1,00)">
+                                        @click="setDiningOption(index, 'viagem_simples')" :title="packagingTitle('Viagem Simples', 'viagem_simples')">
                                     Simples
                                 </button>
                                 <button class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
                                         :class="item.diningOption === 'viagem_vip' ? 'btn-danger' : 'btn-outline-danger'"
-                                        @click="setDiningOption(index, 'viagem_vip')" title="Viagem VIP (+R$ 2,00)">
+                                        @click="setDiningOption(index, 'viagem_vip')" :title="packagingTitle('Viagem VIP', 'viagem_vip')">
                                     VIP
                                 </button>
                             </div>
@@ -422,12 +422,12 @@
                                     </button>
                                     <button class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
                                             :class="item.diningOption === 'viagem_simples' ? 'btn-warning' : 'btn-outline-warning'"
-                                            @click="setDiningOption(index, 'viagem_simples')" title="Viagem Simples (+R$ 1,00)">
+                                            @click="setDiningOption(index, 'viagem_simples')" :title="packagingTitle('Viagem Simples', 'viagem_simples')">
                                         Simples
                                     </button>
                                     <button class="btn btn-sm" style="font-size:0.7rem; padding:0.1rem 0.4rem;"
                                             :class="item.diningOption === 'viagem_vip' ? 'btn-danger' : 'btn-outline-danger'"
-                                            @click="setDiningOption(index, 'viagem_vip')" title="Viagem VIP (+R$ 2,00)">
+                                            @click="setDiningOption(index, 'viagem_vip')" :title="packagingTitle('Viagem VIP', 'viagem_vip')">
                                         VIP
                                     </button>
                                 </div>

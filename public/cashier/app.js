@@ -249,11 +249,26 @@ function cashierApp() {
             }
         },
 
+        // Preço unitário da embalagem por opção de viagem: o preço do item do cardápio
+        // vinculado a ela no Admin (spec 050), com o mesmo fallback do PricingService.
+        get packagingFees() {
+            const fees = { viagem_simples: 1.0, viagem_vip: 2.0 };
+            for (const cat of this.menu) {
+                for (const i of cat.items) {
+                    if (i.packaging_option in fees) fees[i.packaging_option] = parseFloat(i.price);
+                }
+            }
+            return fees;
+        },
+
         // Custo da embalagem para um item
         packagingCost(item) {
-            if (item.diningOption === 'viagem_simples') return 1.0;
-            if (item.diningOption === 'viagem_vip') return 2.0;
-            return 0;
+            return this.packagingFees[item.diningOption] || 0;
+        },
+
+        // Título do botão de opção de viagem, ex.: "Viagem VIP (+R$ 2,00)"
+        packagingTitle(label, option) {
+            return `${label} (+R$ ${this.packagingFees[option].toFixed(2).replace('.', ',')})`;
         },
 
         // Total do item incluindo embalagem
@@ -282,15 +297,7 @@ function cashierApp() {
 
         // Total do pedido (inclui custo de embalagem)
         get total() {
-            return this.selectedItems.reduce((sum, item) => {
-                let itemTotal = item.price * item.quantity;
-                if (item.diningOption === 'viagem_simples') {
-                    itemTotal += 1.0 * item.quantity;
-                } else if (item.diningOption === 'viagem_vip') {
-                    itemTotal += 2.0 * item.quantity;
-                }
-                return sum + itemTotal;
-            }, 0);
+            return this.selectedItems.reduce((sum, item, index) => sum + this.itemTotal(index), 0);
         },
 
         // Exibe mensagens (toast)
