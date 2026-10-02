@@ -189,6 +189,13 @@
                                     <div class="card h-100 menu-item-card">
                                         <div class="card-body">
                                             <h5 class="card-title mb-1" x-text="item.name"></h5>
+                                            <!-- Preço deste item = taxa da opção de viagem (spec 050) -->
+                                            <template x-if="item.packaging_option">
+                                                <span class="badge mb-1"
+                                                      :class="item.packaging_option === 'viagem_vip' ? 'bg-danger' : 'bg-warning text-dark'"
+                                                      :title="'Preço usado como taxa de embalagem da opção ' + (item.packaging_option === 'viagem_vip' ? 'VIP' : 'Simples')"
+                                                      x-text="item.packaging_option === 'viagem_vip' ? 'Embalagem VIP' : 'Embalagem Simples'"></span>
+                                            </template>
                                             <template x-if="category.category_name !== 'Pratos Principais'">
                                                 <p class="card-text text-muted small item-desc" x-text="item.description || ''"></p>
                                             </template>

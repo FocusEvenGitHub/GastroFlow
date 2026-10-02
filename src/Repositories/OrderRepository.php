@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\OrderItemComponent;
 use App\Models\MenuItem;
 use App\Models\OrderNumberCounter;
+use App\Money;
 use App\OrderCancelledException;
 use App\Services\PricingService;
 use Illuminate\Database\Capsule\Manager as DB;
@@ -156,6 +157,7 @@ class OrderRepository
                 'status'        => Order::STATUS_PENDING,
             ]);
 
+            $unitFees = [];
             foreach ($resolvedItems as $resolved) {
                 $item = $resolved['input'];
                 $menuItem = $resolved['menuItem'];
@@ -166,7 +168,11 @@ class OrderRepository
                 );
                 $diningOption = $item['dining_option'] ?? 'local';
                 $quantity = (int) $item['quantity'];
-                $packagingCost = $this->pricingService->packagingFeeFor($diningOption, $quantity);
+                // array_key_exists, not ??=: a cached null (no linked item) must not re-query.
+                if (!array_key_exists($diningOption, $unitFees)) {
+                    $unitFees[$diningOption] = $this->packagingUnitFee($diningOption);
+                }
+                $packagingCost = $this->pricingService->packagingFeeFor($diningOption, $quantity, $unitFees[$diningOption]);
 
                 $orderItem = OrderItem::create([
                     'order_id'       => $order->id,
@@ -192,6 +198,21 @@ class OrderRepository
 
             return $order;
         });
+    }
+
+    /**
+     * Price of the menu item linked to a "viagem" dining option (spec 050),
+     * or null when none is linked — PricingService then falls back to its
+     * defaults, so a deleted packaging item never blocks an order. The
+     * item's availability is irrelevant: only its price is used.
+     */
+    private function packagingUnitFee(string $diningOption): ?Money
+    {
+        if (!isset(PricingService::DEFAULT_PACKAGING_FEES[$diningOption])) {
+            return null;
+        }
+        $price = MenuItem::where('packaging_option', $diningOption)->value('price');
+        return $price === null ? null : Money::fromReais($price);
     }
 
     /**
@@ -417,7 +438,11 @@ class OrderRepository
 
             $quantity = (int) ($data['quantity'] ?? 1);
             $diningOption = $data['dining_option'] ?? 'local';
-            $packagingCost = $this->pricingService->packagingFeeFor($diningOption, $quantity);
+            $packagingCost = $this->pricingService->packagingFeeFor(
+                $diningOption,
+                $quantity,
+                $this->packagingUnitFee($diningOption)
+            );
 
             $item = OrderItem::create([
                 'order_id'       => $orderId,
@@ -472,9 +497,15 @@ class OrderRepository
         // dining_option and quantity both feed the packaging fee (spec 026) — recompute
         // whenever either changes, using the resulting values above (spec 046; previously
         // packaging_cost was never recomputed here at all, even for a quantity-only change).
+        // Deliberate (spec 050): this uses the linked item's CURRENT price, so a kitchen
+        // edit re-prices the item's packaging even if its option didn't change.
         if ($recomputePackaging) {
             $item->packaging_cost = $this->pricingService
-                ->packagingFeeFor($item->dining_option, (int) $item->quantity)
+                ->packagingFeeFor(
+                    $item->dining_option,
+                    (int) $item->quantity,
+                    $this->packagingUnitFee($item->dining_option)
+                )
                 ->toReais();
         }
 

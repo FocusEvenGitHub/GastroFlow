@@ -45,6 +45,7 @@ class OrderRepositoryTest extends TestCase
             $table->boolean('available')->default(true);
             $table->boolean('is_customizable')->default(false);
             $table->string('food_category', 30)->nullable();
+            $table->string('packaging_option', 20)->nullable()->unique();
         });
 
         Db::schema()->create('categories', function ($table) {
@@ -98,6 +99,46 @@ class OrderRepositoryTest extends TestCase
             $data['order_number'] = $orderNumber;
         }
         return $data;
+    }
+
+    private function linkPackaging(string $option, float $price): void
+    {
+        Db::table('menu_items')->insert(['name' => 'Embalagem ' . $option, 'price' => $price, 'packaging_option' => $option]);
+    }
+
+    private function lastItem(int $orderId): object
+    {
+        return Db::table('order_items')->where('order_id', $orderId)->orderByDesc('id')->first();
+    }
+
+    /** Spec 050 — the fee follows the linked menu item's current price. */
+    public function testPackagingFeeUsesTheLinkedMenuItemPrice(): void
+    {
+        $this->linkPackaging('viagem_vip', 3.0);
+
+        $order = $this->repo->createOrder(['items' => [['id' => $this->menuItemId, 'quantity' => 2, 'dining_option' => 'viagem_vip']]]);
+
+        $this->assertEqualsWithDelta(6.0, (float) $this->lastItem($order->id)->packaging_cost, 0.001);
+    }
+
+    public function testPackagingFeeFallsBackToTheDefaultWhenNoItemIsLinked(): void
+    {
+        $order = $this->repo->createOrder(['items' => [['id' => $this->menuItemId, 'quantity' => 3, 'dining_option' => 'viagem_simples']]]);
+
+        $this->assertEqualsWithDelta(3.0, (float) $this->lastItem($order->id)->packaging_cost, 0.001);
+    }
+
+    public function testKitchenEditsUseTheLinkedMenuItemPrice(): void
+    {
+        $this->linkPackaging('viagem_simples', 1.5);
+        $order = $this->repo->createOrder(['items' => [['id' => $this->menuItemId, 'quantity' => 2]]]);
+        $itemId = (int) $this->lastItem($order->id)->id;
+
+        $this->repo->updateOrderItem($order->id, $itemId, ['dining_option' => 'viagem_simples']);
+        $this->assertEqualsWithDelta(3.0, (float) $this->lastItem($order->id)->packaging_cost, 0.001);
+
+        $this->repo->addOrderItem($order->id, ['menu_item_id' => $this->menuItemId, 'quantity' => 1, 'dining_option' => 'viagem_simples']);
+        $this->assertEqualsWithDelta(1.5, (float) $this->lastItem($order->id)->packaging_cost, 0.001);
     }
 
     public function testItemNameIsSnapshottedAtOrderCreationTime(): void

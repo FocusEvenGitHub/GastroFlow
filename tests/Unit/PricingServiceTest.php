@@ -34,6 +34,18 @@ class PricingServiceTest extends TestCase
         $this->assertSame(4.0, $fee->toReais());
     }
 
+    public function testPackagingFeeUsesTheLinkedItemPriceWhenGiven(): void
+    {
+        $fee = $this->pricing->packagingFeeFor('viagem_vip', 2, Money::fromReais(2.5));
+        $this->assertSame(5.0, $fee->toReais());
+    }
+
+    public function testLocalStaysFreeEvenWithAUnitFee(): void
+    {
+        $fee = $this->pricing->packagingFeeFor('local', 2, Money::fromReais(9.0));
+        $this->assertSame(0.0, $fee->toReais());
+    }
+
     public function testPackagingFeeForLocalIsZero(): void
     {
         $fee = $this->pricing->packagingFeeFor('local', 5);

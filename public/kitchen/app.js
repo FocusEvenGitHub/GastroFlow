@@ -108,6 +108,14 @@ function kitchenApp() {
             }
         },
 
+        // Título do botão de opção de viagem com o preço da embalagem vinculada no
+        // Admin (spec 050); mesmo fallback do PricingService.
+        packagingTitle(label, option) {
+            const linked = this.menu.flatMap(cat => cat.items || []).find(i => i.packaging_option === option);
+            const fee = linked ? parseFloat(linked.price) : { viagem_simples: 1.0, viagem_vip: 2.0 }[option];
+            return `${label} (+R$ ${fee.toFixed(2).replace('.', ',')})`;
+        },
+
         // Cardápio achatado (sem agrupar por categoria) para o seletor "Adicionar item".
         // Pratos montáveis ficam de fora: só o Caixa escolhe os adicionais (spec 030).
         allMenuItems() {
