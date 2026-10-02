@@ -1136,7 +1136,8 @@ Two honest caveats, neither blocking the gate's own substantive claim: spec 034'
 Not part of any milestone — client-requested work landing on `master` after `v1.8.0`:
 
 - Packaging fee for `viagem_simples`/`viagem_vip` taken from the price of the linked Admin menu item instead of hardcoded R$ 1,00/2,00 (spec 050, `Verified`, PR #29).
-- Planned next: Admin UI redesign (spec 051), then refreshing item prices from the Admin when the kitchen saves "Editar Pedido" (follow-up recorded in spec 050; no spec number yet).
+- Admin UI redesign: shared layout/sidebar for the 6 admin pages, one login + session helper (`public/admin/auth.js`), Cardápio toolbar and modals (spec 051, `Verified`, PR #31).
+- Planned next: refreshing item prices from the Admin when the kitchen saves "Editar Pedido" (follow-up recorded in spec 050; no spec number yet).
 
 Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for the milestone below.
 
