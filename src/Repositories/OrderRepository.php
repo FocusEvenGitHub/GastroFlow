@@ -168,7 +168,10 @@ class OrderRepository
                 );
                 $diningOption = $item['dining_option'] ?? 'local';
                 $quantity = (int) $item['quantity'];
-                $unitFees[$diningOption] ??= $this->packagingUnitFee($diningOption);
+                // array_key_exists, not ??=: a cached null (no linked item) must not re-query.
+                if (!array_key_exists($diningOption, $unitFees)) {
+                    $unitFees[$diningOption] = $this->packagingUnitFee($diningOption);
+                }
                 $packagingCost = $this->pricingService->packagingFeeFor($diningOption, $quantity, $unitFees[$diningOption]);
 
                 $orderItem = OrderItem::create([
@@ -494,6 +497,8 @@ class OrderRepository
         // dining_option and quantity both feed the packaging fee (spec 026) — recompute
         // whenever either changes, using the resulting values above (spec 046; previously
         // packaging_cost was never recomputed here at all, even for a quantity-only change).
+        // Deliberate (spec 050): this uses the linked item's CURRENT price, so a kitchen
+        // edit re-prices the item's packaging even if its option didn't change.
         if ($recomputePackaging) {
             $item->packaging_cost = $this->pricingService
                 ->packagingFeeFor(

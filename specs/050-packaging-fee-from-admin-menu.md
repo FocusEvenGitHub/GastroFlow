@@ -26,7 +26,7 @@ The admin lists "Embalagem Simples" (R$ 1,00) and "Embalagem Especial" (R$ 2,00)
 ## Non-goals
 
 - No UI to change which item is linked to which option (done once by migration; changeable only by a migration/SQL). Add later if needed.
-- No change to historical orders (`order_items.packaging_cost` snapshot, spec 023).
+- No change to historical orders (`order_items.packaging_cost` snapshot, spec 023) — **except** when the kitchen edits an item through "Editar Pedido": that recomputes its packaging at the linked item's current price (decision recorded 2026-10-02, see Implementation log).
 - No change to the dining option set (`local`, `viagem_simples`, `viagem_vip`).
 - Admin UI redesign — separate spec 051.
 
@@ -60,14 +60,15 @@ Confirmed in code:
 
 ## Non-functional requirements
 
-- One extra indexed lookup per order line at most (cached per request in `createOrder`); negligible.
+- `createOrder` does at most one lookup per distinct viagem option (cached per call, including the "not linked" result); `addOrderItem`/`updateOrderItem` do one each. Negligible.
 - Money stays exact (`App\Money`), as spec 021 requires.
 
 ## User flows
 
 - Admin: edits "Embalagem Especial" price to 3,00 → saves.
 - Cashier: reloads page → marks item as VIP → line shows "+ R$ 3,00 embalagem", total includes it → sends order → stored `packaging_cost` = 3,00 × qty.
-- Kitchen: changes an item's dining option in "Editar Pedido" → `packaging_cost` recomputed with the current linked price.
+- Kitchen: saves "Editar Pedido" → every item it sends is recomputed with the current linked price. The kitchen resends quantity + dining option for **all** items on save (`public/kitchen/app.js` `saveOrderChanges()`), so this applies even to items whose option didn't change.
+- Cashier: fees are read from the menu loaded with the page. A price changed in the Admin while the Cashier is open only shows after a reload; the server always charges the current price.
 
 ## API changes
 
@@ -124,12 +125,19 @@ PHPUnit exists (`tests/Unit`, `tests/Integration`, spec 004/035). AC2–AC5 via 
 
 ## Rollout and rollback
 
-Deploy = `bin/migrate` + code. Rollback = revert code; the extra nullable column is harmless to old code (no drop needed — destructive ops avoided).
+Deploy = `bin/migrate` **before** the new code goes live: the new code queries `menu_items.packaging_option`, and without the column every viagem order and kitchen item edit would fail with a SQL error. Rollback = revert code; the extra nullable column is harmless to old code (no drop needed — destructive ops avoided).
 
 ## Open questions
 
 - Non-blocking: should the Admin let users choose which item is linked to each option? Out of scope; follow-up if needed.
 - Non-blocking: if the client renames "Embalagem Especial" before migrating, FR2 won't link it → fallback 2,00 applies. Link manually via a follow-up migration if that happens.
+
+- **Follow-up (requested by the user 2026-10-02, out of scope here — for a branch after 050 and 051):** in the kitchen's "Editar Pedido", every save that changes items must refresh **all** item data from the Admin. Checked against the code, today only part of it happens:
+  - ✅ packaging fee is recomputed with the current linked price on every save (`OrderRepository::updateOrderItem`);
+  - ✅ items added through the modal use the current price (`addOrderItem`);
+  - ❌ an existing item's `unit_price` is never recomputed in `updateOrderItem` — it keeps the order-time price;
+  - ❌ the kitchen loads `/api/menu` once at page load (`public/kitchen/app.js:50`), so the prices it shows (e.g. the Simples/VIP button titles) go stale until reload.
+  Tracked on the Trello Backlog card "Editar Pedido: atualizar preços com os dados do Admin ao salvar".
 
 ## Task checklist
 
@@ -147,6 +155,7 @@ Deploy = `bin/migrate` + code. Rollback = revert code; the extra nullable column
 - 2026-10-02 — Legacy fees moved to `PricingService::DEFAULT_PACKAGING_FEES`; `packagingFeeFor()` uses it both as the "is this a viagem option?" check and as fallback. `OrderRepository::packagingUnitFee()` reuses the same constant to skip the lookup for `local`.
 - 2026-10-02 — `createOrder()` memoizes the unit fee per dining option within one call (`$unitFees`), so N lines cost at most 2 lookups. `addOrderItem()`/`updateOrderItem()` do one lookup each.
 - 2026-10-02 — Cashier `get total()` now sums `itemTotal()` instead of duplicating the fee constants. Cashier `packagingFees` getter and kitchen `packagingTitle()` carry the same 1,00/2,00 fallback as the server (kept as small JS literals: the frontend has no build step / shared module to import a server constant from).
+- 2026-10-02 — Independent verification (subagent, read-only) of PR #29 found: (1) the kitchen's "Editar Pedido" resends every item, so any save re-prices all viagem items of the order at the current linked price — before this spec that recompute used constants and was a no-op in practice. Asked the user; **decision: always use the current price** (accepted behavior, documented in Non-goals/User flows and in a code comment in `updateOrderItem`). (2) `??=` re-queried when no item was linked (cached null) → switched to `array_key_exists`. (3) Cashier shows the page-load price until reload — documented in User flows. (4) Deploy order (migrate before code) — documented in Rollout.
 - 2026-10-02 — Docker Desktop daemon not running and no host PHP: PHPUnit/PHPStan/CS-Fixer/migrate pending until the stack is up.
 
 ## Validation evidence
