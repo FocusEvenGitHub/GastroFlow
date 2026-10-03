@@ -37,6 +37,7 @@ abstract class IntegrationTestCase extends TestCase
         'events',
         'audit_log',
         'users',
+        'login_attempts', // spec 053 — otherwise one test's failed logins block the next
     ];
 
     /** The live database name, captured before setUp() redirects the app at the test one. */

@@ -356,6 +356,31 @@ paths:
                   error:
                     type: string
                     example: Credenciais inválidas.
+        "429":
+          description: |
+            Muitas tentativas de login (spec 053). 10 falhas em 15 minutos para o mesmo IP + usuário,
+            ou 30 falhas do mesmo IP somando usuários, bloqueiam por 15 minutos a partir da falha que
+            atingiu o limite. Enquanto bloqueado, nem a senha correta é aceita e as tentativas não contam.
+          headers:
+            Retry-After:
+              description: Segundos até poder tentar de novo.
+              schema:
+                type: integer
+                example: 900
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: Muitas tentativas de login. Tente novamente em 15 minutos.
+                  code:
+                    type: string
+                    example: TOO_MANY_LOGIN_ATTEMPTS
 
   /api/admin/menu:
     get:
