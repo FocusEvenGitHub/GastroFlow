@@ -34,6 +34,9 @@ services:
       - ./.env:/var/www/html/.env
       - ./vendor:/var/www/html/vendor
       - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
+      # Same read-only mount as `web`: without it VersionController falls back to "dev" and the
+      # version badge (bottom-right) can't tell which build this instance is serving (spec 054).
+      - ./.git:/var/www/html/.git:ro
     depends_on:
       - db
     ports:
