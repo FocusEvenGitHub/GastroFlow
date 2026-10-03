@@ -44,3 +44,4 @@ bin/create-admin text eol=lf
 bin/jobs-status text eol=lf
 bin/jobs-prune text eol=lf
 bin/events-prune text eol=lf
+bin/seed-demo text eol=lf
