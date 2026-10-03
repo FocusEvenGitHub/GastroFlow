@@ -331,6 +331,8 @@ function kitchenApp() {
             this.editingOrder = JSON.parse(JSON.stringify(order));
             this.newItemId = '';
             this.newItemQty = 1;
+            // Preços atuais do Admin (títulos Simples/VIP, seletor de itens) — spec 052.
+            this.loadMenu();
         },
 
         closeEditModal() {

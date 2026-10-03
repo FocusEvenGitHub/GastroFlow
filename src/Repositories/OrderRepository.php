@@ -471,35 +471,38 @@ class OrderRepository
     }
 
     /**
-     * Update quantity/notes/dining_option of one existing order item.
+     * Update quantity/notes/dining_option of one existing order item, and
+     * re-price it from the current menu (spec 052): unit price, add-on prices
+     * of a build-your-own dish and packaging fee. The kitchen's "Editar
+     * Pedido" sends one such call per item on save, so saving an order
+     * refreshes every item's price — the client's explicit choice. Names
+     * stay the order-time snapshot (spec 023).
      * Throws ModelNotFoundException if the item doesn't belong to $orderId.
      */
     public function updateOrderItem(int $orderId, int $itemId, array $data): void
     {
-        $order = Order::findOrFail($orderId);
-        if ($order->status === Order::STATUS_CANCELLED) {
-            throw new OrderCancelledException('Não é possível editar itens de um pedido cancelado.');
-        }
-        $item = OrderItem::where('id', $itemId)->where('order_id', $orderId)->firstOrFail();
+        DB::transaction(function () use ($orderId, $itemId, $data) {
+            $order = Order::findOrFail($orderId);
+            if ($order->status === Order::STATUS_CANCELLED) {
+                throw new OrderCancelledException('Não é possível editar itens de um pedido cancelado.');
+            }
+            $item = OrderItem::where('id', $itemId)->where('order_id', $orderId)->firstOrFail();
 
-        $recomputePackaging = isset($data['quantity']) || isset($data['dining_option']);
+            if (isset($data['quantity'])) {
+                $item->quantity = (int) $data['quantity'];
+            }
+            if (array_key_exists('notes', $data)) {
+                $item->notes = $data['notes'] ?? '';
+            }
+            if (isset($data['dining_option'])) {
+                $item->dining_option = $data['dining_option'];
+            }
 
-        if (isset($data['quantity'])) {
-            $item->quantity = (int) $data['quantity'];
-        }
-        if (array_key_exists('notes', $data)) {
-            $item->notes = $data['notes'] ?? '';
-        }
-        if (isset($data['dining_option'])) {
-            $item->dining_option = $data['dining_option'];
-        }
+            $this->repriceItem($item);
 
-        // dining_option and quantity both feed the packaging fee (spec 026) — recompute
-        // whenever either changes, using the resulting values above (spec 046; previously
-        // packaging_cost was never recomputed here at all, even for a quantity-only change).
-        // Deliberate (spec 050): this uses the linked item's CURRENT price, so a kitchen
-        // edit re-prices the item's packaging even if its option didn't change.
-        if ($recomputePackaging) {
+            // Packaging uses the linked item's CURRENT price (spec 050) and, since
+            // spec 052, is recomputed on every save — not only when quantity or
+            // dining_option change (spec 046).
             $item->packaging_cost = $this->pricingService
                 ->packagingFeeFor(
                     $item->dining_option,
@@ -507,9 +510,46 @@ class OrderRepository
                     $this->packagingUnitFee($item->dining_option)
                 )
                 ->toReais();
+
+            $item->save();
+        });
+    }
+
+    /**
+     * Refresh an order item's unit price — and, for a build-your-own dish,
+     * each add-on's unit price — from the current menu (spec 052). A dish or
+     * add-on that no longer exists in the menu keeps its stored price, so an
+     * edit never fails over price data; availability is ignored, only the price
+     * is read.
+     */
+    private function repriceItem(OrderItem $item): void
+    {
+        $menuItem = MenuItem::find($item->menu_item_id);
+        if (!$menuItem) {
+            // Dish gone from the menu: leave its price AND its add-ons alone, so
+            // the stored add-on prices keep adding up to the stored unit price.
+            return;
+        }
+        $components = $item->components()->get();
+
+        $currentPrices = $components->isEmpty()
+            ? collect()
+            : MenuItem::whereIn('id', $components->pluck('menu_item_id'))->pluck('price', 'id');
+
+        foreach ($components as $component) {
+            if ($currentPrices->has($component->menu_item_id)) {
+                $component->unit_price = Money::fromReais($currentPrices->get($component->menu_item_id))->toReais();
+                $component->save();
+            }
         }
 
-        $item->save();
+        $item->unit_price = $this->pricingService->composedUnitPrice(
+            $this->pricingService->unitPriceFor($menuItem),
+            $components->map(fn ($c) => [
+                'price'    => Money::fromReais($c->unit_price),
+                'quantity' => (int) $c->quantity,
+            ])
+        )->toReais();
     }
 
     /**

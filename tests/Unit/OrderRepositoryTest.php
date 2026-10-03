@@ -416,6 +416,96 @@ class OrderRepositoryTest extends TestCase
         $this->assertSame(35.0, $listed[0]['items'][0]['unit_price']);
     }
 
+    /** Spec 052 — a kitchen save re-prices the item from the current menu. */
+    public function testItemUpdateRepricesFromCurrentMenuButKeepsTheName(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $itemId = (int) $this->lastItem($order->id)->id;
+        Db::table('menu_items')->where('id', $this->menuItemId)->update(['price' => 12.0, 'name' => 'Outro Nome']);
+
+        $this->repo->updateOrderItem($order->id, $itemId, ['notes' => 'x']);
+
+        $item = $this->lastItem($order->id);
+        $this->assertEqualsWithDelta(12.0, (float) $item->unit_price, 0.001);
+        $this->assertSame('Prato Teste', $item->item_name);
+    }
+
+    public function testItemUpdateRepricesABuildYourOwnDishAndItsAddOns(): void
+    {
+        $ids = $this->seedBuildYourOwnDish();
+        $order = $this->repo->createOrder(['items' => [[
+            'id' => $ids['dish'], 'quantity' => 1,
+            'components' => [['id' => $ids['frango'], 'quantity' => 2]],
+        ]]]);
+        $item = $this->lastItem($order->id);
+        $this->assertEqualsWithDelta(31.0, (float) $item->unit_price, 0.001); // 5 + 2 x 13
+
+        Db::table('menu_items')->where('id', $ids['frango'])->update(['price' => 14.0]);
+        Db::table('menu_items')->where('id', $ids['dish'])->update(['price' => 6.0]);
+        $this->repo->updateOrderItem($order->id, (int) $item->id, ['quantity' => 1]);
+
+        $component = Db::table('order_item_components')->where('order_item_id', $item->id)->first();
+        $this->assertEqualsWithDelta(14.0, (float) $component->unit_price, 0.001);
+        $this->assertSame(2, (int) $component->quantity);
+        $this->assertSame('Filé de Frango', $component->item_name);
+        $this->assertEqualsWithDelta(34.0, (float) $this->lastItem($order->id)->unit_price, 0.001); // 6 + 2 x 14
+    }
+
+    public function testItemUpdateKeepsStoredPricesForItemsGoneFromTheMenu(): void
+    {
+        $order = $this->repo->createOrder($this->orderData());
+        $itemId = (int) $this->lastItem($order->id)->id;
+        Db::table('menu_items')->where('id', $this->menuItemId)->delete();
+
+        $this->repo->updateOrderItem($order->id, $itemId, ['notes' => 'x']);
+        $this->assertEqualsWithDelta(10.0, (float) $this->lastItem($order->id)->unit_price, 0.001);
+
+        // A deleted add-on keeps its stored price inside the recomputed sum.
+        $ids = $this->seedBuildYourOwnDish();
+        $order2 = $this->repo->createOrder(['items' => [[
+            'id' => $ids['dish'], 'quantity' => 1,
+            'components' => [['id' => $ids['frango'], 'quantity' => 1], ['id' => $ids['arroz'], 'quantity' => 1]],
+        ]]]);
+        $dishItemId = (int) $this->lastItem($order2->id)->id;
+        Db::table('menu_items')->where('id', $ids['frango'])->delete();
+        Db::table('menu_items')->where('id', $ids['arroz'])->update(['price' => 5.0]);
+
+        $this->repo->updateOrderItem($order2->id, $dishItemId, ['notes' => 'x']);
+        $this->assertEqualsWithDelta(23.0, (float) $this->lastItem($order2->id)->unit_price, 0.001); // 5 + 13 (stored) + 5
+    }
+
+    public function testNotesOnlyUpdateStillRecomputesPackaging(): void
+    {
+        $order = $this->repo->createOrder(['items' => [['id' => $this->menuItemId, 'quantity' => 2, 'dining_option' => 'viagem_vip']]]);
+        $itemId = (int) $this->lastItem($order->id)->id;
+        $this->assertEqualsWithDelta(4.0, (float) $this->lastItem($order->id)->packaging_cost, 0.001); // fallback 2,00
+        $this->linkPackaging('viagem_vip', 3.0);
+
+        $this->repo->updateOrderItem($order->id, $itemId, ['notes' => 'só a observação']);
+        $this->assertEqualsWithDelta(6.0, (float) $this->lastItem($order->id)->packaging_cost, 0.001);
+    }
+
+    public function testRepricingAppliesToDoneOrdersButNotCancelledOnes(): void
+    {
+        $done = $this->repo->createOrder($this->orderData());
+        $doneItemId = (int) $this->lastItem($done->id)->id;
+        $this->repo->completeOrder($done->id);
+        $cancelled = $this->repo->createOrder($this->orderData());
+        $cancelledItemId = (int) $this->lastItem($cancelled->id)->id;
+        $this->repo->cancelOrder($cancelled->id);
+        Db::table('menu_items')->where('id', $this->menuItemId)->update(['price' => 15.0]);
+
+        $this->repo->updateOrderItem($done->id, $doneItemId, ['notes' => 'x']);
+        $this->assertEqualsWithDelta(15.0, (float) $this->lastItem($done->id)->unit_price, 0.001);
+
+        try {
+            $this->repo->updateOrderItem($cancelled->id, $cancelledItemId, ['notes' => 'x']);
+            $this->fail('Cancelled order must not be editable');
+        } catch (OrderCancelledException) {
+        }
+        $this->assertEqualsWithDelta(10.0, (float) $this->lastItem($cancelled->id)->unit_price, 0.001);
+    }
+
     public function testListedOrdersExposeCreatedAtWithTimezoneOffset(): void
     {
         // Spec 031: created_at has no offset (local time); created_at_iso must
