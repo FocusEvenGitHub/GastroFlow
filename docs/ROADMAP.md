@@ -1,6 +1,6 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.8.1
+> **Current version:** v1.8.2
 > **Target:** v2.0.0
 > **Current milestone:** v1.9.0 — Community Productization
 > **Edition:** GastroFlow Community
@@ -1137,9 +1137,15 @@ Not part of any milestone — client-requested work landing on `master` after `v
 
 - Packaging fee for `viagem_simples`/`viagem_vip` taken from the price of the linked Admin menu item instead of hardcoded R$ 1,00/2,00 (spec 050, `Verified`, PR #29).
 - Admin UI redesign: shared layout/sidebar for the 6 admin pages, one login + session helper (`public/admin/auth.js`), Cardápio toolbar and modals (spec 051, `Verified`, PR #31).
-- Landed after this tag (next patch, `v1.8.2`, not yet tagged): refreshing item prices from the Admin when the kitchen saves "Editar Pedido" (spec 052, `Verified`, PR #34) — tracked under "Não lançado" in `CHANGELOG.md`.
 
 Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for the milestone below.
+
+# v1.8.2 — client work, outside the milestones
+
+**Status: Released.** Tagged `v1.8.2` (2026-10-02), documented in `CHANGELOG.md`.
+
+- Saving the kitchen's "Editar Pedido" re-prices each item from the current Admin menu — item price, "Monte Seu Prato" add-ons, packaging fee on every save; names stay snapshotted (spec 052, `Verified`, PR #34).
+- Process: at most one pull request per spec, carrying its changelog entry and docs pass (`CLAUDE.md`, PR #35).
 
 ---
 

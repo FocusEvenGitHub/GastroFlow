@@ -119,7 +119,7 @@ Full request lifecycle, the annotated project-structure tree, and the current li
 - **Specs before non-trivial code.** Features, fixes and improvements go through a spec file under [`specs/`](specs/) — problem, proposed behavior, acceptance criteria, then an implementation log and validation evidence as work happens. `specs/000-project-baseline.md` is a code-verified snapshot of the whole system, written before any feature spec.
 - **A defined lifecycle**, not just a folder of markdown: `Draft → Approved → In Progress → Implemented → Verified` (or `Cancelled`), per [`specs/README.md`](specs/README.md). `Verified` requires recorded evidence tied to acceptance criteria — it isn't granted on trust.
 - **Persistent, written project rules.** [`CLAUDE.md`](CLAUDE.md) documents the confirmed stack, the actual code layering, the commands that really exist, and explicit security rules — a checked-in artifact, not tribal knowledge.
-- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.8.1`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
+- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.8.2`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
 
 ```mermaid
 flowchart LR
@@ -221,6 +221,10 @@ Full detail for all of the above in [`CHANGELOG.md`](CHANGELOG.md).
 
 - **Packaging fee from the Admin menu** (spec 050): "Viagem Simples"/"Viagem VIP" now charge the price of the menu item linked to each option (`menu_items.packaging_option`, migration 019) instead of a hardcoded R$ 1,00/2,00 — changing the price in the Admin changes it at the cashier, in the kitchen and in the stored order; falls back to the old values if no item is linked
 - **Admin UI redesign** (spec 051): the six admin pages share one layout and sidebar (offcanvas on phones), a single login/session helper (`public/admin/auth.js`) replaces three copies — return-to-page after login, `401` back to login, `403` as an in-page "Sem permissão" panel — and the menu page gets a search/category/grid toolbar with create and delete in modals. Same endpoints, no new dependency
+
+**`v1.8.2`** (client work, outside the roadmap milestones; tagged 2026-10-02)
+
+- **Kitchen edits use current prices** (spec 052): saving "Editar Pedido" re-prices each item from the current Admin menu — item price, "Monte Seu Prato" add-ons and the packaging fee; names stay the sale-time snapshot, and orders nobody edits keep their sale-time values
 
 **Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
 
