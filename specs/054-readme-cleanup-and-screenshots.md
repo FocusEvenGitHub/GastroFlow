@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-10-03
 - Updated: 2026-10-03
 - Owner: Henry
@@ -199,8 +199,8 @@ Merge the PR. Rollback is `git revert` of the merge commit — restores the old 
 - [x] Acceptance checks 1-9 run and recorded
 - [x] Docs pass + CHANGELOG entry
 - [x] `bin/seed-demo` (added at the user's request) + `.gitattributes` / `.php-cs-fixer.dist.php` / `CLAUDE.md` / README
-- [ ] /spec-review
-- [ ] PR opened, AC 10 checked
+- [x] /spec-review (first pass on README/images; second pass on the later `bin/seed-demo` and `docker-compose.e2e.yml` commits — one finding, a stale "1..5" comment in `bin/seed-demo`, fixed)
+- [x] PR opened (#39), AC 10 checked
 - [x] Trello card updated (investigation/spec/implement items ticked; PR/merge items pending)
 
 ## Implementation log
@@ -238,9 +238,9 @@ Docs-only change: no PHPUnit/Playwright test covers the README. CI's line-ending
 | 5 | `sed -n '/^## Roadmap/,/^## Learnings/p' README.md \| grep -c "spec 0[3-5][0-9]"` | `0` ✅ |
 | 6 | `grep -n "^## Technical decisions\|^### Line endings (Windows)" README.md` | `97:## Technical decisions`, `174:### Line endings (Windows)` ✅ |
 | 7 | loop over every non-http, non-`#` `](…)` target with `[ -e ]` | 16 targets, all `ok`, 0 `MISSING` ✅ |
-| 8 | `ls -l public/assets/img/tela_*.jpg` + visual review | 86 620 / 90 152 / 68 673 / 77 657 bytes (≤ 500 KB). Cashier: 5 items in the cart, "Pratos Principais" tab. Kitchen: 5 pending orders with the ingredient side panel. Admin: spec-051 sidebar + search/category toolbar, "Pratos Principais" filter. Reports: 54 orders, sales-per-day chart, main dishes table ✅ — format is JPEG, not the PNG FR6 named (see log) |
+| 8 | `ls -l public/assets/img/tela_*.jpg` + visual review | 86 620 / 90 152 / 68 673 / 77 657 bytes (≤ 500 KB). Cashier: 5 items in the cart, "Pratos Principais" tab. Kitchen: 5 pending orders with the ingredient side panel. Admin: spec-051 sidebar + search/category toolbar, "Pratos Principais" filter. Reports: 54 orders, sales-per-day chart, main dishes table ✅ — format is JPEG, not the PNG FR6 named (documented deviation, see log); committed in `e451da7` on branch `054` |
 | 9 | visual review of the four images | only fictional first names and the throwaway `demo` username; no tokens, emails or real data ✅ |
-| 10 | GitHub rendering on the PR | **not done yet** — no PR opened |
+| 10 | GitHub rendering of `README.md` on branch `054` (PR #39), checked in Chrome | ✅ all 9 images load (`naturalWidth`: logo 1024, 4 badges, the 4 screenshots 1568 each); the Architecture mermaid diagram renders; internal anchors `#how-this-project-is-built`, `#installation`, `#technical-decisions` resolve; GitHub reports 250 lines. PR checks: `test` pass (full CI, including the line-ending step, PHPStan and PHP-CS-Fixer now covering `bin/seed-demo`), GitGuardian pass |
 
 | 11 | `bin/seed-demo` on a fresh install (added criterion — see log) | see below ✅ |
 

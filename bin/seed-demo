@@ -117,7 +117,7 @@ DB::transaction(function () use ($history, $repo, $randomOrder) {
         ]);
     }
 
-    // Pendentes de hoje: senha automática (1..5), abertos há 3 a 15 minutos.
+    // Pendentes de hoje: senha automática (as próximas do dia — 1..5 num banco novo), abertos há 3 a 15 minutos.
     for ($i = 5; $i >= 1; $i--) {
         $order = $repo->createOrder($randomOrder());
         DB::table('orders')->where('id', $order->id)->update([
