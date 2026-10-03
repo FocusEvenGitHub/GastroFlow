@@ -24,6 +24,7 @@ $finder = PhpCsFixer\Finder::create()
         __DIR__ . '/bin/create-admin',
         __DIR__ . '/bin/jobs-status',
         __DIR__ . '/bin/jobs-prune',
+        __DIR__ . '/bin/seed-demo',
     ]);
 
 return (new PhpCsFixer\Config())

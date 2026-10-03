@@ -1,5 +1,16 @@
 # Changelog
 
+## Não lançado
+
+### Novidades
+- **`bin/seed-demo`**: preenche uma instalação nova com pedidos fictícios relativos ao dia em que roda — 60 concluídos nos 45 dias anteriores (horário de almoço, preparo de 8 a 25 min) e 5 pendentes de hoje — para Cozinha e Relatórios terem o que mostrar. Os pedidos passam pelo `OrderRepository` de verdade (preço, senha e nome iguais aos do caixa) e não geram impressão. Recusa rodar se o banco já tiver qualquer pedido, a menos que `APP_ENV=development` — aí as senhas do histórico continuam a partir da maior de cada dia —, então não suja um restaurante em uso (spec 054)
+
+### Correções
+- **Badge de versão na instância de teste**: a instância do `docker-compose.e2e.yml` (porta 8081) mostrava "dev" no canto inferior direito porque não montava o `.git`; agora monta, somente leitura, como o `web`, e mostra a versão real (`git describe`) (spec 054)
+
+### Documentação
+- **README enxuto e prints novos**: o `README.md` cai de 409 para menos de 250 linhas. Sai o que já tem dono em outro documento — o histórico de releases por spec (está no `CHANGELOG.md`), o processo de engenharia e de IA em detalhe (`CLAUDE.md`, `specs/README.md`), a convenção de commits (`docs/COMMIT_CONVENTION.md`) e o sumário manual (o GitHub já mostra um) — com links na tabela "Documentation". Corrige o que estava desatualizado: o SSE da cozinha descrito como arquivo de sinal (é a tabela `events` desde a spec 041), o CI descrito como só PHPUnit e os releases descritos como SemVer. Os quatro prints foram refeitos com a interface atual, numa instalação limpa com pedidos fictícios, e passam de `tela_*.png` para `tela_*.jpg` (69–90 KB cada; a lista de exceções do `.gitignore` acompanha) (spec 054)
+
 ## v1.8.3 (2026-10-03) — Limite de tentativas de login
 
 Item do Backlog sem milestone (o "Authentication hardening" de origem fazia parte do `v1.6.0`, já fechado) — sai como patch, como o trabalho de cliente do `v1.8.x`.
