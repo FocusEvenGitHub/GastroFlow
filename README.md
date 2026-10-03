@@ -18,54 +18,15 @@
 
 ---
 
-## Contents
-
-- [Screenshots](#screenshots)
-- [Overview](#overview)
-- [Documentation](#documentation)
-- [Architecture](#architecture)
-- [Engineering process](#engineering-process)
-- [AI-assisted development](#ai-assisted-development)
-- [Tech stack](#tech-stack)
-- [Technical decisions](#technical-decisions)
-- [Roadmap](#roadmap)
-- [Learnings](#learnings)
-- [Project philosophy](#project-philosophy)
-- [Getting started](#getting-started)
-- [Using the app](#using-the-app)
-- [API](#api)
-- [Commit convention & releases](#commit-convention--releases)
-- [Contributing](#contributing)
-- [Author](#author)
-
----
-
 ## Screenshots
 
-<div align="center">
-  <table>
-    <tr>
-      <td align="center" width="50%">
-        <img src="public/assets/img/tela_cashier.png" alt="Cashier Interface" width="100%"/>
-        <br><sub><b>Cashier</b> — place orders, select items, add notes, send to kitchen</sub>
-      </td>
-      <td align="center" width="50%">
-        <img src="public/assets/img/tela_kitchen.png" alt="Kitchen Interface" width="100%"/>
-        <br><sub><b>Kitchen</b> — real-time view of pending orders, mark as done</sub>
-      </td>
-    </tr>
-    <tr>
-      <td align="center" width="50%">
-        <img src="public/assets/img/tela_admin.png" alt="Admin Interface" width="100%"/>
-        <br><sub><b>Admin</b> — menu management (add, edit, enable/disable items)</sub>
-      </td>
-      <td align="center" width="50%">
-        <img src="public/assets/img/tela_relatorio.png" alt="Reports Dashboard" width="100%"/>
-        <br><sub><b>Reports</b> — sales dashboard and analytics</sub>
-      </td>
-    </tr>
-  </table>
-</div>
+| Cashier | Kitchen |
+|---|---|
+| ![Cashier](public/assets/img/tela_cashier.jpg) | ![Kitchen](public/assets/img/tela_kitchen.jpg) |
+| Pick items by category, choose dine-in or takeaway, send the order to the kitchen | Pending orders in real time, with the ingredient summary side panel |
+| **Admin** | **Reports** |
+| ![Admin](public/assets/img/tela_admin.jpg) | ![Reports](public/assets/img/tela_relatorio.jpg) |
+| Menu management: search, filter by category, enable/disable items | Sales summary, sales per day, main dishes sold |
 
 ---
 
@@ -73,7 +34,7 @@
 
 GastroFlow is a restaurant order-management system: a cashier takes an order and issues a sequential pickup ticket number ("Senha"), the kitchen sees it appear in real time and marks it done, an admin panel manages the menu and produces a receipt on a thermal printer, and a reporting module turns the accumulated order history into sales, timing and demand insights. It targets a single-location restaurant running everything — cashier terminal, kitchen display, admin panel — on one local network, which is why the design favors a simple, self-hosted deployment over a distributed one.
 
-It continues to be developed both because the product itself has open functional ground (see [Roadmap](#roadmap)) and because it doubles as a working environment for practicing software engineering process — see [Project philosophy](#project-philosophy).
+It is also a working environment for practicing spec-driven development and AI-assisted coding under real constraints rather than in a toy repo — see [How this project is built](#how-this-project-is-built).
 
 ---
 
@@ -83,17 +44,19 @@ This README is the entry point. Depth lives alongside it, by topic:
 
 | Doc | Covers |
 |---|---|
-| [`docs/architecture.md`](docs/architecture.md) | Full request lifecycle, layer-by-layer breakdown, SSE, jobs/printing, current limitations |
-| [`docs/technical-decisions.md`](docs/technical-decisions.md) | Every decision below, with full trade-offs, plus open/unresolved ones |
-| [`specs/`](specs/) | One file per change: problem, plan, implementation log, validation evidence |
-| [`CLAUDE.md`](CLAUDE.md) | Rules that govern AI-assisted development in this repo |
-| [`ROADMAP.md`](docs/ROADMAP.md) / [`CHANGELOG.md`](CHANGELOG.md) | What's planned next / what has already shipped |
+| [`docs/architecture.md`](docs/architecture.md) | Request lifecycle, layer-by-layer breakdown, realtime events, jobs/printing, logging, audit history, known limitations |
+| [`docs/technical-decisions.md`](docs/technical-decisions.md) | Every technical decision with its trade-offs, plus open ones |
+| [`CHANGELOG.md`](CHANGELOG.md) | Everything that has shipped, release by release |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones: what's done, what's next, and the rules behind them |
+| [`specs/`](specs/) · [`specs/README.md`](specs/README.md) | One file per change (problem, plan, implementation log, validation evidence) and the spec lifecycle |
+| [`CLAUDE.md`](CLAUDE.md) | Rules for AI-assisted development, and the full list of commands that exist (migrations, worker, tests, static analysis…) |
+| [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md) | Commit types, scopes and emoji; release and changelog workflow |
 
 ---
 
 ## Architecture
 
-Slim bootstraps in `public/index.php` → `App\App::get()` → `App\Routes::register()`. The detail that matters most: **not everything goes through Slim**. `public/.htaccess` serves any existing file or directory directly, so the cashier, kitchen and admin panels are plain Alpine.js views executed directly by Apache — only `/api/*` is an actual Slim route.
+Slim bootstraps in `public/index.php` → `App\App::get()` → `App\Routes::register()`. The detail that matters most: **not everything goes through Slim**. `public/.htaccess` serves any existing file or directory directly, so the cashier, kitchen and admin panels are plain Alpine.js views executed directly by Apache — only the `/api/*` routes, `/` and `/health/*` go through Slim (the SSE stream, `public/api/events/stream.php`, is itself a plain file).
 
 ```mermaid
 flowchart LR
@@ -106,53 +69,11 @@ flowchart LR
     Layers --> DB[("MySQL 8.0")]
 ```
 
-- `src/` follows Controllers → Services → Repositories/Models, and as of `v1.7.0` this is real coverage, not aspirational: `Repositories/` (Ingredient, Menu, Order), `Validators/` (Auth, Ingredient, MenuItem, Order, Settings). The one remaining gap is `Dish` — a controller with no registered route, unreachable dead code that still calls Eloquent directly. This is the real current state, not smoothed over — full breakdown in [`docs/architecture.md`](docs/architecture.md).
-- Kitchen live updates run over Server-Sent Events backed by a signal file, not a queue — fine for one instance, a known limit past that.
-- Printing (ESC/POS) and order creation both go through an async DB-backed job queue (`bin/worker`), so a print failure never fails the order.
+- `src/` follows Controllers → Services → Repositories/Models, with `Validators/` for input shape.
+- Kitchen live updates are Server-Sent Events fed by an `events` table in MySQL (`EventPublisher`), with `Last-Event-ID` reconnection.
+- Printing (ESC/POS) runs through an async DB-backed job queue (`bin/worker`), so a print failure never fails the order.
 
-Full request lifecycle, the annotated project-structure tree, and the current list of architectural limitations: [`docs/architecture.md`](docs/architecture.md).
-
----
-
-## Engineering process
-
-- **Specs before non-trivial code.** Features, fixes and improvements go through a spec file under [`specs/`](specs/) — problem, proposed behavior, acceptance criteria, then an implementation log and validation evidence as work happens. `specs/000-project-baseline.md` is a code-verified snapshot of the whole system, written before any feature spec.
-- **A defined lifecycle**, not just a folder of markdown: `Draft → Approved → In Progress → Implemented → Verified` (or `Cancelled`), per [`specs/README.md`](specs/README.md). `Verified` requires recorded evidence tied to acceptance criteria — it isn't granted on trust.
-- **Persistent, written project rules.** [`CLAUDE.md`](CLAUDE.md) documents the confirmed stack, the actual code layering, the commands that really exist, and explicit security rules — a checked-in artifact, not tribal knowledge.
-- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.8.3`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
-
-```mermaid
-flowchart LR
-    A["Problem"] --> B["/spec-plan"]
-    B --> C["Spec: Draft"]
-    C --> D["/spec-implement<br/>Approved → In Progress"]
-    D --> E["Implementation"]
-    E --> F["Manual validation<br/>curl / browser / php -l"]
-    F --> G["Spec: Implemented<br/>or Verified"]
-    G --> H["Commit + release"]
-```
-
-GitHub Actions now runs `composer install` + `vendor/bin/phpunit` on every push to `master` and every pull request (`.github/workflows/ci.yml`, added alongside `specs/004-phpunit-smoke-tests.md`/`specs/005-github-actions-ci.md`). No formal multi-person review sits in this flow yet — a single-maintainer project, currently. `Verified` status and its evidence requirement are what stand in for that.
-
----
-
-## AI-assisted development
-
-Claude Code participates in investigation, planning, implementation, refactoring, documentation, review and validation across this project — this README included. The model is:
-
-**Human direction → AI execution → human validation.**
-
-Two artifacts make that concrete rather than a claim:
-
-- **[`CLAUDE.md`](CLAUDE.md)** — persistent rules read every session: the confirmed stack and architecture, the commands that actually exist, and hard boundaries (never touch `.env`/secrets, never commit without being asked, no destructive DB operations, no new dependencies unless asked, never claim a test passed without running it).
-- **The `specs/` workflow, run by two checked-in skills** — [`.claude/skills/spec-plan`](.claude/skills/spec-plan/SKILL.md) investigates the real codebase and drafts a spec without touching any code; [`.claude/skills/spec-implement`](.claude/skills/spec-implement/SKILL.md) implements it step by step against the layers that already exist, and won't mark a spec `Verified` without evidence.
-
-What that means in practice:
-
-- The human sets the objective; ambiguous or architectural decisions require explicit approval before implementation starts (`Draft → Approved`) — a blocking open question stops the work.
-- A spec is the contract for what gets built: implementation is checked against it, and any conflict between the two is reported, not silently resolved either way.
-- Validation requires evidence, not a self-report — `php -l`, real `curl` calls, reading the diff, and now `vendor/bin/phpunit` (locally and in CI) since automated tests + CI landed — see `docs/ROADMAP.md`'s Current Baseline section.
-- AI speeds up execution. The approval gate, the scope limits, and the evidence requirement are what make that execution trustworthy — and they're enforced by the rules above, not by taking a model's word for it.
+Full breakdown, project-structure tree and known limitations: [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
@@ -163,76 +84,42 @@ What that means in practice:
 | PHP >= 8.1 (`php:8.2-apache` in Docker) | Backend language and runtime |
 | Slim 4 + `php-di/slim-bridge` | Routing, PSR-15 middleware, DI container |
 | Eloquent (`illuminate/database`, via `Capsule\Manager`) | ORM / query builder, without the rest of Laravel |
-| `vlucas/valitron` | Input validation (`OrderValidator`, `MenuItemValidator`, `IngredientValidator`, `SettingsValidator`, `AuthValidator`) |
+| `vlucas/valitron` | Input validation |
 | `firebase/php-jwt` | JWT issuance/verification for the admin area |
 | `monolog/monolog` | Application logging (`logs/app.log`, viewable from the admin panel) |
 | `mike42/escpos-php` | ESC/POS thermal receipt printing over the network |
 | MySQL 8.0 | Persistence |
 | Alpine.js + Bootstrap 5 | Frontend reactivity and UI, no build step |
-| Docker Compose | Local dev/runtime environment (`db` + `web` services) |
+| Docker Compose | Local dev/runtime environment |
 
 ---
 
 ## Technical decisions
 
-Five picks that best represent how this project trades things off — full table with every trade-off, plus open/unresolved decisions, in [`docs/technical-decisions.md`](docs/technical-decisions.md):
+Five picks that best represent how this project trades things off — the full list with trade-offs is in [`docs/technical-decisions.md`](docs/technical-decisions.md):
 
 - **Slim 4, not a full framework** — routing/middleware/DI without adopting everything Laravel brings, for a project that started as raw PHP.
-- **Eloquent standalone** (`Capsule\Manager`), not full Laravel — a familiar, expressive query builder without the framework around it.
+- **Eloquent standalone** (`Capsule\Manager`), not full Laravel — a familiar query builder without the framework around it.
 - **Hand-rolled SQL migrations**, not an ORM migration framework — explicit, diffable schema changes; the cost is no rollback semantics.
-- **Signal-file SSE**, not Redis/RabbitMQ — zero extra infrastructure for a single-location deployment; not safe past one instance.
+- **MySQL-backed realtime events**, not Redis/RabbitMQ — SSE reads an `events` table, so no extra infrastructure for a single-location deployment.
 - **DB-backed job queue** (`bin/worker`), not a message broker — avoids adding infrastructure for one background job type (printing).
+
+---
+
+## How this project is built
+
+- **Specs before non-trivial code.** Every change goes through a file under [`specs/`](specs/) with a defined lifecycle (`Draft → Approved → In Progress → Implemented → Verified`); `Verified` requires recorded evidence for each acceptance criterion. Lifecycle and skills: [`specs/README.md`](specs/README.md).
+- **AI-assisted, human-directed.** Claude Code investigates, plans, implements and reviews; the human sets the goal and approves. [`CLAUDE.md`](CLAUDE.md) holds the hard rules (no secrets, no commits unless asked, no destructive DB operations, never claim a check passed without running it), and three checked-in skills — [`spec-plan`](.claude/skills/spec-plan/SKILL.md), [`spec-implement`](.claude/skills/spec-implement/SKILL.md), [`spec-review`](.claude/skills/spec-review/SKILL.md) — run the workflow.
+- **CI on every push and PR** ([`ci.yml`](.github/workflows/ci.yml)): line-ending check, `composer validate`, `composer audit`, PHPStan, PHP-CS-Fixer, unit tests, integration tests against real MySQL, and Playwright browser tests.
+- **Conventional commits and tagged releases** — [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md); one changelog entry per spec.
 
 ---
 
 ## Roadmap
 
-**Completed**
+Current release: **`v1.8.3`**. Current milestone: **`v1.9.0` — Community Productization** (local frontend dependencies, LAN operation without internet, installation and upgrade experience, documentation, open-source readiness).
 
-- Core ordering flow: cashier → kitchen → admin, pickup-ticket ("Senha") ordering, near-real-time kitchen updates via SSE
-- JWT-authenticated admin area: menu CRUD, dish components, settings, log viewer
-- Thermal receipt printing (ESC/POS) dispatched through an async job queue (`bin/worker`); kitchen can edit, delete and reprint orders
-- Sales reporting: summary, top items, dining-option breakdown, peak hours, average prep time, month-over-month comparison (`v1.0.0` → `v1.5.5`)
-- Spec-driven development workflow adopted: `specs/`, `CLAUDE.md`, `/spec-plan`, `/spec-implement` (August 2026)
-- Foundation cleanup: `declare(strict_types=1)` everywhere, configurable CORS origin, hardcoded JWT fallback removed, filesystem paths centralized in `Settings` (see `docs/ROADMAP.md`'s Current Baseline section)
-- Automated tests + CI: PHPUnit smoke test + unit tests, GitHub Actions running the suite on every push/PR (see `docs/ROADMAP.md`'s Current Baseline section)
-- **`v1.6.0` — Baseline & Security**: default admin/DB credentials removed (`bin/create-admin` now required), role-based authorization (`admin`/`manager`/`cashier`/`kitchen`) enforced on `/api/admin/*`, sanitized production error responses, `.env` no longer baked into Docker images, `composer.lock` tracked for reproducible builds, `table_number` terminology corrected (it's a pickup ticket, never a physical table) — full detail in [`CHANGELOG.md`](CHANGELOG.md)
-- **`v1.7.0` — Domain & Architecture**: concurrency-safe `order_number` generation, explicit order lifecycle (`pending ⇄ done`, soft cancellation, invalid transitions rejected), `App\Money`-based exact pricing, historical order/receipt snapshots, order input validation, standardized API error format, `AdminController` split into `Settings`/`Printer`/`Log` controllers, `IngredientController` moved behind a Service+Repository, sargable date filters on reports — full detail in [`CHANGELOG.md`](CHANGELOG.md)
-- **`v1.7.1`** (client work, outside the roadmap milestones): "Monte Seu Prato" — a dish assembled at the cashier from the Adicionais, priced server-side and snapshotted per order item; kitchen side panel toggle between the ingredient summary and a per-dish count; `GET /api/admin/reports/main-dishes` + a "Pratos Principais Vendidos" report section; kitchen order-age timezone fix and highlighted item notes — full detail in [`CHANGELOG.md`](CHANGELOG.md)
-
-**`v1.8.0` — Reliability & Quality** (tagged 2026-09-27)
-
-- **Job-queue reliability** (spec 033): a worker that died mid-job used to leave the job reserved forever, never retried and invisible; reservations now carry a deadline and are swept back into the queue, jobs have an explicit `status`/`last_error`/`failed_at`/`completed_at`, completed jobs are kept and pruned by retention, and `bin/jobs-status` gives the operator a way to see failures
-- **Static analysis, code style and CI** (spec 034): PHPStan level 5, PHP-CS-Fixer (PSR-12), both gating `composer validate` → `composer audit` → PHPStan → PHP-CS-Fixer → PHPUnit in GitHub Actions
-- **Integration and browser test suites** (specs 035, 040): 44+ tests against real MySQL, including genuine multi-process concurrency, plus a Playwright suite covering only what breaks exclusively in a browser
-- **Job deadlock fixed, found by the integration suite** (spec 037): a completion `UPDATE` deadlocking under contention used to re-queue an already-executed job, duplicating the work; execution and result-recording are now separate phases with an at-most-once guarantee
-- **Printing reliability** (specs 038, 039): an unconfigured printer no longer reports a ticket as sent when nothing printed; three consecutive permanent failures block printing until an operator reactivates it, without ever invalidating the order itself
-- **Realtime kitchen updates rebuilt on MySQL** (spec 041): replaced a signal-file SSE mechanism that was invisible across the `web`/`print-worker` container boundary with a `EventPublisher` interface backed by an `events` table — reliable event IDs, `Last-Event-ID` reconnection, and retention via `bin/events-prune`
-- **Structured logging with request/correlation IDs** (spec 042): every HTTP request gets a `request_id` (and `user_id` once authenticated) carried automatically into every log line it causes, including into the async print job it dispatches — tracing `HTTP Request → Order → Job → Printing` across process boundaries in one `app.log`
-- **Audit history for sensitive administrative operations** (spec 043): menu item changes, settings changes (including printer configuration — the same endpoint as general settings), order reopening, and user creation via `bin/create-admin` each write a permanent, queryable `audit_log` row (who, what, when) — deliberately separate from the technical `app.log`, with its own `GET /api/admin/audit-log` endpoint and admin viewer page
-- **Health checks** (spec 044): `GET /health/live` always confirms the PHP process is routing requests; `GET /health/ready` runs a real query through the existing database connection and returns `503 DB_UNAVAILABLE` (a fixed, generic message — never the underlying exception) when the database is unreachable. Both are unauthenticated, matching the existing `/api/printer/status` precedent for infrastructure-facing endpoints
-- **Database backup and restore** (spec 045): `bin/backup-db` / `bin/restore-db`, host-run scripts that shell out to the `db` container's own `mysqldump`/`mysql` (the `web` container has no MySQL client installed, only `pdo_mysql`) — no new dependency anywhere. `bin/restore-db` defaults to the most recent file under `backups/`, accepts a named one otherwise, and requires typing `RESTAURAR` (or `--yes`) before running, since a restore drops and recreates every table. The round-trip was actually exercised against a throwaway database, not just implemented
-- **Migration reliability** (spec 048): `bin/migrate` now refuses to proceed if an already-applied migration's current content no longer matches what was recorded, comparing line-ending-normalized hashes so a `.gitattributes` line-ending normalization (spec 034) is never mistaken for tampering; `bin/migrate --trust-current-hashes` reconciles that explicitly, never automatically — confirmed necessary in practice against both the shared test database and this project's own development database. CI's fresh-install steps are now named as such, and a new test builds the exact `v1.7.1`-tagged database state and proves both a successful upgrade to `HEAD` and that historical data survives it
-- **Line endings, LF everywhere** (spec 049): `.gitattributes` alone governs, extended to every tracked text path a full-repo audit found ungoverned; a dedicated commit fixed the 9 files genuinely committed with CRLF/mixed line endings, and a new CI step stops that from happening again. See "Line endings (Windows)" above for Windows setup
-
-Full detail for all of the above in [`CHANGELOG.md`](CHANGELOG.md).
-
-**`v1.8.1`** (client work, outside the roadmap milestones; tagged 2026-10-02)
-
-- **Packaging fee from the Admin menu** (spec 050): "Viagem Simples"/"Viagem VIP" now charge the price of the menu item linked to each option (`menu_items.packaging_option`, migration 019) instead of a hardcoded R$ 1,00/2,00 — changing the price in the Admin changes it at the cashier, in the kitchen and in the stored order; falls back to the old values if no item is linked
-- **Admin UI redesign** (spec 051): the six admin pages share one layout and sidebar (offcanvas on phones), a single login/session helper (`public/admin/auth.js`) replaces three copies — return-to-page after login, `401` back to login, `403` as an in-page "Sem permissão" panel — and the menu page gets a search/category/grid toolbar with create and delete in modals. Same endpoints, no new dependency
-
-**`v1.8.2`** (client work, outside the roadmap milestones; tagged 2026-10-02)
-
-- **Kitchen edits use current prices** (spec 052): saving "Editar Pedido" re-prices each item from the current Admin menu — item price, "Monte Seu Prato" add-ons and the packaging fee; names stay the sale-time snapshot, and orders nobody edits keep their sale-time values
-
-**`v1.8.3`** (security follow-up, outside the roadmap milestones; tagged 2026-10-03)
-
-- **Login throttling** (spec 053): `POST /api/login` blocks for 15 minutes after 10 failures in 15 minutes for the same client IP + username (or 30 from one IP across usernames), answering `429` with `Retry-After`; failures live in a `login_attempts` table (migration 020) and expire on their own. Under Docker Desktop every host request arrives as the Docker gateway IP, so per-IP limits collapse there — documented
-
-**Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
-
-- Frontend modularization: shared `common.js` (toasts, theme, fetch wrapper), a real build step (Vite) instead of CDN-loaded dependencies
+What shipped and when: [`CHANGELOG.md`](CHANGELOG.md). What's planned: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ---
 
@@ -244,12 +131,6 @@ What changed how I approach the work, not a technology list:
 - **Documenting gaps is more valuable than hiding them.** `specs/000-project-baseline.md` records exactly what's confirmed, partially implemented, or simply not found — that accurate ground truth is what the spec workflow was then built on top of.
 - **AI assistance needs explicit boundaries to stay useful.** Left unconstrained, it tends to "complete the pattern" — adding a Repository or Validator for symmetry where the codebase never had one. `CLAUDE.md` exists to write that boundary down.
 - **A spec that requires evidence catches overclaiming before it ships.** `Verified` only applies once acceptance criteria have recorded evidence, which forces "did I actually check this" to be answered in writing.
-
----
-
-## Project philosophy
-
-GastroFlow is a working restaurant management system and, alongside that, a place to practice spec-driven development and AI-assisted, agentic coding under real constraints rather than in a toy repo. The rules in `CLAUDE.md` and the spec workflow are as much the subject of study here as they are tooling for shipping the product.
 
 ---
 
@@ -273,36 +154,25 @@ docker compose up -d
 
 # Create your administrator account (no default credentials are seeded):
 docker compose exec web php bin/create-admin admin
+
+# Optional (fresh install, or APP_ENV=development): fictional orders — last 45 days + 5 pending today
+docker compose exec web php bin/seed-demo
 ```
 
 - Application: [http://localhost:8080](http://localhost:8080)
 - Interactive API docs: [http://localhost:8080/api/docs](http://localhost:8080/api/docs)
 
-### Managing dependencies
-
-The `web` container is built from `Dockerfile` (`php:8.2-apache`), container name `restaurant_web`. `composer.json`/`composer.lock` are bind-mounted, so Composer commands run inside the container and are reflected on the host:
-
-```bash
-docker compose exec web composer install
-docker compose exec web composer update
-docker compose exec web composer require package-name
-docker compose exec web composer remove package-name
-
-# equivalent, using the container name directly
-docker exec -it restaurant_web composer update
-```
+Composer runs inside the container (`docker compose exec web composer install`). Every other command (migrations, print worker, job/event pruning, tests, static analysis) is listed in [`CLAUDE.md`](CLAUDE.md) › "Commands actually available".
 
 ### Backup & restore
 
 ```bash
-./bin/backup-db
-# ✔ Backup criado: backups/gastroflow-restaurant-20260926-012450.sql.gz (12K)
-
-./bin/restore-db                                                # most recent backup
+./bin/backup-db                                                  # → backups/gastroflow-<db>-<timestamp>.sql.gz
+./bin/restore-db                                                 # most recent backup
 ./bin/restore-db gastroflow-restaurant-20260901-030000.sql.gz    # a specific one
 ```
 
-Both run on the **host** (not inside `web`, which has no MySQL client) and shell out to the `db` container's own `mysqldump`/`mysql` — no extra dependency to install. `bin/restore-db` is destructive (it drops and recreates every table), so it asks you to type `RESTAURAR` to confirm, or pass `--yes` for scripted use. Backups land in `backups/` (gitignored — never committed).
+Both run on the **host** and use the `db` container's own `mysqldump`/`mysql` — nothing to install. `bin/restore-db` drops and recreates every table, so it asks you to type `RESTAURAR` (or pass `--yes`). Backups land in `backups/` (gitignored).
 
 ### Line endings (Windows)
 
@@ -312,7 +182,7 @@ Both run on the **host** (not inside `web`, which has no MySQL client) and shell
 git config core.autocrlf false
 ```
 
-so checkout doesn't fight that rule (Git for Windows' installer defaults `core.autocrlf` to `true`, which can still leave files as CRLF on disk despite `.gitattributes` saying LF). If your working tree was already affected before setting this — files git considers unmodified but that a tool like PHP-CS-Fixer reports as needing a full-file fix — force a clean re-checkout (make sure `git status` is clean first, since this discards nothing tracked but does rebuild every file from the index):
+Git for Windows defaults `core.autocrlf` to `true`, which can still leave CRLF files on disk. If your working tree was already affected (PHP-CS-Fixer flags whole files git calls unmodified), rebuild it from the index — with a clean `git status` first:
 
 ```bash
 git rm --cached -r .
@@ -323,14 +193,10 @@ git reset --hard
 
 ## Using the app
 
-- **Cashier** — create an order under a pickup ticket number ("Senha"), select items, add notes, send to the kitchen.
-- **Kitchen** — pending orders appear in near real time; mark as done or reopen.
-- **Admin** — manage the menu, dish components, ingredients, settings, and view the app log.
-- **Reports** — sales summary, top items, dining-option split, peak hours, average prep time, month-over-month comparison.
-
-> **Admin login:** no default credentials are seeded. Create your administrator with `docker compose exec web php bin/create-admin <username>` (prompts for a password, minimum 8 characters) — see [Installation](#getting-started).
-
-All data persists in the MySQL container (`db`).
+- **Cashier** (`/cashier/`) — create an order under a pickup ticket number ("Senha"), select items, add notes, send to the kitchen.
+- **Kitchen** (`/kitchen/`) — pending orders appear in real time; mark as done, reopen, edit, or reprint.
+- **Admin** (`/admin/`) — menu, dish components, ingredients, settings, audit history and the app log. Log in with the account created by `bin/create-admin` (see [Installation](#installation)).
+- **Reports** (`/admin/reports.php`) — sales summary, top items, dining-option split, peak hours, average prep time, month-over-month comparison.
 
 ---
 
@@ -345,55 +211,30 @@ Full interactive documentation (all endpoints, request/response schemas, "Try it
 # Full menu
 curl -s http://localhost:8080/api/menu | python -m json.tool
 
-# Create an order
+# Create an order (the pickup number is assigned by the server)
 curl -s -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
-  -d '{"table_number":"3","items":[{"id":1,"quantity":2,"notes":"no onion"}]}' | python -m json.tool
+  -d '{"customer_name":"Ana","items":[{"id":1,"quantity":2,"notes":"no onion"}]}' | python -m json.tool
 
-# Pending orders
-curl -s http://localhost:8080/api/orders?status=pending | python -m json.tool
-
-# Complete an order
-curl -s -X POST http://localhost:8080/api/orders/1/complete | python -m json.tool
-
-# Login (use the account you created with `bin/create-admin` — see "Using the app" above)
+# Login (use the account you created with `bin/create-admin`)
 curl -s -X POST http://localhost:8080/api/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"your-password-here"}' | python -m json.tool
 
 # Use the token against admin routes
 TOKEN="paste-your-token-here"
-
 curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/menu | python -m json.tool
-
-curl -s -X POST http://localhost:8080/api/admin/items \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"name":"Caesar Salad","price":14.90,"category_name":"Main Courses","description":"Fresh salad with croutons"}' | python -m json.tool
-
-curl -s -X PATCH http://localhost:8080/api/admin/items/1 \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"available":false}' | python -m json.tool
 ```
 
 </details>
 
 ---
 
-## Commit convention & releases
-
-Commits follow a documented type/scope/emoji convention — full guide with real examples in [`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md).
-
-Releases follow Semantic Versioning: each one gets a manually curated [`CHANGELOG.md`](CHANGELOG.md) entry and an annotated Git tag (`vX.Y.Z`). The full release checklist is in the **Release & Changelog Workflow** section of `COMMIT_CONVENTION.md`.
-
----
-
 ## Contributing
 
 1. Fork the repository
-2. Create a branch: `git checkout -b feature/feature-name`
-3. Commit following the [commit convention](docs/COMMIT_CONVENTION.md)
+2. Create a branch (this repo uses one branch per spec, named after its number — e.g. `054`; outside contributors can use `feature/feature-name`)
+3. Commit following [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)
 4. Push and open a Pull Request
 
 Bugs, questions and improvement ideas: [open an issue](https://github.com/FocusEvenGitHub/GastroFlow/issues).

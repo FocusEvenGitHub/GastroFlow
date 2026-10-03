@@ -91,12 +91,13 @@ mysql/
 # ============================================
 /public/assets/img/*
 !/public/assets/img/logo.png
-!/public/assets/img/tela_cashier.png
-!/public/assets/img/tela_kitchen.png
-!/public/assets/img/tela_admin.png
-!/public/assets/img/tela_relatorio.png
+!/public/assets/img/tela_cashier.jpg
+!/public/assets/img/tela_kitchen.jpg
+!/public/assets/img/tela_admin.jpg
+!/public/assets/img/tela_relatorio.jpg
 
 # Testes de navegador (spec 040)
 tests/e2e/node_modules/
 tests/e2e/test-results/
 tests/e2e/playwright-report/
+.codegraph/
