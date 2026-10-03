@@ -1,8 +1,8 @@
 # Changelog
 
-## Não lançado (próximo patch: `v1.8.3`)
+## v1.8.3 (2026-10-03) — Limite de tentativas de login
 
-Item do Backlog sem milestone (o "Authentication hardening" de origem fazia parte do `v1.6.0`, já fechado) — sai como patch, como o trabalho de cliente do `v1.8.x`. Tag só com confirmação explícita.
+Item do Backlog sem milestone (o "Authentication hardening" de origem fazia parte do `v1.6.0`, já fechado) — sai como patch, como o trabalho de cliente do `v1.8.x`.
 
 > ⚠️ **Rodar `bin/migrate` antes de subir o código novo (spec 053):** a migração `020_login_attempts.sql` cria a tabela que o login passa a consultar em toda tentativa. Código novo sem a migração = todo login falhando com erro de SQL.
 
