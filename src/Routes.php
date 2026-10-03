@@ -22,7 +22,9 @@ use App\Controllers\VersionController;
 use App\Logging\RequestContext;
 use App\Middleware\JwtMiddleware;
 use App\Middleware\RoleMiddleware;
+use App\Services\LoginThrottleService;
 use App\Validators\AuthValidator;
+use Psr\Log\LoggerInterface;
 
 class Routes
 {
@@ -68,8 +70,14 @@ class Routes
             $group->post('/printer/reset', [PrinterController::class, 'reset']);
         });
 
-        $app->post('/api/login', function ($request, $response) use ($secret) {
-            $controller = new AuthController($secret, new AuthValidator());
+        $container = $app->getContainer();
+        $app->post('/api/login', function ($request, $response) use ($secret, $container) {
+            $controller = new AuthController(
+                $secret,
+                new AuthValidator(),
+                new LoginThrottleService(),
+                $container?->get(LoggerInterface::class)
+            );
             return $controller->login($request, $response);
         });
 

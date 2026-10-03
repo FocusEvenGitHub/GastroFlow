@@ -53,6 +53,39 @@ class AuthenticationTest extends IntegrationTestCase
         $this->assertSame(401, $response->getStatusCode());
     }
 
+    /** Spec 053, AC5 — the 11th attempt is throttled even with the right password. */
+    public function testLoginIsThrottledAfterTenFailures(): void
+    {
+        $user = $this->createUser('admin');
+        $other = $this->createUser('admin');
+
+        // A validation error (400) does not count as a failure.
+        $this->assertSame(400, $this->request('POST', '/api/login', ['username' => $user['username']])->getStatusCode());
+
+        for ($i = 0; $i < 10; $i++) {
+            $response = $this->request('POST', '/api/login', [
+                'username' => $user['username'],
+                'password' => 'wrong-' . $i,
+            ]);
+            $this->assertSame(401, $response->getStatusCode(), "attempt {$i}");
+        }
+
+        $blocked = $this->request('POST', '/api/login', [
+            'username' => $user['username'],
+            'password' => $user['password'],
+        ]);
+        $this->assertSame(429, $blocked->getStatusCode());
+        $this->assertSame('TOO_MANY_LOGIN_ATTEMPTS', $this->decode($blocked)['code']);
+        $this->assertGreaterThan(0, (int) $blocked->getHeaderLine('Retry-After'));
+
+        // Another user from the same (test) IP, under the per-IP limit, still logs in.
+        $ok = $this->request('POST', '/api/login', [
+            'username' => $other['username'],
+            'password' => $other['password'],
+        ]);
+        $this->assertSame(200, $ok->getStatusCode());
+    }
+
     /** AC5 */
     public function testAdminRouteRejectsMissingToken(): void
     {

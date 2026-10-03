@@ -1,5 +1,15 @@
 # Changelog
 
+## Não lançado (próximo patch: `v1.8.3`)
+
+Item do Backlog sem milestone (o "Authentication hardening" de origem fazia parte do `v1.6.0`, já fechado) — sai como patch, como o trabalho de cliente do `v1.8.x`. Tag só com confirmação explícita.
+
+> ⚠️ **Rodar `bin/migrate` antes de subir o código novo (spec 053):** a migração `020_login_attempts.sql` cria a tabela que o login passa a consultar em toda tentativa. Código novo sem a migração = todo login falhando com erro de SQL.
+
+### Segurança
+- **Limite de tentativas de login**: `POST /api/login` passa a bloquear por 15 minutos depois de **10 falhas em 15 minutos** para o mesmo IP + usuário, ou **30 falhas do mesmo IP** somando usuários. Responde `429 TOO_MANY_LOGIN_ATTEMPTS` com `Retry-After` e a mensagem "Muitas tentativas de login. Tente novamente em N minutos." (a tela de login do Admin já mostra). Enquanto bloqueado, nem a senha certa entra e as tentativas não contam, então o bloqueio não se estende; login certo zera a contagem; erro de validação (400) não conta. Chave IP + usuário de propósito: um atacante só consegue travar o admin no próprio IP. Tentativas ficam na tabela `login_attempts` (IP, usuário normalizado e horário — nunca senha), apagadas sozinhas depois de 15 minutos; cada bloqueio gera uma linha `auth.login_throttled` no `app.log`. Fecha o último item do "Authentication hardening" que a spec 016 tinha deixado para depois (spec 053)
+- ⚠️ **Docker Desktop (Windows/Mac)**: o app vê todo acesso vindo do host com o IP do gateway do Docker (medido: `172.18.0.1`), então o limite por IP vira global e o "IP + usuário" vira "por usuário" nesse ambiente. Em Docker no Linux o IP real do cliente é preservado. Cabeçalhos de proxy (`X-Forwarded-For`) continuam ignorados de propósito
+
 ## v1.8.2 (2026-10-02) — "Editar Pedido" com preços atuais
 
 Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`**, que entrou em `master` depois de `v1.8.1`. Mesma regra do `v1.7.1`/`v1.8.1`: patch, para não ocupar o `v1.9.0`.

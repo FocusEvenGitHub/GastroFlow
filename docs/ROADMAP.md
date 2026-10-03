@@ -395,7 +395,7 @@ Define and test:
 
 Document the authentication strategy clearly.
 
-**Status (spec 016)**: token expiration/invalid/expired handling and password hashing were already correct, just undocumented — now written up in `docs/architecture.md`'s "Authentication" section. Password changes shipped (`PATCH /api/admin/account/password`). Logout was confirmed as a deliberate non-feature (stateless JWT, documented rationale) rather than a gap. **Login throttling is explicitly not done** — deferred to its own follow-up spec (not yet planned), since it needs its own design decisions (per-IP vs per-username tracking, storage mechanism — no Redis/cache exists in this project, so it likely needs a small schema addition — and lockout duration) that don't fit cleanly alongside the rest of this checklist.
+**Status (spec 016)**: token expiration/invalid/expired handling and password hashing were already correct, just undocumented — now written up in `docs/architecture.md`'s "Authentication" section. Password changes shipped (`PATCH /api/admin/account/password`). Logout was confirmed as a deliberate non-feature (stateless JWT, documented rationale) rather than a gap. **Login throttling is explicitly not done** — deferred to its own follow-up spec (not yet planned), since it needs its own design decisions (per-IP vs per-username tracking, storage mechanism — no Redis/cache exists in this project, so it likely needs a small schema addition — and lockout duration) that don't fit cleanly alongside the rest of this checklist. **Update 2026-10-02 (spec 053)**: login throttling is now done — 10 failures / 15 min per IP + username (30 per IP across usernames) → `429` with `Retry-After` for 15 minutes, stored in `login_attempts`. This closes the last open item of this subsection.
 
 ---
 
@@ -1146,6 +1146,7 @@ Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for
 
 - Saving the kitchen's "Editar Pedido" re-prices each item from the current Admin menu — item price, "Monte Seu Prato" add-ons, packaging fee on every save; names stay snapshotted (spec 052, `Verified`, PR #34).
 - Process: at most one pull request per spec, carrying its changelog entry and docs pass (`CLAUDE.md`, PR #35).
+- Landed after this tag (next patch, `v1.8.3`, not yet tagged): login throttling (spec 053) — tracked under "Não lançado" in `CHANGELOG.md`.
 
 ---
 
