@@ -80,7 +80,7 @@ Kitchen: `openEditModal()` also calls `loadMenu()`, so the modal's prices (Simpl
 ## Non-functional requirements
 
 - Money stays exact (`App\Money`, spec 021). No float sums.
-- At most one menu lookup for the item plus one for its add-ons per PATCH (`whereIn`). Negligible.
+- A handful of small queries per item PATCH: the dish's menu item, the order item's add-ons, the add-ons' current prices (one `whereIn`) and the linked packaging fee (spec 050). Negligible. *(Corrected 2026-10-02 after `/spec-review`: the earlier wording undercounted.)*
 
 ## User flows
 
@@ -107,7 +107,7 @@ Not applicable — it writes existing columns (`order_items.unit_price`, `packag
 
 ## Security considerations
 
-- **No new input:** prices come from the DB, never from the request. The validator still rejects unknown fields.
+- **No new input:** prices come from the DB, never from the request. The validator is unchanged; it validates only `quantity`/`notes`/`dining_option` and ignores unknown fields (Valitron behavior, recorded in spec 046). Nothing in the body can influence a price. *(Corrected 2026-10-02 after `/spec-review`: an earlier draft said unknown fields were rejected.)*
 - **Same endpoint and access:** the endpoint stays unauthenticated, as all kitchen endpoints are today (an existing, documented deployment choice in `docs/architecture.md`).
 - **Effect of a call:** each call now writes server-computed prices. A caller can trigger re-pricing to current values, but can't choose a price.
 
@@ -162,7 +162,8 @@ Code only, so deploy is the merge. Rollback is a revert. Orders already re-price
 - 2026-10-02 — Approved by `/spec-implement` invocation (Draft, no blocking open questions) → In Progress.
 - 2026-10-02 — `repriceItem()` returns early, touching neither the price nor the add-ons, when the dish's own menu item is gone. A first draft refreshed the add-ons anyway, which would have left stored add-on prices that no longer added up to the stored `unit_price`. FR3 is unchanged by this; it only makes the "item deleted" branch consistent.
 - 2026-10-02 — Add-on prices come from one `whereIn` lookup. The composed price reuses `PricingService::unitPriceFor()` + `composedUnitPrice()` with the add-ons' (possibly refreshed) stored `unit_price` and quantities, so a deleted add-on contributes its stored price (FR3).
-- 2026-10-02 — The `$recomputePackaging` condition (spec 046) was removed: packaging is now recomputed on every item PATCH (FR4). The rest of the validator and controller are untouched.
+- 2026-10-02 — The `$recomputePackaging` condition (spec 046) was removed: packaging is now recomputed on every item PATCH (FR4). The rest of the validator and controller are untouched. Consequence worth stating in the changelog: any successful item PATCH re-prices the item, including one with an empty body (`{}`), since every field is optional.
+- 2026-10-02 — `/spec-review` corrections to this spec's text (no code change): the Security section wrongly said the validator rejects unknown fields (Valitron ignores them, see spec 046); the non-functional requirement undercounted the queries per PATCH.
 - 2026-10-02 — Browser check side effect: an early run of the test script matched the wrong order card on 8081 and saved test order 1487 (`restaurant_test`), which re-priced it to current test prices. Test data only. The final run opened the exact order through `openEditModal(order)`, the function the "Editar pedido" button calls.
 
 ## Validation evidence
