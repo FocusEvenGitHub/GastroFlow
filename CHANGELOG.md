@@ -1,8 +1,8 @@
 # Changelog
 
-## Não lançado — trabalho de cliente (próximo patch: `v1.8.2`)
+## v1.8.2 (2026-10-02) — "Editar Pedido" com preços atuais
 
-Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`**, que entrou em `master` depois de `v1.8.1`. Mesma regra do `v1.7.1`/`v1.8.1`: patch, para não ocupar o `v1.9.0`. Tag só com confirmação explícita.
+Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`**, que entrou em `master` depois de `v1.8.1`. Mesma regra do `v1.7.1`/`v1.8.1`: patch, para não ocupar o `v1.9.0`.
 
 > ⚠️ **Mudança de comportamento visível (spec 052):** salvar o "Editar Pedido" na cozinha agora atualiza o pedido com os preços atuais do Admin — um pedido antigo editado passa a ter outro total na reimpressão e nos relatórios. Pedidos que ninguém edita continuam com os valores da venda.
 
