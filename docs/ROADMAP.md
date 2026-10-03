@@ -586,7 +586,7 @@ packaging value
 
 Reports and receipts for old orders should not depend on current menu prices.
 
-**Status (spec 023)**: Verified — item name, unit price and packaging cost are captured at sale time; historical orders/receipts no longer change value when the menu changes later.
+**Status (spec 023)**: Verified — item name, unit price and packaging cost are captured at sale time; historical orders/receipts no longer change value when the menu changes later. **Note 2026-10-02**: by client decision, an order the kitchen saves through "Editar Pedido" is re-priced at current menu prices (packaging since spec 050, item and add-on prices since spec 052); names stay snapshotted and orders nobody edits keep their sale-time values.
 
 ---
 
@@ -1137,7 +1137,7 @@ Not part of any milestone — client-requested work landing on `master` after `v
 
 - Packaging fee for `viagem_simples`/`viagem_vip` taken from the price of the linked Admin menu item instead of hardcoded R$ 1,00/2,00 (spec 050, `Verified`, PR #29).
 - Admin UI redesign: shared layout/sidebar for the 6 admin pages, one login + session helper (`public/admin/auth.js`), Cardápio toolbar and modals (spec 051, `Verified`, PR #31).
-- Next client follow-up, after this tag: refreshing item prices from the Admin when the kitchen saves "Editar Pedido" (recorded in spec 050).
+- Landed after this tag (next patch, `v1.8.2`, not yet tagged): refreshing item prices from the Admin when the kitchen saves "Editar Pedido" (spec 052, `Verified`, PR #34) — tracked under "Não lançado" in `CHANGELOG.md`.
 
 Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for the milestone below.
 

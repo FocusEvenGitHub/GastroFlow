@@ -1,5 +1,17 @@
 # Changelog
 
+## Não lançado — trabalho de cliente (próximo patch: `v1.8.2`)
+
+Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`**, que entrou em `master` depois de `v1.8.1`. Mesma regra do `v1.7.1`/`v1.8.1`: patch, para não ocupar o `v1.9.0`. Tag só com confirmação explícita.
+
+> ⚠️ **Mudança de comportamento visível (spec 052):** salvar o "Editar Pedido" na cozinha agora atualiza o pedido com os preços atuais do Admin — um pedido antigo editado passa a ter outro total na reimpressão e nos relatórios. Pedidos que ninguém edita continuam com os valores da venda.
+
+### Novidades
+- **"Editar Pedido" atualiza os preços pelo cardápio atual**: ao salvar, cada item do pedido (a cozinha envia todos) é recalculado com o cardápio do Admin — preço unitário, preço dos adicionais de pratos "Monte Seu Prato" e a soma, e a taxa de embalagem, que agora é recalculada em todo salvar (antes, só quando quantidade ou opção mudavam). Os nomes continuam os da venda. Vale para pedidos pendentes e concluídos; cancelado segue bloqueado. Prato ou adicional que saiu do cardápio mantém o preço gravado, então a edição nunca falha por preço. Qualquer `PATCH /api/orders/{id}/items/{itemId}` bem-sucedido re-precifica, mesmo com corpo vazio. A cozinha recarrega o cardápio ao abrir o modal (spec 052, PR #34)
+
+### Infraestrutura / Qualidade
+- **No máximo um PR por spec**: o PR da spec passa a levar o código, a spec, a entrada do `CHANGELOG.md` e a passada de docs — sem PR de changelog/docs separado depois do merge; o corte de release vai junto do último PR de spec da release. Regra registrada em `CLAUDE.md` › "Release workflow". A entrada da spec 052 acima é a última que precisou de PR próprio: o PR #34 foi mergeado antes da regra
+
 ## v1.8.1 (2026-10-02) — Taxa de embalagem do Admin e Admin redesenhado
 
 Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`**, que entrou em `master` depois de `v1.8.0`. Pela regra já usada no `v1.7.1`, sai como patch (`v1.8.1`) para não ocupar o `v1.9.0`, reservado ao milestone `Community Productization` — embora os commits `feat`/`ui` pedissem um bump MINOR pela tabela SemVer. Desvio consciente, registrado aqui.
