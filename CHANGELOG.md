@@ -1,8 +1,8 @@
 # Changelog
 
-## Não lançado — trabalho de cliente (próximo patch: `v1.8.1`)
+## v1.8.1 (2026-10-02) — Taxa de embalagem do Admin e Admin redesenhado
 
-Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`**, que entrou em `master` depois de `v1.8.0`. Pela regra já usada no `v1.7.1`, sai como patch (`v1.8.1`) para não ocupar o `v1.9.0`, reservado ao milestone `Community Productization`. Tag só com confirmação explícita.
+Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`**, que entrou em `master` depois de `v1.8.0`. Pela regra já usada no `v1.7.1`, sai como patch (`v1.8.1`) para não ocupar o `v1.9.0`, reservado ao milestone `Community Productization` — embora os commits `feat`/`ui` pedissem um bump MINOR pela tabela SemVer. Desvio consciente, registrado aqui.
 
 > ⚠️ **Rodar `bin/migrate` antes de subir o código novo (spec 050):** a migração `019_menu_item_packaging_option.sql` cria a coluna `menu_items.packaging_option`, que o código novo consulta em todo pedido de viagem. Código novo sem a migração = pedido de viagem e edição de item na cozinha falhando com erro de SQL.
 
