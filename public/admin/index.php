@@ -2,8 +2,8 @@
 $pageTitle = 'Cardápio';
 $activePage = 'index.php';
 $gate = true;
-$pageScripts = ['https://cdn.jsdelivr.net/npm/tom-select@2/dist/js/tom-select.complete.min.js', '/admin/app.js'];
-$extraHead = '<link href="https://cdn.jsdelivr.net/npm/tom-select@2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">';
+$pageScripts = ['/vendor/tom-select-2.6.2/js/tom-select.complete.min.js', '/admin/app.js'];
+$extraHead = '<link href="/vendor/tom-select-2.6.2/css/tom-select.bootstrap5.min.css" rel="stylesheet">';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">

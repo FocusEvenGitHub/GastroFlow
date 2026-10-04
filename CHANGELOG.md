@@ -1,8 +1,9 @@
 # Changelog
 
-## Não lançado
+## v1.9.0 — Community Productization (em andamento)
 
 ### Novidades
+- **Caixa, cozinha e Admin funcionam sem internet**: Bootstrap, Font Awesome, Alpine.js, Tom Select, Chart.js e a fonte Inter deixam de vir de CDN e passam a ser servidos pelo próprio GastroFlow, de `public/vendor/<lib>-<versão>/` — arquivos oficiais, byte a byte iguais à origem, com versão, origem, licença e SHA-256 em `public/vendor/README.md`. Com a rede local de pé e a internet caída, as telas carregam inteiras; antes o Alpine nem iniciava. Sem Vite nem build: `public/` continua sem Node. Alpine (`3.x.x`) e Tom Select (`@2`) eram faixas flutuantes no CDN e ficam fixados na versão que já rodava (3.17.4 e 2.6.2). Teste de navegador novo (`offline-assets.spec.ts`) bloqueia toda requisição para fora do servidor e falha se alguma tela voltar a depender de CDN. O Swagger UI de `/api/docs/` continua no CDN, por ser página de desenvolvedor (spec 055)
 - **`bin/seed-demo`**: preenche uma instalação nova com pedidos fictícios relativos ao dia em que roda — 60 concluídos nos 45 dias anteriores (horário de almoço, preparo de 8 a 25 min) e 5 pendentes de hoje — para Cozinha e Relatórios terem o que mostrar. Os pedidos passam pelo `OrderRepository` de verdade (preço, senha e nome iguais aos do caixa) e não geram impressão. Recusa rodar se o banco já tiver qualquer pedido, a menos que `APP_ENV=development` — aí as senhas do histórico continuam a partir da maior de cada dia —, então não suja um restaurante em uso (spec 054)
 
 ### Correções

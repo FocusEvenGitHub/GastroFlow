@@ -1,7 +1,7 @@
 <?php
 $pageTitle = 'Relatórios';
 $activePage = 'reports.php';
-$pageScripts = ['https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', '/admin/reports.js'];
+$pageScripts = ['/vendor/chartjs-4.4.0/chart.umd.min.js', '/admin/reports.js'];
 $extraHead = <<<'HTML'
     <style>
         .stat-card { border-radius: 0.75rem; border-left: 5px solid; transition: all 0.2s; }

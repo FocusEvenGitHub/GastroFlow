@@ -4,7 +4,7 @@ Persistent instructions for working in this repository. Keep this file short; de
 
 ## Stack (confirmed)
 
-PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Eloquent ORM (`illuminate/database ^10`, via `Illuminate\Database\Capsule\Manager`), `vlucas/valitron` for validation, `firebase/php-jwt`, `monolog/monolog`, `mike42/escpos-php` (ESC/POS thermal printing), MySQL 8.0, Docker Compose. Frontend: static PHP/HTML pages under `public/` using Alpine.js + Bootstrap 5, **no build step** — nothing in `public/` depends on Node. The only Node in the repository is `tests/e2e/` (Playwright, spec 040), isolated there on purpose.
+PHP >=8.1 (Docker runtime: `php:8.2-apache`), Slim 4 + `php-di/slim-bridge`, Eloquent ORM (`illuminate/database ^10`, via `Illuminate\Database\Capsule\Manager`), `vlucas/valitron` for validation, `firebase/php-jwt`, `monolog/monolog`, `mike42/escpos-php` (ESC/POS thermal printing), MySQL 8.0, Docker Compose. Frontend: static PHP/HTML pages under `public/` using Alpine.js + Bootstrap 5, **no build step**; third-party libraries are vendored, pinned, in `public/vendor/` (spec 055 — never reference a CDN from an operational screen) — nothing in `public/` depends on Node. The only Node in the repository is `tests/e2e/` (Playwright, spec 040), isolated there on purpose.
 
 ## Architecture (confirmed)
 

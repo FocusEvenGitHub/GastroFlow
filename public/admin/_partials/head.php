@@ -30,8 +30,8 @@ $asset = static function (string $src): string {
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="/vendor/bootstrap-5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/vendor/fontawesome-free-6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/style.css">
     <link rel="stylesheet" href="<?= htmlspecialchars($asset('/assets/css/admin.css'), ENT_QUOTES) ?>">
     <?= $extraHead ?? '' ?>
@@ -42,10 +42,10 @@ $asset = static function (string $src): string {
             }
         } catch (_) {}
     </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script defer src="/vendor/bootstrap-5.3.0/js/bootstrap.bundle.min.js"></script>
     <script defer src="<?= htmlspecialchars($asset('/admin/auth.js'), ENT_QUOTES) ?>"></script>
 <?php foreach ($pageScripts as $src) : ?>
     <script defer src="<?= htmlspecialchars($asset($src), ENT_QUOTES) ?>"></script>
 <?php endforeach; ?>
     <script defer src="/assets/js/version-badge.js"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="/vendor/alpinejs-3.17.4/cdn.min.js"></script>
