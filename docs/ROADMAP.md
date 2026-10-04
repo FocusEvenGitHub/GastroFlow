@@ -1183,6 +1183,8 @@ Introduce an appropriate frontend build process such as Vite.
 
 After installation, core restaurant operation should not require internet access.
 
+**Status (2026-10-03): implemented by spec 055.** All operational assets are served from `public/vendor/<lib>-<version>/`, pinned and byte-identical to upstream (inventory, licenses and SHA-256 in `public/vendor/README.md`); a Playwright test blocks every off-origin request and checks the cashier, kitchen and admin screens. **The "build process such as Vite" above was deliberately not adopted** (user decision, 2026-10-03): every library already ships a ready-to-serve minified file, so copying it reaches the goal — offline operation — without putting Node in every install and upgrade, and `public/` keeps its no-build rule (`CLAUDE.md`, spec 051). Swagger UI at `/api/docs/` stays on a CDN (developer page, not operation).
+
 ---
 
 ## Shared frontend infrastructure
