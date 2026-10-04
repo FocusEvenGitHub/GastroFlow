@@ -10,9 +10,9 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/vendor/bootstrap-5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/vendor/fontawesome-free-6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/style.css">
     <style>
         .menu-item-card { cursor: pointer; transition: all 0.2s; }
@@ -453,9 +453,9 @@
 </div> <!-- /x-data -->
 
 <!-- Alpine.js -->
-<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script defer src="/vendor/alpinejs-3.17.4/cdn.min.js"></script>
 <!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/vendor/bootstrap-5.3.0/js/bootstrap.bundle.min.js"></script>
 <!-- Nosso componente Alpine -->
 <script src="app.js"></script>
 <script src="/assets/js/version-badge.js"></script>

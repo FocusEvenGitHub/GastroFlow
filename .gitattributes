@@ -27,6 +27,12 @@
 *.webmanifest text eol=lf
 *.sh text eol=lf
 
+# Spec 055: fontes servidas de public/vendor/ — binário, nunca normalizar.
+*.woff2 binary
+*.woff binary
+*.ttf binary
+public/vendor/**/LICENSE text eol=lf
+
 .gitattributes text eol=lf
 .gitignore text eol=lf
 .dockerignore text eol=lf
