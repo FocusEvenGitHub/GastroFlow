@@ -2,9 +2,9 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-10-03
-- Updated: 2026-10-03
+- Updated: 2026-10-04
 - Owner:
 - Related issue: `docs/ROADMAP.md` › `v1.9.0` › "Local frontend dependencies" (first item of the milestone); prerequisite for "LAN operation without internet" and the v2.0 verification matrix's "Network" block; Trello card #21
 - Related branch: `055`
@@ -205,11 +205,11 @@ No blocking questions.
 - [x] References rewritten (head.php, cashier, kitchen, admin/index.php, admin/reports.php)
 - [x] Inter `@font-face` replaces Google Fonts `@import`
 - [x] Playwright offline test added (red on `master`, green on branch)
-- [x] AC-1/4/5 checks run and recorded; AC-6 partially (attributes checked, `ls-files --eol` needs the files staged — confirmed by CI on the PR)
-- [ ] Manual offline check (AC-8) — needs the user to disconnect the internet
+- [x] AC-1/4/5/6 checks run and recorded (AC-6 confirmed by CI on PR #40)
+- [x] Manual offline check (AC-8) — done by the user, 2026-10-04
 - [x] CHANGELOG + docs pass (ROADMAP, technical-decisions, architecture, CLAUDE.md; baseline checked, nothing in it made false)
-- [ ] CI green on the PR (AC-7)
-- [ ] `/spec-review`
+- [x] CI green on the PR (AC-7) — PR #40, run `37172423513`
+- [x] `/spec-review` — findings (AC-2 wording, log entry, CHANGELOG sections) fixed
 
 ## Implementation log
 
@@ -231,8 +231,8 @@ No blocking questions.
 - **AC-3** — same test with `master`'s views (stash) → `4 failed`, each `TimeoutError: page.waitForFunction` (Alpine never initialized with off-origin requests blocked). ✅
 - **AC-4** — `cd public/vendor && sed -n '/^```text$/,/^```$/p' README.md | grep -v '```' | sha256sum -c` → 17 × `OK`; `find . -type f ! -name README.md | wc -l` → 17. ✅
 - **AC-5** — every `url(../webfonts/…)` in `all.min.css` checked with `[ -f … ]` → 8 × `OK`, 0 missing. ✅
-- **AC-6** — `git check-attr text eol`: `.woff2`/`.ttf` → `text: unset` (binary); `.js` → `eol: lf`; `LICENSE` → covered by the new rule. Real CR bytes in every vendored text file: 0. `git ls-files --eol` and CI's "Line endings" step not yet observed (files not committed). ⏳ partial
-- **AC-7** — not run yet: needs the PR's CI. Locally: `php -l` on the 5 changed views inside `restaurant_web_e2e` → `No syntax errors detected` × 5; full E2E suite has the pre-existing `printer-block` flakiness described in the log. ⏳
-- **AC-8** — not run: needs the internet actually disconnected on the user's machine. ⏳
+- **AC-6** — `git check-attr text eol`: `.woff2`/`.ttf` → `text: unset` (binary); `.js` → `eol: lf`; `LICENSE` → covered by the new rule. Real CR bytes in every vendored text file: 0. CI on PR #40 (run `37172423513`), "Line endings" step: `No CRLF/mixed line endings found in tracked files.` ✅
+- **AC-7** — CI on PR #40 (run `37172423513`, job `test`): `pass` in 1m32s. Raw log: PHPUnit `OK (197 tests, 395 assertions)` and `OK (53 tests, 213 assertions)`; Browser tests (Playwright) `9 passed, 3 skipped`, the 3 skipped being `realtime-events.spec.ts`, skipped by design under `php -S` (spec 040). The 4 `offline-assets.spec.ts` tests passed under `php -S` (`/cashier/` 505ms, `/kitchen/` 376ms, `/admin/index.php` 340ms, `/admin/reports.php` 504ms), which also settles the AC-2 open point about the CI server. Locally: `php -l` on the 5 changed views → `No syntax errors detected` × 5. ✅
+- **AC-8** — manual check done by the user on 2026-10-04, with the internet disconnected, on `localhost:8080`; reported in the session as "DONE, TESTADO TBM". It is the user's own observation; no screenshot was recorded. ✅
 
-Status is `Implemented`, not `Verified`: AC-6 (CI part), AC-7 and AC-8 lack evidence.
+Every acceptance criterion now has evidence → `Verified`. PR #40 was merged (`59511e2`, 2026-10-04) before this evidence commit was pushed, so this update reaches `master` separately.
