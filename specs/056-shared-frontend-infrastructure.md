@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-10-04
 - Updated: 2026-10-05
 - Owner:
@@ -194,7 +194,7 @@ No blocking questions.
 - [x] Playwright tests (AC-3/4/5), red on `master` for AC-3/4
 - [x] AC-1/2/8 checks; AC-7 pass (scripted in a browser against 8081, see evidence)
 - [x] CHANGELOG + docs pass (architecture, technical-decisions, ROADMAP; baseline/README/CLAUDE.md checked — nothing in them made false)
-- [ ] CI green on the PR
+- [x] CI green on the PR — #42, run `37405869814`
 - [x] `/spec-review` — findings (FR-6 wording, "41" count) fixed
 
 ## Implementation log
@@ -222,8 +222,8 @@ Environment: branch `056`, Docker Desktop started for the run, `web-e2e` on port
 - **AC-3** — `npx playwright test specs/api-errors.spec.ts` on the branch → `3 passed`. Same spec with `master`'s screens (`git stash push -- public/cashier public/kitchen public/admin`, then `pop`): `Expected: "Sem conexão com o servidor." Received: "Failed to fetch"`. ✅
 - **AC-4** — same runs: branch passes; `master` → `Expected: "Erro do servidor (HTTP 502)." Received: "Unexpected token '<', "<html><bod"... is not valid JSON"`. ✅
 - **AC-5** — kitchen test (printer status aborted, wait for the `requestfailed` event, then assert zero toasts) passes on the branch. ✅ (it passes on `master` too — it guards against a regression, it doesn't detect an old defect)
-- **AC-6** — full local suite `npx playwright test` → `15 passed (1.2m)` (printer-block 5, realtime-events 3, offline-assets 4, api-errors 3). `php -l` inside `restaurant_web_e2e` → `No syntax errors detected` for `cashier/index.php`, `kitchen/index.php`, `admin/_partials/head.php`, `admin/_partials/shell-end.php`, `_partials/toasts.php`; `node --check` clean on `gf.js` and all 9 migrated scripts. CI not yet run (no PR yet). ⏳
+- **AC-6** — full local suite `npx playwright test` → `15 passed (1.2m)` (printer-block 5, realtime-events 3, offline-assets 4, api-errors 3). `php -l` inside `restaurant_web_e2e` → `No syntax errors detected` for `cashier/index.php`, `kitchen/index.php`, `admin/_partials/head.php`, `admin/_partials/shell-end.php`, `_partials/toasts.php`; `node --check` clean on `gf.js` and all 9 migrated scripts. CI on PR #42: first run (`37405481971`) failed on test isolation — see Implementation log; after the fix, run `37405869814` on `a413deb`: job `test` **pass** (1m44s). Raw log: `No CRLF/mixed line endings found in tracked files.`, PHPUnit `OK (197 tests, 395 assertions)` and `OK (53 tests, 213 assertions)`, Playwright `12 passed, 3 skipped` (the 3 skipped are `realtime-events.spec.ts`, by design under `php -S`), including the 3 `api-errors.spec.ts` tests. ✅
 - **AC-7** — Playwright script logged in as `spec056admin` on 8081, zero `pageerror`s, results: Cardápio loaded (4273 items); create → "Item adicionado!", item listed; edit → "Item atualizado!"; deactivate → "Item desativado!"; delete through the confirm modal → "Item excluído com sucesso!", item gone; empty form → "Preencha todos os campos obrigatórios."; Ingredientes create/edit/delete → "Ingrediente adicionado!"/"…atualizado!"/"…excluído!", gone after delete; Configurações loaded ("Teste Auditoria"), save → "Configurações salvas com sucesso!", test print without IP → "IP da impressora não configurado. Defina o IP em Configurações antes de testar a impressão." (API message); Logs 167 lines, Auditoria 5 entries, no toast; Relatórios loaded, 3 charts, no toast. Invalid token → `/admin/?next=%2Fadmin%2Freports.php`, token cleared, after login back on `/admin/reports.php`. Wrong password → "Credenciais inválidas.". `spec056mgr` (manager) on Configurações → "Sem permissão" panel visible. A first run misreported two steps (a toast read before a slow 4273-item reload finished; a URL regex that matched `?next=…reports.php` before navigating) — re-run with condition waits, results above. ✅
 - **AC-8** — `wc -l` over the 9 migrated JS files: **2017 before → 1828 after**; the new `gf.js` (67) + `toasts.php` (17) included, 1912 — still lower. ✅
 
-Status `Implemented`: AC-6 still needs CI on the PR.
+Every acceptance criterion has recorded evidence → `Verified`.
