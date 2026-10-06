@@ -51,7 +51,7 @@ function reportsApp() {
             this.loading = true;
             this.destroyCharts();
             try {
-                const [salesRes, topRes, mainDishesRes, diningRes, peakRes, prepRes, monthRes] = await Promise.all([
+                const [salesData, topData, mainDishesData, diningData, peakData, prepData, monthData] = await Promise.all([
                     this.api(`/api/admin/reports/sales?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
                     this.api(`/api/admin/reports/top-items?date_from=${this.dateFrom}&date_to=${this.dateTo}&limit=10`),
                     this.api(`/api/admin/reports/main-dishes?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
@@ -61,37 +61,22 @@ function reportsApp() {
                     this.api(`/api/admin/reports/month-comparison?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
                 ]);
 
-                const salesData = await salesRes.json();
-                if (salesData.success) {
-                    this.salesData = salesData.data || [];
-                    const totalOrders = this.salesData.reduce((acc, d) => acc + d.orders, 0);
-                    const totalRevenue = this.salesData.reduce((acc, d) => acc + d.revenue, 0);
-                    const totalItems = this.salesData.reduce((acc, d) => acc + (d.items_sold || 0), 0);
-                    this.summary = {
-                        orders: totalOrders,
-                        revenue: totalRevenue,
-                        avg_ticket: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-                        items_sold: totalItems,
-                    };
-                }
-
-                const topData = await topRes.json();
-                if (topData.success) this.topItems = topData.data || [];
-
-                const mainDishesData = await mainDishesRes.json();
-                if (mainDishesData.success) this.mainDishes = mainDishesData.data || { total_qty: 0, total_revenue: 0, items: [] };
-
-                const diningData = await diningRes.json();
-                if (diningData.success) this.diningOptions = diningData.data || [];
-
-                const peakData = await peakRes.json();
-                if (peakData.success) this.peakHours = peakData.data || [];
-
-                const prepData = await prepRes.json();
-                if (prepData.success) this.prepTime = prepData.data || { avg_minutes: 0, by_day: [] };
-
-                const monthData = await monthRes.json();
-                if (monthData.success) this.monthlyComp = monthData.data || { current: {}, previous: {}, change: {} };
+                this.salesData = salesData.data || [];
+                const totalOrders = this.salesData.reduce((acc, d) => acc + d.orders, 0);
+                const totalRevenue = this.salesData.reduce((acc, d) => acc + d.revenue, 0);
+                const totalItems = this.salesData.reduce((acc, d) => acc + (d.items_sold || 0), 0);
+                this.summary = {
+                    orders: totalOrders,
+                    revenue: totalRevenue,
+                    avg_ticket: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+                    items_sold: totalItems,
+                };
+                this.topItems = topData.data || [];
+                this.mainDishes = mainDishesData.data || { total_qty: 0, total_revenue: 0, items: [] };
+                this.diningOptions = diningData.data || [];
+                this.peakHours = peakData.data || [];
+                this.prepTime = prepData.data || { avg_minutes: 0, by_day: [] };
+                this.monthlyComp = monthData.data || { current: {}, previous: {}, change: {} };
 
                 this.$nextTick(() => {
                     this.renderSalesChart();

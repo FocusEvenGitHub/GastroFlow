@@ -15,17 +15,10 @@ function settingsApp() {
             this.checkLogo();
         },
 
-        getHeaders() {
-            return { 'Content-Type': 'application/json' };
-        },
-
         async loadSettings() {
             try {
-                const res = await this.api('/api/admin/settings', {
-                    headers: this.getHeaders()
-                });
-                const data = await res.json();
-                if (data.success && data.settings) {
+                const data = await this.api('/api/admin/settings');
+                if (data && data.settings) {
                     this.form.restaurant_name = data.settings.restaurant_name || 'GastroFlow';
                     this.form.printer_ip = data.settings.printer_ip || '';
                     this.form.printer_port = data.settings.printer_port || '9100';
@@ -40,21 +33,16 @@ function settingsApp() {
         async saveSettings() {
             this.saving = true;
             try {
-                const res = await this.api('/api/admin/settings', {
+                await this.api('/api/admin/settings', {
                     method: 'PUT',
-                    headers: this.getHeaders(),
-                    body: JSON.stringify({
+                    json: {
                         settings: {
                             restaurant_name: this.form.restaurant_name,
                             printer_ip: this.form.printer_ip,
                             printer_port: this.form.printer_port
                         }
-                    })
+                    }
                 });
-                const data = await res.json();
-                if (!res.ok || data.error) {
-                    throw new Error(data.error || 'Erro ao salvar');
-                }
                 this.showMessage('Configurações salvas com sucesso!', 'success');
             } catch (err) {
                 this.handleError(err);
@@ -84,14 +72,7 @@ function settingsApp() {
             formData.append('logo', file);
 
             try {
-                const res = await this.api('/api/admin/settings/logo', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-                if (!res.ok || data.error) {
-                    throw new Error(data.error || 'Erro ao enviar logo');
-                }
+                await this.api('/api/admin/settings/logo', { method: 'POST', body: formData });
                 this.logoUrl = '/assets/img/logo.png?' + Date.now();
                 this.showMessage('Logo atualizada com sucesso!', 'success');
             } catch (err) {
@@ -104,14 +85,7 @@ function settingsApp() {
             this.testing = true;
             try {
                 // Envia um pedido de teste para a impressora
-                const res = await this.api('/api/admin/settings/test-print', {
-                    method: 'POST',
-                    headers: this.getHeaders()
-                });
-                const data = await res.json();
-                if (!res.ok || data.error) {
-                    throw new Error(data.error || 'Falha no teste');
-                }
+                await this.api('/api/admin/settings/test-print', { method: 'POST' });
                 this.showMessage('Teste enviado para a impressora!', 'success');
             } catch (err) {
                 this.handleError(err);

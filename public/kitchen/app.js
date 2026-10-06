@@ -12,15 +12,14 @@ function localDateString(date = new Date()) {
 
 function kitchenApp() {
     return {
+        ...GF.ui(), // toasts, showMessage, tema (spec 056)
         orders: [],
         completedOrders: [],
         loading: true,
-        toasts: [],
         completing: null,
         uncompleting: null,
         showDone: true,
         viewMode: localStorage.getItem('kitchenViewMode') || 'list',
-        darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
         eventSource: null,
         foodSummary: [],
         selectedDate: localDateString(),
@@ -63,9 +62,7 @@ function kitchenApp() {
 
         async refreshPrinterStatus() {
             try {
-                const res = await fetch('/api/printer/status');
-                if (!res.ok) return;
-                const status = await res.json();
+                const status = await GF.api('/api/printer/status');
 
                 // Avisa a cada falha nova, identificando o pedido afetado.
                 if (status.last_failed_order_id && status.last_failed_order_id !== this.lastPrintFailureSeen) {
@@ -87,8 +84,7 @@ function kitchenApp() {
         async reactivatePrinting() {
             this.reactivatingPrinter = true;
             try {
-                const res = await fetch('/api/printer/reset', { method: 'POST' });
-                if (!res.ok) throw new Error('Não foi possível reativar a impressão');
+                await GF.api('/api/printer/reset', { method: 'POST' });
                 await this.refreshPrinterStatus();
                 this.showMessage('Impressão reativada', 'success');
             } catch (err) {
@@ -100,9 +96,7 @@ function kitchenApp() {
 
         async loadMenu() {
             try {
-                const res = await fetch('/api/menu');
-                if (!res.ok) throw new Error('Erro ao carregar cardápio');
-                this.menu = await res.json();
+                this.menu = await GF.api('/api/menu');
             } catch (err) {
                 console.error('Erro ao carregar cardápio:', err);
             }
@@ -188,9 +182,7 @@ function kitchenApp() {
 
         async fetchOrders() {
             try {
-                const res = await fetch('/api/orders?status=pending&date=' + this.selectedDate);
-                if (!res.ok) throw new Error('Erro ao buscar pedidos');
-                this.orders = await res.json();
+                this.orders = await GF.api('/api/orders?status=pending&date=' + this.selectedDate);
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             }
@@ -198,9 +190,7 @@ function kitchenApp() {
 
         async fetchCompletedOrders() {
             try {
-                const res = await fetch('/api/orders?status=done&date=' + this.selectedDate);
-                if (!res.ok) throw new Error('Erro ao buscar finalizados');
-                this.completedOrders = await res.json();
+                this.completedOrders = await GF.api('/api/orders?status=done&date=' + this.selectedDate);
             } catch (err) {
                 console.error('Erro ao buscar finalizados:', err);
             }
@@ -213,9 +203,7 @@ function kitchenApp() {
 
         async loadFoodSummary() {
             try {
-                const res = await fetch('/api/kitchen/food-summary?date=' + this.selectedDate);
-                if (!res.ok) throw new Error('Erro ao buscar resumo');
-                const data = await res.json();
+                const data = await GF.api('/api/kitchen/food-summary?date=' + this.selectedDate);
                 this.foodSummary = data.items || [];
             } catch (err) {
                 console.error('Erro food-summary:', err);
@@ -288,9 +276,7 @@ function kitchenApp() {
         async completeOrder(orderId) {
             this.completing = orderId;
             try {
-                const res = await fetch(`/api/orders/${orderId}/complete`, { method: 'POST' });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao finalizar');
+                await GF.api(`/api/orders/${orderId}/complete`, { method: 'POST' });
                 this.showMessage(`Pedido #${orderId} finalizado!`, 'success');
                 // Remove from pending, move to completed
                 this.orders = this.orders.filter(o => o.id !== orderId);
@@ -306,9 +292,7 @@ function kitchenApp() {
         async uncompleteOrder(orderId) {
             this.uncompleting = orderId;
             try {
-                const res = await fetch(`/api/orders/${orderId}/uncomplete`, { method: 'POST' });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao estornar');
+                await GF.api(`/api/orders/${orderId}/uncomplete`, { method: 'POST' });
                 this.showMessage(`Pedido #${orderId} reaberto!`, 'success');
                 // Remove from completed, add to pending
                 this.completedOrders = this.completedOrders.filter(o => o.id !== orderId);
@@ -343,16 +327,10 @@ function kitchenApp() {
             if (!this.editingOrder || !this.newItemId || this.addingItem) return;
             this.addingItem = true;
             try {
-                const res = await fetch(`/api/orders/${this.editingOrder.id}/items`, {
+                const data = await GF.api(`/api/orders/${this.editingOrder.id}/items`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        menu_item_id: this.newItemId,
-                        quantity: this.newItemQty || 1
-                    })
+                    json: { menu_item_id: this.newItemId, quantity: this.newItemQty || 1 }
                 });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao adicionar item');
                 this.editingOrder.items.push(data.item);
                 this.newItemId = '';
                 this.newItemQty = 1;
@@ -373,9 +351,7 @@ function kitchenApp() {
             }
             this.removingItemId = itemId;
             try {
-                const res = await fetch(`/api/orders/${this.editingOrder.id}/items/${itemId}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao remover item');
+                await GF.api(`/api/orders/${this.editingOrder.id}/items/${itemId}`, { method: 'DELETE' });
                 this.editingOrder.items = this.editingOrder.items.filter(i => i.item_id !== itemId);
                 this.showMessage('Item removido!', 'success');
                 await this.fetchAll();
@@ -390,25 +366,19 @@ function kitchenApp() {
             if (!this.editingOrder) return;
             this.savingOrder = true;
             try {
-                const res = await fetch(`/api/orders/${this.editingOrder.id}`, {
+                await GF.api(`/api/orders/${this.editingOrder.id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                    json: {
                         order_number: this.editingOrder.order_number,
                         customer_name: this.editingOrder.customer_name
-                    })
+                    }
                 });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao salvar pedido');
 
                 for (const item of this.editingOrder.items) {
-                    const itemRes = await fetch(`/api/orders/${this.editingOrder.id}/items/${item.item_id}`, {
+                    await GF.api(`/api/orders/${this.editingOrder.id}/items/${item.item_id}`, {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ quantity: item.quantity, notes: item.notes, dining_option: item.dining_option })
+                        json: { quantity: item.quantity, notes: item.notes, dining_option: item.dining_option }
                     });
-                    const itemData = await itemRes.json();
-                    if (!itemRes.ok || itemData.error) throw new Error(itemData.error || 'Erro ao salvar item');
                 }
 
                 this.showMessage('Pedido atualizado!', 'success');
@@ -426,9 +396,7 @@ function kitchenApp() {
             if (!confirm(`Cancelar o pedido #${this.editingOrder.id}? Ele deixará de aparecer na cozinha, mas o registro é mantido.`)) return;
             this.savingOrder = true;
             try {
-                const res = await fetch(`/api/orders/${this.editingOrder.id}/cancel`, { method: 'POST' });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao cancelar pedido');
+                await GF.api(`/api/orders/${this.editingOrder.id}/cancel`, { method: 'POST' });
                 this.showMessage('Pedido cancelado!', 'success');
                 this.editingOrder = null;
                 await this.fetchAll();
@@ -444,20 +412,16 @@ function kitchenApp() {
 
             this.reprinting = orderId;
             try {
-                const res = await fetch(`/api/orders/${orderId}/print`, { method: 'POST' });
-                const data = await res.json();
-                if (!res.ok || data.error) {
-                    // O servidor também bloqueia (spec 039): se o estado local estiver
-                    // defasado, a resposta corrige a tela.
-                    if (data.code === 'PRINTING_BLOCKED') this.printerBlocked = true;
-                    throw new Error(data.error || 'Erro ao reimprimir');
-                }
+                await GF.api(`/api/orders/${orderId}/print`, { method: 'POST' });
                 // O endpoint só enfileira — ele retorna antes de qualquer byte chegar na
                 // impressora. Dizer "impresso" aqui era afirmar o que não se sabe: com a
                 // impressora fora do ar o operador via sucesso e nada nunca o corrigia.
                 // Falhas aparecem no visualizador de Logs do Admin e em bin/jobs-status (spec 038).
                 this.showMessage(`Pedido #${orderId} na fila de impressão`, 'info');
             } catch (err) {
+                // O servidor também bloqueia (spec 039): se o estado local estiver
+                // defasado, a resposta corrige a tela.
+                if (err.code === 'PRINTING_BLOCKED') this.printerBlocked = true;
                 this.showMessage(err.message, 'danger');
             } finally {
                 this.reprinting = null;
@@ -488,27 +452,9 @@ function kitchenApp() {
             return diffH + 'h' + (remM > 0 ? remM + 'm' : '');
         },
 
-        showMessage(text, type = 'info') {
-            const id = Date.now() + Math.random();
-            this.toasts.push({ id, text, type });
-            setTimeout(() => {
-                this.toasts = this.toasts.filter(t => t.id !== id);
-            }, 5000);
-        },
-
         toggleView(mode) {
             this.viewMode = mode;
             localStorage.setItem('kitchenViewMode', mode);
-        },
-
-        applyTheme() {
-            document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
-        },
-
-        toggleDarkMode() {
-            this.darkMode = !this.darkMode;
-            localStorage.setItem('gastroflow_darkMode', this.darkMode);
-            this.applyTheme();
         },
 
         destroy() {

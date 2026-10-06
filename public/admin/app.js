@@ -60,9 +60,7 @@ function adminApp() {
         async loadMenu() {
             this.loading = true;
             try {
-                const res = await this.api('/api/admin/menu');
-                if (!res.ok) throw new Error('Erro ao carregar cardápio');
-                this.menu = await res.json();
+                this.menu = await this.api('/api/admin/menu');
                 this.categories = this.sortPratoDoDiaFirst([...new Set(this.menu.map(c => c.category_name))]);
                 this.menu = this.sortMenuPratoDoDiaFirst(this.menu);
                 const adicionais = this.menu.find(c => c.category_name === 'Adicionais');
@@ -109,13 +107,10 @@ function adminApp() {
             }
             this.saving = true;
             try {
-                const res = await this.api('/api/admin/items', {
+                await this.api('/api/admin/items', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...this.newItem, price: parseFloat(this.newItem.price) })
+                    json: { ...this.newItem, price: parseFloat(this.newItem.price) }
                 });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao adicionar');
                 this.showMessage('Item adicionado!', 'success');
                 this.newItemOpen = false;
                 this.loadMenu();
@@ -202,16 +197,10 @@ function adminApp() {
             }
             this.saving = true;
             try {
-                const res = await this.api(`/api/admin/items/${this.editingItem.id}`, {
+                await this.api(`/api/admin/items/${this.editingItem.id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ...this.editForm,
-                        price: parseFloat(this.editForm.price)
-                    })
+                    json: { ...this.editForm, price: parseFloat(this.editForm.price) }
                 });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao atualizar');
 
                 await this.saveComponents(this.editingItem.id);
 
@@ -227,24 +216,18 @@ function adminApp() {
 
         async saveComponents(dishId) {
             if (this.editForm.category_name !== 'Pratos Principais') return;
-            const res = await this.api(`/api/admin/items/${dishId}/components`, {
+            await this.api(`/api/admin/items/${dishId}/components`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ components: this.editComponents })
+                json: { components: this.editComponents }
             });
-            const data = await res.json();
-            if (!res.ok || data.error) throw new Error(data.error || 'Erro ao salvar componentes');
         },
 
         async toggleAvailability(itemId, newAvailable) {
             try {
-                const res = await this.api(`/api/admin/items/${itemId}`, {
+                await this.api(`/api/admin/items/${itemId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ available: newAvailable })
+                    json: { available: newAvailable }
                 });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro');
                 const cat = this.menu.find(c => c.items.some(i => i.id === itemId));
                 if (cat) {
                     const item = cat.items.find(i => i.id === itemId);
@@ -263,9 +246,7 @@ function adminApp() {
 
         async deleteItem(itemId) {
             try {
-                const res = await this.api(`/api/admin/items/${itemId}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao excluir');
+                await this.api(`/api/admin/items/${itemId}`, { method: 'DELETE' });
                 this.showMessage('Item excluído com sucesso!', 'success');
                 this.loadMenu();
             } catch (err) {

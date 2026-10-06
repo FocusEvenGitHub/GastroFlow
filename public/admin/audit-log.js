@@ -13,9 +13,7 @@ function auditLogApp() {
         async refresh() {
             this.loading = true;
             try {
-                const res = await this.api('/api/admin/audit-log?limit=' + this.limit);
-                const data = await res.json();
-                if (!data.success) throw new Error(data.error || 'Erro ao carregar auditoria');
+                const data = await this.api('/api/admin/audit-log?limit=' + this.limit);
                 this.entries = data.entries || [];
                 this.total = data.total || 0;
             } catch (err) {

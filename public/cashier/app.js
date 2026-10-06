@@ -1,5 +1,6 @@
 function cashierApp() {
     return {
+        ...GF.ui(), // toasts, showMessage, tema (spec 056)
         orderNumber: '',
         orderNumberAuto: true, // false once the cashier edits the suggested number by hand
         customerName: '',
@@ -8,7 +9,6 @@ function cashierApp() {
         currentCategory: 'all',
         searchQuery: '',
         selectedItems: [],
-        toasts: [],
         loading: true,
         submitting: false,
         // Modal de confirmação antes de enviar (spec 046): reduz o esquecimento de
@@ -22,7 +22,6 @@ function cashierApp() {
         lastPrintFailureSeen: null,
         reactivatingPrinter: false,
         viewMode: localStorage.getItem('cashierViewMode') || 'grid',
-        darkMode: localStorage.getItem('gastroflow_darkMode') === 'true',
         reorderMode: false,
         dragSource: null, // { categoryName, index }
         reordering: false,
@@ -46,9 +45,7 @@ function cashierApp() {
 
         async refreshPrinterStatus() {
             try {
-                const res = await fetch('/api/printer/status');
-                if (!res.ok) return;
-                const status = await res.json();
+                const status = await GF.api('/api/printer/status');
 
                 if (status.last_failed_order_id && status.last_failed_order_id !== this.lastPrintFailureSeen) {
                     this.lastPrintFailureSeen = status.last_failed_order_id;
@@ -68,8 +65,7 @@ function cashierApp() {
         async reactivatePrinting() {
             this.reactivatingPrinter = true;
             try {
-                const res = await fetch('/api/printer/reset', { method: 'POST' });
-                if (!res.ok) throw new Error('Não foi possível reativar a impressão');
+                await GF.api('/api/printer/reset', { method: 'POST' });
                 await this.refreshPrinterStatus();
                 this.showMessage('Impressão reativada', 'success');
             } catch (err) {
@@ -82,17 +78,15 @@ function cashierApp() {
         async init() {
             this.applyTheme();
             try {
-                const [menuRes, nextRes] = await Promise.all([
-                    fetch('/api/menu'),
-                    fetch('/api/orders/next-number')
+                // A senha sugerida é opcional: se falhar, o caixa digita à mão.
+                const [menu, next] = await Promise.all([
+                    GF.api('/api/menu'),
+                    GF.api('/api/orders/next-number').catch(() => null)
                 ]);
-                if (!menuRes.ok) throw new Error('Erro ao carregar cardápio');
-                this.menu = await menuRes.json();
-                this.categories = this.sortPratoDoDiaFirst([...new Set(this.menu.map(c => c.category_name))]);
-                this.menu = this.sortMenuPratoDoDiaFirst(this.menu);
-                if (nextRes.ok) {
-                    const data = await nextRes.json();
-                    this.orderNumber = String(data.next);
+                this.categories = this.sortPratoDoDiaFirst([...new Set(menu.map(c => c.category_name))]);
+                this.menu = this.sortMenuPratoDoDiaFirst(menu);
+                if (next) {
+                    this.orderNumber = String(next.next);
                     this.orderNumberAuto = true;
                 }
             } catch (err) {
@@ -300,15 +294,6 @@ function cashierApp() {
             return this.selectedItems.reduce((sum, item, index) => sum + this.itemTotal(index), 0);
         },
 
-        // Exibe mensagens (toast)
-        showMessage(text, type = 'info') {
-            const id = Date.now() + Math.random();
-            this.toasts.push({ id, text, type });
-            setTimeout(() => {
-                this.toasts = this.toasts.filter(t => t.id !== id);
-            }, 5000);
-        },
-
         // Abre o modal de confirmação (spec 046) em vez de enviar direto.
         openConfirmModal() {
             if (!this.orderNumber || this.selectedItems.length === 0 || this.submitting) return;
@@ -354,26 +339,15 @@ function cashierApp() {
                             : undefined
                     }))
                 };
-                const res = await fetch('/api/orders', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (!res.ok || data.error) {
-                    throw new Error(data.error || 'Erro ao enviar pedido');
-                }
+                const data = await GF.api('/api/orders', { method: 'POST', json: payload });
                 this.showMessage(`Pedido #${data.id} enviado com sucesso!`, 'success');
                 this.selectedItems = [];
                 this.customerName = '';
                 // Atualiza para o próximo número
                 try {
-                    const nextRes = await fetch('/api/orders/next-number');
-                    if (nextRes.ok) {
-                        const nextData = await nextRes.json();
-                        this.orderNumber = String(nextData.next);
-                        this.orderNumberAuto = true;
-                    }
+                    const next = await GF.api('/api/orders/next-number');
+                    this.orderNumber = String(next.next);
+                    this.orderNumberAuto = true;
                 } catch (_) {}
             } catch (err) {
                 this.showMessage(err.message, 'danger');
@@ -410,32 +384,16 @@ function cashierApp() {
 
             this.reordering = true;
             try {
-                const res = await fetch('/api/menu/reorder', {
+                await GF.api('/api/menu/reorder', {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        category_name: category.category_name,
-                        item_ids: items.map(i => i.id)
-                    })
+                    json: { category_name: category.category_name, item_ids: items.map(i => i.id) }
                 });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error(data.error || 'Erro ao reorganizar');
                 this.showMessage('Ordem do cardápio atualizada!', 'success');
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {
                 this.reordering = false;
             }
-        },
-
-        applyTheme() {
-            document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
-        },
-
-        toggleDarkMode() {
-            this.darkMode = !this.darkMode;
-            localStorage.setItem('gastroflow_darkMode', this.darkMode);
-            this.applyTheme();
         },
 
         // Move "Prato do Dia" para o início do array

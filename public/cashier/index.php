@@ -85,16 +85,7 @@
     </div>
     </template>
 
-    <div class="toast-container" x-show="toasts.length">
-        <template x-for="toast in toasts" :key="toast.id">
-            <div class="gastro-toast" :class="toast.type">
-                <i class="fas gastro-toast-icon"
-                   :class="toast.type === 'success' ? 'fa-check-circle' : toast.type === 'danger' ? 'fa-exclamation-circle' : toast.type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'"></i>
-                <span class="gastro-toast-text" x-text="toast.text"></span>
-                <button class="gastro-toast-close" @click="toasts = toasts.filter(t => t.id !== toast.id)">&times;</button>
-            </div>
-        </template>
-    </div>
+    <?php include dirname(__DIR__) . '/_partials/toasts.php'; ?>
 
     <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -457,7 +448,8 @@
 <!-- Bootstrap JS -->
 <script src="/vendor/bootstrap-5.3.0/js/bootstrap.bundle.min.js"></script>
 <!-- Nosso componente Alpine -->
-<script src="app.js"></script>
+<script src="/assets/js/gf.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/gf.js') ?>"></script>
+<script src="app.js?v=<?= filemtime(__DIR__ . '/app.js') ?>"></script>
 <script src="/assets/js/version-badge.js"></script>
 </body>
 </html>
