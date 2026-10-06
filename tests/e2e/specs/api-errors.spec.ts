@@ -9,8 +9,11 @@ import { test, expect, type Page } from '@playwright/test';
  * muda no servidor nem no banco.
  */
 
-// Cardápio fixo: o teste é sobre o tratamento de erro, não sobre o cardápio — e o banco
-// de teste acumula itens das outras suítes, o que deixa a tela lenta e não determinística.
+// Cardápio e impressora fixos: o teste é sobre o tratamento de erro, não sobre o estado do
+// banco de teste — que acumula itens das outras suítes (tela lenta) e, no CI, uma falha de
+// impressão deixada pelos testes de integração, que vira um toast "Erro ao imprimir o
+// pedido #N" a mais na tela.
+const PRINTER_OK = { success: true, blocked: false, consecutive_failures: 0, last_failed_order_id: null };
 const MENU = [
   {
     category_name: 'Bebidas',
@@ -21,6 +24,7 @@ const MENU = [
 
 async function submitOneItem(page: Page): Promise<void> {
   await page.route('**/api/menu', (route) => route.fulfill({ json: MENU }));
+  await page.route('**/api/printer/status', (route) => route.fulfill({ json: PRINTER_OK }));
   await page.goto('/cashier/');
   await page.locator('.menu-item-card', { hasText: 'Água' }).click();
   await page.getByRole('button', { name: 'Enviar Pedido' }).click();
