@@ -14,9 +14,7 @@ function ingredientsApp() {
 
         async loadIngredients() {
             try {
-                const res = await this.api('/api/admin/ingredients');
-                if (!res.ok) throw new Error('Erro ao carregar ingredientes');
-                this.ingredients = await res.json();
+                this.ingredients = await this.api('/api/admin/ingredients');
             } catch (err) {
                 this.handleError(err);
             } finally {
@@ -28,12 +26,7 @@ function ingredientsApp() {
             if (!this.newIngredient.name || !this.newIngredient.unit) return;
             this.saving = true;
             try {
-                const res = await this.api('/api/admin/ingredients', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(this.newIngredient)
-                });
-                if (!res.ok) throw new Error('Erro ao adicionar ingrediente');
+                await this.api('/api/admin/ingredients', { method: 'POST', json: this.newIngredient });
                 this.newIngredient = { name: '', unit: '', category: '' };
                 await this.loadIngredients();
                 this.showMessage('Ingrediente adicionado!', 'success');
@@ -51,12 +44,10 @@ function ingredientsApp() {
 
         async updateIngredient() {
             try {
-                const res = await this.api(`/api/admin/ingredients/${this.editIngredientData.id}`, {
+                await this.api(`/api/admin/ingredients/${this.editIngredientData.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(this.editIngredientData)
+                    json: this.editIngredientData
                 });
-                if (!res.ok) throw new Error('Erro ao atualizar');
                 this.editMode = false;
                 await this.loadIngredients();
                 this.showMessage('Ingrediente atualizado!', 'success');
@@ -69,8 +60,7 @@ function ingredientsApp() {
             const ok = await this.askConfirm(`Excluir o ingrediente "${ing.name}"? Pode afetar pratos.`);
             if (!ok) return;
             try {
-                const res = await this.api(`/api/admin/ingredients/${ing.id}`, { method: 'DELETE' });
-                if (!res.ok) throw new Error('Erro ao excluir');
+                await this.api(`/api/admin/ingredients/${ing.id}`, { method: 'DELETE' });
                 await this.loadIngredients();
                 this.showMessage('Ingrediente excluído!', 'success');
             } catch (err) {

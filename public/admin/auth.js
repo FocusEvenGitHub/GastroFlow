@@ -45,13 +45,8 @@ const GFAdmin = {
     },
 
     async login(username, password) {
-        const res = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-        if (!res.ok || !data.token) throw new Error(data.error || 'Falha na autenticação');
+        const data = await GF.api('/api/login', { method: 'POST', json: { username, password } });
+        if (!data || !data.token) throw new Error('Falha na autenticação');
         this.saveSession(data);
         return data;
     },
@@ -61,28 +56,30 @@ const GFAdmin = {
         location.href = '/admin/';
     },
 
-    // fetch com Bearer. 401 → encerra a sessão e volta ao login (com retorno);
-    // 403 → lança um erro marcado `forbidden`, que a página mostra como painel.
-    async authFetch(url, options = {}) {
+    // GF.api com Bearer (spec 056). 401 → encerra a sessão e volta ao login (com
+    // retorno); 403 → erro marcado `forbidden`, que a página mostra como painel.
+    async api(url, options = {}) {
         const headers = { ...(options.headers || {}), 'Authorization': 'Bearer ' + this.token };
-        const res = await fetch(url, { ...options, headers });
-        if (res.status === 401) {
-            this.clearSession();
-            location.href = this.loginUrl();
-            throw Object.assign(new Error('Sessão expirada'), { unauthorized: true });
+        try {
+            return await GF.api(url, { ...options, headers });
+        } catch (err) {
+            if (err.status === 401) {
+                this.clearSession();
+                location.href = this.loginUrl();
+                throw Object.assign(new Error('Sessão expirada'), { unauthorized: true });
+            }
+            if (err.status === 403) {
+                throw Object.assign(new Error('Sem permissão para esta área.'), { forbidden: true });
+            }
+            throw err;
         }
-        if (res.status === 403) {
-            throw Object.assign(new Error('Sem permissão para esta área.'), { forbidden: true });
-        }
-        return res;
     },
 
-    // Estado e métodos comuns a toda página do Admin (shell, toasts, tema,
-    // confirmação). Usa descritores para não avaliar os getters da página.
+    // Estado e métodos comuns a toda página do Admin: os de GF.ui() (toasts, tema)
+    // mais shell e confirmação. Usa descritores para não avaliar os getters da página.
     page(extra) {
         const base = {
-            toasts: [],
-            darkMode: GFAdmin.read('gastroflow_darkMode') === 'true',
+            ...GF.ui(),
             username: GFAdmin.username,
             role: GFAdmin.role,
             forbidden: false,
@@ -103,7 +100,7 @@ const GFAdmin = {
             },
 
             api(url, options) {
-                return GFAdmin.authFetch(url, options);
+                return GFAdmin.api(url, options);
             },
 
             // Erro de request: 403 vira o painel "Sem permissão"; 401 já redirecionou.
@@ -111,12 +108,6 @@ const GFAdmin = {
                 if (err.forbidden) { this.forbidden = true; return; }
                 if (err.unauthorized) return;
                 this.showMessage(err.message, 'danger');
-            },
-
-            showMessage(text, type = 'info') {
-                const id = Date.now() + Math.random();
-                this.toasts.push({ id, text, type });
-                setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 4500);
             },
 
             askConfirm(message, { title = 'Confirmar exclusão', okLabel = 'Excluir' } = {}) {
@@ -129,16 +120,6 @@ const GFAdmin = {
                 const resolve = this.confirmDialog.resolve;
                 this.confirmDialog = { ...this.confirmDialog, open: false, resolve: null };
                 if (resolve) resolve(answer);
-            },
-
-            applyTheme() {
-                document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : '');
-            },
-
-            toggleDarkMode() {
-                this.darkMode = !this.darkMode;
-                localStorage.setItem('gastroflow_darkMode', this.darkMode);
-                this.applyTheme();
             }
         };
         return Object.defineProperties(base, Object.getOwnPropertyDescriptors(extra));

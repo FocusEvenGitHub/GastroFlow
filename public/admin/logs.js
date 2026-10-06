@@ -15,9 +15,7 @@ function logsApp() {
         async refresh() {
             this.loading = true;
             try {
-                const res = await this.api('/api/admin/logs?lines=' + this.lineCount);
-                const data = await res.json();
-                if (!data.success) throw new Error(data.error || 'Erro ao carregar logs');
+                const data = await this.api('/api/admin/logs?lines=' + this.lineCount);
                 this.lines = data.lines || [];
                 this.totalLines = data.total || 0;
                 this.applyFilter();

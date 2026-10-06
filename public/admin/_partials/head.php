@@ -43,6 +43,7 @@ $asset = static function (string $src): string {
         } catch (_) {}
     </script>
     <script defer src="/vendor/bootstrap-5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script defer src="<?= htmlspecialchars($asset('/assets/js/gf.js'), ENT_QUOTES) ?>"></script>
     <script defer src="<?= htmlspecialchars($asset('/admin/auth.js'), ENT_QUOTES) ?>"></script>
 <?php foreach ($pageScripts as $src) : ?>
     <script defer src="<?= htmlspecialchars($asset($src), ENT_QUOTES) ?>"></script>

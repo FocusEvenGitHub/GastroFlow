@@ -1205,6 +1205,8 @@ theme
 
 Avoid each screen implementing independent network behavior.
 
+**Status (2026-10-05): implemented by spec 056.** `public/assets/js/gf.js` (`GF.api` + `GF.ui()`) is the single API client, toast and theme implementation for the cashier, kitchen and admin; `GFAdmin` keeps only the Admin's session, Bearer token, 401/403 and confirm dialog. "Authentication / 401 handling" stays in `GFAdmin` on purpose: the cashier and kitchen endpoints are unauthenticated by design. "Loading states" were deliberately not centralized (per-action page state; see `docs/technical-decisions.md`). Network errors carry `network: true` for the next item, "Connection awareness".
+
 ---
 
 ## Connection awareness
