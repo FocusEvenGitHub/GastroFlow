@@ -94,10 +94,21 @@
             <a href="/kitchen/" class="active"><i class="fas fa-fire"></i>Cozinha</a>
             <a href="/admin/"><i class="fas fa-cog"></i>Admin</a>
         </div>
+        <?php include dirname(__DIR__) . '/_partials/connection-status.php'; ?>
         <button class="dark-toggle" @click="toggleDarkMode()" title="Alternar tema">
             <i class="fas" :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
         </button>
     </nav>
+
+    <!-- Conexão perdida (spec 057): a lista na tela pode estar desatualizada — nunca
+         parecer saudável em silêncio. x-if pelo mesmo motivo do aviso abaixo. -->
+    <template x-if="connection === 'lost'">
+    <div class="alert alert-danger m-3" role="alert">
+        <i class="fas fa-plug me-2"></i>
+        <strong>Sem conexão com o servidor desde <span x-text="connectionDownTime()"></span>.</strong>
+        A lista de pedidos pode estar desatualizada.
+    </div>
+    </template>
 
     <!-- Impressão bloqueada após falhas consecutivas (spec 039).
          x-if, e não x-show: as utilitárias do Bootstrap 5 são !important, então
