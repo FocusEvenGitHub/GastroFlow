@@ -46,6 +46,12 @@ function kitchenApp() {
 
         async init() {
             this.applyTheme();
+            // Ao voltar a conexão, recarrega tudo: um EventSource novo (connectSSE) não
+            // reenvia Last-Event-ID, então eventos da queda só chegam pelo fetch (spec 057).
+            this.startConnectionWatch(() => {
+                this.fetchAll();
+                if (!this.menu.length) this.loadMenu();
+            });
             await Promise.all([this.fetchAll(), this.loadMenu()]);
             this.connectSSE();
             this.startPrinterWatch();
@@ -135,6 +141,7 @@ function kitchenApp() {
             this.eventSource.addEventListener('connected', () => {
                 console.log('SSE conectado');
             });
+            this.eventSource.onopen = () => this.setStreamUp(true);
 
             this.eventSource.addEventListener('order.created', () => {
                 if (this.selectedDate === this._today()) this.fetchAll();
@@ -160,14 +167,17 @@ function kitchenApp() {
             });
 
             this.eventSource.onerror = () => {
-                // EventSource reconecta automaticamente, mas se ficar muito tempo
-                // sem conexão, recarregue manualmente após 30s
+                // Stream caído = cozinha nunca aparece "Conectado" (spec 057).
+                this.setStreamUp(false);
+                // Erro de rede: o EventSource reconecta sozinho. CLOSED (resposta HTTP de
+                // erro) ele abandona — reabrimos no ritmo do heartbeat, não após 30 s, para
+                // o indicador voltar a "Conectado" junto com o servidor (spec 057).
                 setTimeout(() => {
                     if (this.eventSource && this.eventSource.readyState === EventSource.CLOSED) {
                         console.log('SSE: tentando reconectar…');
                         this.connectSSE();
                     }
-                }, 30000);
+                }, GF.HEARTBEAT_MS);
             };
         },
 

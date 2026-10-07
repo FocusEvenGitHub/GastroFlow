@@ -75,20 +75,28 @@ function cashierApp() {
             }
         },
 
+        // Cardápio + senha sugerida. Também chamado quando a conexão volta e o caixa
+        // abriu sem servidor, com o cardápio vazio (spec 057).
+        async loadMenu() {
+            // A senha sugerida é opcional: se falhar, o caixa digita à mão.
+            const [menu, next] = await Promise.all([
+                GF.api('/api/menu'),
+                GF.api('/api/orders/next-number').catch(() => null)
+            ]);
+            this.categories = this.sortPratoDoDiaFirst([...new Set(menu.map(c => c.category_name))]);
+            this.menu = this.sortMenuPratoDoDiaFirst(menu);
+            if (next && this.orderNumberAuto) {
+                this.orderNumber = String(next.next);
+            }
+        },
+
         async init() {
             this.applyTheme();
+            this.startConnectionWatch(() => {
+                if (!this.menu.length) this.loadMenu().catch(err => this.showMessage(err.message, 'danger'));
+            });
             try {
-                // A senha sugerida é opcional: se falhar, o caixa digita à mão.
-                const [menu, next] = await Promise.all([
-                    GF.api('/api/menu'),
-                    GF.api('/api/orders/next-number').catch(() => null)
-                ]);
-                this.categories = this.sortPratoDoDiaFirst([...new Set(menu.map(c => c.category_name))]);
-                this.menu = this.sortMenuPratoDoDiaFirst(menu);
-                if (next) {
-                    this.orderNumber = String(next.next);
-                    this.orderNumberAuto = true;
-                }
+                await this.loadMenu();
             } catch (err) {
                 this.showMessage(err.message, 'danger');
             } finally {

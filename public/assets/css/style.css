@@ -276,6 +276,27 @@ a:hover { color: var(--primary-dark); }
 }
 .dark-toggle:hover { color: #fff; background: rgba(255,255,255,0.08); }
 
+/* Indicador de conexão (spec 057) — fica antes do .dark-toggle e herda o margin-left: auto */
+.gf-conn {
+  margin-left: auto;
+  margin-right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+}
+.gf-conn i { font-size: 0.65rem; }
+.gf-conn.connected i    { color: var(--success); }
+.gf-conn.reconnecting   { color: #212529; background: var(--warning); }
+.gf-conn.lost           { background: var(--danger); }
+.gf-conn + .dark-toggle { margin-left: 0; }
+
 /* ═══════════════════════════════════════════
    Dark Theme
    ═══════════════════════════════════════════ */
@@ -440,4 +461,7 @@ a:hover { color: var(--primary-dark); }
   .gastro-nav-brand i { font-size: 1.1rem; }
   .gastro-nav-links a { padding: 0.35rem 0.6rem; font-size: 0.78rem; }
   .gastro-nav-links a i { margin-right: 0.2rem; }
+  /* Celular: só o ponto colorido; o texto continua para leitores de tela (spec 057) */
+  .gf-conn { padding: 0.35rem; }
+  .gf-conn > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 }

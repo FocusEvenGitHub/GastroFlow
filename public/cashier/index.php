@@ -62,10 +62,20 @@
             <a href="/kitchen/"><i class="fas fa-fire"></i>Cozinha</a>
             <a href="/admin/"><i class="fas fa-cog"></i>Admin</a>
         </div>
+        <?php include dirname(__DIR__) . '/_partials/connection-status.php'; ?>
         <button class="dark-toggle" @click="toggleDarkMode()" title="Alternar tema">
             <i class="fas" :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
         </button>
     </nav>
+
+    <!-- Conexão perdida (spec 057). x-if pelo mesmo motivo do aviso de impressão abaixo. -->
+    <template x-if="connection === 'lost'">
+    <div class="alert alert-danger m-3" role="alert">
+        <i class="fas fa-plug me-2"></i>
+        <strong>Sem conexão com o servidor desde <span x-text="connectionDownTime()"></span>.</strong>
+        Pedidos não poderão ser enviados até a conexão voltar.
+    </div>
+    </template>
 
     <!-- Toast container -->
     <!-- Impressão bloqueada após falhas consecutivas (spec 039). O pedido continua sendo
