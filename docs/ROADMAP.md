@@ -1223,6 +1223,8 @@ Connection lost
 
 A stale kitchen interface should never silently look healthy.
 
+**Status (2026-10-07): implemented by spec 057.** `GF.ui()` (`public/assets/js/gf.js`) keeps a `connection` state fed by a 5 s heartbeat on `GET /health/ready` (so "database down" also reads as lost) and, in the kitchen, by the `EventSource`; the nav pill (`public/_partials/connection-status.php`) shows Conectado / Reconectando… / Conexão perdida, with a banner after 15 s. On recovery the kitchen refetches its orders and the cashier reloads an empty menu. Known gap, left as a follow-up: a stream that hangs while staying open is not detected (needs a server-side ping event).
+
 ---
 
 ## LAN operation without internet
