@@ -51,6 +51,38 @@ final class Money
         return new self($this->cents * $factor);
     }
 
+    public function minus(Money $other): self
+    {
+        return new self($this->cents - $other->cents);
+    }
+
+    public function isGreaterThan(Money $other): bool
+    {
+        return $this->cents > $other->cents;
+    }
+
+    public function isZero(): bool
+    {
+        return $this->cents === 0;
+    }
+
+    /** The smaller of two amounts. */
+    public static function min(Money $a, Money $b): self
+    {
+        return $a->cents <= $b->cents ? $a : $b;
+    }
+
+    /**
+     * This amount times a percentage given in basis points (hundredths of a
+     * percent: 2000 = 20%, 1250 = 12.5%), rounded half-up to the cent — all
+     * integer arithmetic, so 33.33% of R$ 15,00 is exactly 500 cents, never a
+     * float artifact (spec 058). Intended for non-negative amounts.
+     */
+    public function percentOf(int $basisPoints): self
+    {
+        return new self(intdiv($this->cents * $basisPoints + 5000, 10000));
+    }
+
     public function getCents(): int
     {
         return $this->cents;

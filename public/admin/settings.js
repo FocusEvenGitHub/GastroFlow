@@ -3,7 +3,9 @@ function settingsApp() {
         form: {
             restaurant_name: '',
             printer_ip: '',
-            printer_port: '9100'
+            printer_port: '9100',
+            // Desconto máximo por item, em % (spec 058). 0 desativa.
+            discount_max_percent: '100'
         },
         logoUrl: '/assets/img/logo.png?' + Date.now(),
         saving: false,
@@ -22,6 +24,7 @@ function settingsApp() {
                     this.form.restaurant_name = data.settings.restaurant_name || 'GastroFlow';
                     this.form.printer_ip = data.settings.printer_ip || '';
                     this.form.printer_port = data.settings.printer_port || '9100';
+                    this.form.discount_max_percent = data.settings.discount_max_percent ?? '100';
                 }
             } catch (err) {
                 // 403 (manager) vira o painel "Sem permissão" (spec 051).
@@ -39,7 +42,9 @@ function settingsApp() {
                         settings: {
                             restaurant_name: this.form.restaurant_name,
                             printer_ip: this.form.printer_ip,
-                            printer_port: this.form.printer_port
+                            printer_port: this.form.printer_port,
+                            // Aceita vírgula ("12,5"); o servidor só aceita ponto.
+                            discount_max_percent: String(this.form.discount_max_percent ?? '').trim().replace(',', '.')
                         }
                     }
                 });

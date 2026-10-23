@@ -29,6 +29,10 @@ function cashierApp() {
         // Monte Seu Prato (spec 030): dish = item do cardápio, quantities = { addonId: qtd },
         // editIndex = índice em selectedItems quando editando uma montagem existente
         builder: { open: false, dish: null, quantities: {}, editIndex: null },
+        // Desconto por item (spec 058): teto do Admin em centésimos de % (10000 = 100%) e o
+        // modal "Desconto no item". Cada linha guarda item.discount = { type, valueText } ou null.
+        maxDiscount: 10000,
+        discountModal: { open: false, index: null, type: 'percent', valueText: '' },
         MAX_ADDON_QTY: 10,
         ADDON_CATEGORY: 'Adicionais',
         FOOD_CATEGORY_LABELS: {
@@ -79,10 +83,13 @@ function cashierApp() {
         // abriu sem servidor, com o cardápio vazio (spec 057).
         async loadMenu() {
             // A senha sugerida é opcional: se falhar, o caixa digita à mão.
-            const [menu, next] = await Promise.all([
+            const [menu, next, maxDiscount] = await Promise.all([
                 GF.api('/api/menu'),
-                GF.api('/api/orders/next-number').catch(() => null)
+                GF.api('/api/orders/next-number').catch(() => null),
+                // Sem o teto, a tela segue com o padrão (100%): o servidor valida de novo.
+                GF.discount.loadMax().catch(() => null)
             ]);
+            if (maxDiscount !== null) this.maxDiscount = maxDiscount;
             this.categories = this.sortPratoDoDiaFirst([...new Set(menu.map(c => c.category_name))]);
             this.menu = this.sortMenuPratoDoDiaFirst(menu);
             if (next && this.orderNumberAuto) {
@@ -139,7 +146,8 @@ function cashierApp() {
                     notes: '',
                     showNotes: false,
                     category_name: item.category_name || '',
-                    diningOption: 'local'
+                    diningOption: 'local',
+                    discount: null
                 });
             }
             // Limpa a busca para facilitar a próxima seleção
@@ -238,6 +246,7 @@ function cashierApp() {
                     showNotes: false,
                     category_name: this.builder.dish.category_name || '',
                     diningOption: 'local',
+                    discount: null,
                     components
                 });
             }
@@ -273,13 +282,141 @@ function cashierApp() {
             return `${label} (+R$ ${this.packagingFees[option].toFixed(2).replace('.', ',')})`;
         },
 
-        // Total do item incluindo embalagem
+        // Total do item incluindo embalagem, já com o desconto (spec 058). Em centavos
+        // por dentro, como o PricingService, para não acumular erro de float.
         itemTotal(index) {
             const item = this.selectedItems[index];
             if (!item) return 0;
-            const base = item.price * item.quantity;
-            const packing = this.packagingCost(item) * item.quantity;
-            return base + packing;
+            return (this.itemGrossCents(item) - this.discountCents(item)) / 100;
+        },
+
+        // Total do item sem desconto (o valor riscado na linha)
+        itemGrossTotal(index) {
+            const item = this.selectedItems[index];
+            return item ? this.itemGrossCents(item) / 100 : 0;
+        },
+
+        itemGrossCents(item) {
+            return this.lineCents(item) + Math.round(this.packagingCost(item) * 100) * item.quantity;
+        },
+
+        // ── Desconto por item (spec 058) ──
+
+        // Valor dos produtos da linha (preço × quantidade, adicionais inclusos); a embalagem fica fora.
+        lineCents(item) {
+            return Math.round(item.price * 100) * item.quantity;
+        },
+
+        // { amount, error } do desconto da linha, recalculado a cada mudança de quantidade.
+        discountState(item) {
+            if (!item || !item.discount) return null;
+            return GF.discount.evaluate(item.discount.type, item.discount.valueText, this.lineCents(item), this.maxDiscount);
+        },
+
+        // Desconto válido em centavos; um desconto inválido não entra no total (a linha
+        // fica vermelha e o envio é bloqueado até ser revisto).
+        discountCents(item) {
+            const state = this.discountState(item);
+            return state && !state.error ? state.amount : 0;
+        },
+
+        hasValidDiscount(item) {
+            const state = this.discountState(item);
+            return !!state && !state.error;
+        },
+
+        hasInvalidDiscount(item) {
+            const state = this.discountState(item);
+            return !!state && !!state.error;
+        },
+
+        discountBadge(item) {
+            return item && item.discount ? GF.discount.badge(item.discount.type, item.discount.valueText) : '';
+        },
+
+        canDiscount(item) {
+            return this.maxDiscount > 0 && this.lineCents(item) > 0;
+        },
+
+        get discountsTotal() {
+            return this.selectedItems.reduce((sum, item) => sum + this.discountCents(item), 0) / 100;
+        },
+
+        get anyInvalidDiscount() {
+            return this.selectedItems.some(item => this.hasInvalidDiscount(item));
+        },
+
+        get discountItem() {
+            return this.discountModal.index === null ? null : this.selectedItems[this.discountModal.index] || null;
+        },
+
+        // Prévia do modal: valor da linha, desconto e erro, sem chamar o servidor.
+        get discountPreview() {
+            const item = this.discountItem;
+            if (!item) return { line: 0, amount: 0, error: null, typed: false };
+            const line = this.lineCents(item);
+            const typed = this.discountModal.valueText.trim() !== '';
+            const result = GF.discount.evaluate(this.discountModal.type, this.discountModal.valueText, line, this.maxDiscount);
+            return { line, amount: result.error ? 0 : result.amount, error: result.error, typed };
+        },
+
+        money(cents) {
+            return GF.discount.money(cents);
+        },
+
+        openDiscount(index) {
+            const item = this.selectedItems[index];
+            if (!item || !this.canDiscount(item)) return;
+            this.discountModal = {
+                open: true,
+                index,
+                type: item.discount ? item.discount.type : 'percent',
+                valueText: item.discount ? item.discount.valueText : ''
+            };
+            this.$nextTick(() => {
+                const input = document.getElementById('discountValue');
+                if (input) input.focus();
+            });
+        },
+
+        // Abre/fecha o modal do Bootstrap. hide() durante a animação de abertura é ignorado
+        // pelo Bootstrap — com um operador rápido (toca 20% e Aplicar em seguida) o modal
+        // ficava aberto sobre a tela. Então, se ainda estiver abrindo, fecha ao terminar.
+        syncDiscountModal(open) {
+            const el = document.getElementById('discountModal');
+            if (!el) return;
+            const modal = bootstrap.Modal.getOrCreateInstance(el);
+            if (open) {
+                modal.show();
+                return;
+            }
+            modal.hide();
+            el.addEventListener('shown.bs.modal', () => {
+                if (!this.discountModal.open) modal.hide();
+            }, { once: true });
+        },
+
+        closeDiscount() {
+            this.discountModal = { open: false, index: null, type: 'percent', valueText: '' };
+        },
+
+        setDiscountType(type) {
+            if (this.discountModal.type === type) return;
+            this.discountModal.type = type;
+            this.discountModal.valueText = '';
+        },
+
+        applyDiscount() {
+            const item = this.discountItem;
+            if (!item || this.discountPreview.error) return;
+            item.discount = { type: this.discountModal.type, valueText: this.discountModal.valueText.trim() };
+            this.closeDiscount();
+        },
+
+        removeDiscount() {
+            const item = this.discountItem;
+            if (item) item.discount = null;
+            this.closeDiscount();
         },
 
         // Altera quantidade (mínimo 1)
@@ -297,14 +434,21 @@ function cashierApp() {
             this.selectedItems.splice(index, 1);
         },
 
-        // Total do pedido (inclui custo de embalagem)
+        // Total do pedido (inclui custo de embalagem, menos os descontos — spec 058)
         get total() {
-            return this.selectedItems.reduce((sum, item, index) => sum + this.itemTotal(index), 0);
+            const cents = this.selectedItems.reduce(
+                (sum, item) => sum + this.itemGrossCents(item) - this.discountCents(item), 0
+            );
+            return cents / 100;
         },
 
         // Abre o modal de confirmação (spec 046) em vez de enviar direto.
         openConfirmModal() {
             if (!this.orderNumber || this.selectedItems.length === 0 || this.submitting) return;
+            if (this.anyInvalidDiscount) {
+                this.showMessage('Revise o desconto marcado em vermelho antes de enviar.', 'warning');
+                return;
+            }
             this.confirmingOrder = true;
         },
 
@@ -344,7 +488,8 @@ function cashierApp() {
                         dining_option: i.diningOption,
                         components: i.components
                             ? i.components.map(c => ({ id: c.id, quantity: c.quantity }))
-                            : undefined
+                            : undefined,
+                        discount: i.discount ? GF.discount.payload(i.discount.type, i.discount.valueText) : undefined
                     }))
                 };
                 const data = await GF.api('/api/orders', { method: 'POST', json: payload });

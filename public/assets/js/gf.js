@@ -44,6 +44,75 @@ const GF = {
         return data;
     },
 
+    // Desconto por item (spec 058), compartilhado pelo Caixa e pelo "Editar Pedido" da
+    // Cozinha para as duas telas não divergirem. Espelha o PricingService: tudo em
+    // inteiros (centavos; porcentagem em centésimos, 2000 = 20%), arredondamento
+    // half-up. O servidor valida de novo ao gravar — isto é só para a tela.
+    discount: {
+        // "12,5" | "12.5" | "5" → centésimos (1250, 500); null se inválido.
+        parse(text) {
+            const t = String(text ?? '').trim();
+            if (!/^\d{1,8}([.,]\d{1,2})?$/.test(t)) return null;
+            const [int, dec = ''] = t.replace(',', '.').split('.');
+            return parseInt(int, 10) * 100 + parseInt((dec + '00').slice(0, 2), 10);
+        },
+
+        percentOf(cents, hundredths) {
+            return Math.floor((cents * hundredths + 5000) / 10000);
+        },
+
+        money(cents) {
+            return (cents / 100).toFixed(2).replace('.', ',');
+        },
+
+        // 3000 → "30", 1250 → "12,5"
+        rate(hundredths) {
+            return (hundredths / 100).toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+        },
+
+        // Valor digitado → { amount (centavos), error (texto ou null) }, com as mesmas
+        // regras e mensagens do servidor.
+        evaluate(type, valueText, lineCents, maxHundredths) {
+            if (maxHundredths <= 0) return { amount: 0, error: 'O desconto está desativado.' };
+            if (lineCents <= 0) return { amount: 0, error: 'Este item não tem valor para dar desconto.' };
+            const value = this.parse(valueText);
+            if (value === null || value === 0) return { amount: 0, error: 'Informe um valor maior que zero.' };
+            if (type === 'percent' && value > 10000) {
+                return { amount: 0, error: `O desconto não pode ser maior que o valor do item (R$ ${this.money(lineCents)}).` };
+            }
+            const amount = type === 'percent' ? this.percentOf(lineCents, value) : value;
+            if (amount === 0) return { amount, error: 'Informe um valor maior que zero.' };
+            if (amount > lineCents) {
+                return { amount, error: `O desconto não pode ser maior que o valor do item (R$ ${this.money(lineCents)}).` };
+            }
+            const cap = this.percentOf(lineCents, maxHundredths);
+            const overCap = type === 'percent' ? value > maxHundredths : amount > cap;
+            if (overCap) {
+                return { amount, error: `O desconto máximo permitido é de ${this.rate(maxHundredths)}% (R$ ${this.money(cap)} neste item).` };
+            }
+            return { amount, error: null };
+        },
+
+        // Selo curto: "−20%" | "−R$ 5,00"
+        badge(type, valueText) {
+            const value = this.parse(valueText);
+            if (value === null) return '';
+            return type === 'percent' ? `−${this.rate(value)}%` : `−R$ ${this.money(value)}`;
+        },
+
+        // Para a API: { type, value } com ponto decimal.
+        payload(type, valueText) {
+            const value = this.parse(valueText);
+            return value === null ? null : { type, value: (value / 100).toFixed(2) };
+        },
+
+        // Teto vindo de /api/settings/discount (número em %) → centésimos.
+        async loadMax() {
+            const data = await GF.api('/api/settings/discount');
+            return Math.round(Number(data.discount_max_percent) * 100);
+        }
+    },
+
     readSetting(key) {
         try { return localStorage.getItem(key); } catch (_) { return null; }
     },

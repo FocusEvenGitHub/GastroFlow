@@ -12,11 +12,18 @@ class OrderItem extends Model
 
     // item_name is a snapshot of the menu item's name at order time (spec 023)
     // — never a live join, so renaming a menu item later doesn't rewrite history.
-    protected $fillable = ['order_id', 'menu_item_id', 'item_name', 'quantity', 'notes', 'dining_option', 'unit_price', 'packaging_cost'];
+    // discount_* (spec 058): discount_value is what was typed (20.00 = 20% or
+    // R$ 20,00, per discount_type); discount_amount is what was applied, in reais.
+    protected $fillable = [
+        'order_id', 'menu_item_id', 'item_name', 'quantity', 'notes', 'dining_option', 'unit_price', 'packaging_cost',
+        'discount_type', 'discount_value', 'discount_amount',
+    ];
 
     protected $casts = [
-        'unit_price'     => 'float',
-        'packaging_cost' => 'float',
+        'unit_price'      => 'float',
+        'packaging_cost'  => 'float',
+        'discount_value'  => 'float',
+        'discount_amount' => 'float',
     ];
 
     public $timestamps = false;

@@ -34,6 +34,19 @@ class SettingsController
     }
 
     /**
+     * GET /api/settings/discount — público, como /api/menu (spec 058): o Caixa e o
+     * "Editar Pedido" da Cozinha precisam do teto para validar enquanto o operador
+     * digita. O servidor valida de novo ao gravar; isto é só para a tela.
+     */
+    public function discountSettings(Request $request, Response $response): Response
+    {
+        $raw = Setting::getValue('discount_max_percent');
+        $max = ($raw !== null && is_numeric($raw)) ? max(0.0, min(100.0, (float) $raw)) : 100.0;
+        $response->getBody()->write(json_encode(['discount_max_percent' => $max]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
      * PUT /api/admin/settings
      * Atualiza uma ou mais configurações.
      * Body: { "settings": { "key": "value", ... } }

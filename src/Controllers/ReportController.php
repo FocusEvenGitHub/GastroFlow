@@ -95,6 +95,17 @@ class ReportController
         return $this->json($response, ['success' => true, 'data' => $data]);
     }
 
+    /** GET /api/admin/reports/discounts — item discounts given (spec 058). */
+    public function discounts(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $dateFrom = $params['date_from'] ?? date('Y-m-d');
+        $dateTo   = $params['date_to'] ?? date('Y-m-d');
+
+        $data = $this->reportService->getDiscounts($dateFrom, $dateTo);
+        return $this->json($response, ['success' => true, 'data' => $data]);
+    }
+
     private function json(Response $response, array $payload): Response
     {
         $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));

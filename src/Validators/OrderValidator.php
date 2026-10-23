@@ -16,6 +16,9 @@ class OrderValidator
     // Build-your-own dish add-ons (spec 030).
     private const MAX_COMPONENTS = 30;
     private const MAX_COMPONENT_QUANTITY = 10;
+    // Item discount (spec 058).
+    private const DISCOUNT_TYPES = ['percent', 'fixed'];
+    private const MAX_FIXED_DISCOUNT_CENTS = 9_999_999;
 
     private Validator $v;
 
@@ -74,6 +77,9 @@ class OrderValidator
                 if (isset($item['components']) && !$this->validComponentsShape($item['components'])) {
                     return false;
                 }
+                if (isset($item['discount']) && !self::validDiscountShape($item['discount'])) {
+                    return false;
+                }
             }
             return true;
         }, 'items');
@@ -103,6 +109,9 @@ class OrderValidator
         $this->v->rule('in', 'dining_option', self::DINING_OPTIONS);
         $this->v->rule('optional', 'notes');
         $this->v->rule('lengthMax', 'notes', self::MAX_NOTES_LENGTH);
+        // A line added by the kitchen starts without a discount; it can be set
+        // afterwards through PATCH (spec 058).
+        $this->v->rule(fn () => false, 'discount')->message('Desconto não pode ser enviado ao adicionar um item.');
         return $this->v->validate();
     }
 
@@ -117,7 +126,48 @@ class OrderValidator
         $this->v->rule('lengthMax', 'notes', self::MAX_NOTES_LENGTH);
         $this->v->rule('optional', 'dining_option');
         $this->v->rule('in', 'dining_option', self::DINING_OPTIONS);
+        // discount: object sets it, null removes it, absent keeps it (spec 058).
+        if (array_key_exists('discount', $data) && $data['discount'] !== null) {
+            $this->v->rule(fn ($field, $value) => self::validDiscountShape($value), 'discount')
+                ->message('Desconto inválido.');
+        }
         return $this->v->validate();
+    }
+
+    /**
+     * Shape of an item discount (spec 058): {type: percent|fixed, value}.
+     * value is a positive number (or numeric string) with at most 2 decimal
+     * places — no exponent, sign or comma; percent up to 100, fixed up to
+     * 99999.99 (DECIMAL(10,2) with room to spare). Whether it fits the item's
+     * value and the admin's maximum is a business rule (PricingService).
+     */
+    public static function validDiscountShape(mixed $discount): bool
+    {
+        if (!is_array($discount) || !isset($discount['type'], $discount['value'])) {
+            return false;
+        }
+        if (!in_array($discount['type'], self::DISCOUNT_TYPES, true)) {
+            return false;
+        }
+        $value = $discount['value'];
+        if (is_float($value)) {
+            if (!is_finite($value)) {
+                return false;
+            }
+            // JSON 12.5 arrives as a float; its shortest representation is what was typed.
+            $value = (string) $value;
+        } elseif (is_int($value)) {
+            $value = (string) $value;
+        }
+        if (!is_string($value) || preg_match('/^\d{1,8}(\.\d{1,2})?$/', $value) !== 1) {
+            return false;
+        }
+        $hundredths = (int) round(((float) $value) * 100);
+        if ($hundredths <= 0) {
+            return false;
+        }
+        $max = $discount['type'] === 'percent' ? 10000 : self::MAX_FIXED_DISCOUNT_CENTS;
+        return $hundredths <= $max;
     }
 
     /**

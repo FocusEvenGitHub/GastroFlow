@@ -1,5 +1,18 @@
 # Changelog
 
+## Não lançado
+
+Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`** — sai como patch, como o `v1.8.x`.
+
+> ⚠️ **Rodar `bin/migrate` antes de subir o código novo (spec 058):** a migração `021_order_item_discount.sql` cria as colunas de desconto em `order_items`, que a criação de pedido e todos os relatórios passam a usar. Código novo sem a migração = pedidos e relatórios falhando com erro de SQL. Pedidos antigos ficam com desconto 0,00, então nenhum total histórico muda.
+
+### Novidades
+- **Desconto por item no caixa**: no "Resumo do Pedido", o preço de cada item vira um botão (sublinhado tracejado, ícone de etiqueta). Ao tocar, o modal "Desconto no item" pede **% ou R$**, mostra na hora "De R$ 40,00 por R$ 32,00" e só deixa aplicar um valor válido. O desconto vale para a linha toda (2× R$ 20 − R$ 5 = R$ 35), nunca para a embalagem, e nunca passa do valor do item. A linha mostra o preço antigo riscado e um selo (`−20%` ou `−R$ 5,00`); o resumo e o modal de confirmação mostram "Descontos" e o total já líquido. Se o caixa diminuir a quantidade e um desconto em R$ deixar de caber, o selo fica vermelho ("Revise o desconto") e o envio é bloqueado — o caixa nunca corta o desconto em silêncio. O servidor recalcula e valida tudo de novo (`400 INVALID_DISCOUNT` com a mensagem em português; o pedido inteiro é recusado sem gastar número de senha). Cada pedido com desconto gera uma linha `order.discount_applied` na Auditoria (spec 058)
+- **Teto do desconto no Admin**: Configurações › "Desconto no caixa" › "Desconto máximo por item (%)". Padrão **100%**; **0 desativa** o desconto (o preço volta a ser só texto). Vale para o caixa e para a cozinha, e o servidor também o aplica. Lido pelas telas em `GET /api/settings/discount` (spec 058)
+- **Desconto no "Editar Pedido" da cozinha**: cada item do modal ganha a linha "Desconto: …" com "Dar desconto"/"Alterar"/"Remover", com as mesmas regras e o mesmo teto do caixa — para corrigir um desconto esquecido ou errado. O quadro de pedidos e o resumo da cozinha continuam sem nenhuma informação de desconto. Ao mudar só a quantidade de um item com desconto, o servidor reajusta sozinho (porcentagem reaplicada; valor em R$ limitado ao novo valor do item) (spec 058)
+- **Relatórios líquidos de desconto**: faturamento, ticket médio, vendas por dia, comparativo, itens mais vendidos e pratos principais passam a descontar o que foi dado de desconto. Card novo **"Descontos concedidos"**: total no período, pedidos com desconto, % das vendas de produtos e os itens com mais desconto (`GET /api/admin/reports/discounts`; `summary` ganha `discount_total`) (spec 058)
+- **Cupom impresso com desconto**: o item com desconto sai com o valor já líquido e a linha `Desconto 20%: -R$ 8,00` (ou `Desconto: -R$ 5,00`) embaixo; o TOTAL é líquido. Cupom sem desconto sai exatamente como antes (spec 058)
+
 ## v1.9.0 — Community Productization (em andamento)
 
 ### Novidades

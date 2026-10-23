@@ -464,6 +464,52 @@
                                         <button class="btn btn-outline-secondary" @click="item.quantity++">+</button>
                                     </div>
                                 </div>
+                                <!-- Desconto por item (spec 058) — só aqui; o quadro da cozinha não mostra desconto -->
+                                <template x-if="maxDiscount > 0 && kLineCents(item) > 0">
+                                    <div class="edit-item-discount mt-2 pt-2 border-top">
+                                        <div x-show="!item.discountEdit.open">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="small" :class="kDiscountInvalid(item) ? 'text-danger fw-bold' : (item.discountDraft ? 'text-success' : 'text-muted')">
+                                                <i class="fas fa-tag me-1"></i>Desconto: <span x-text="kDiscountSummary(item)" data-testid="kitchen-discount-summary"></span>
+                                            </span>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" @click="openKitchenDiscount(item)"
+                                                    x-text="item.discountDraft ? 'Alterar' : 'Dar desconto'"></button>
+                                        </div>
+                                        </div>
+                                        <div x-show="item.discountEdit.open">
+                                            <div class="small text-muted mb-1">Valor do item: R$ <span x-text="kMoney(kLineCents(item))"></span> (sem embalagem)</div>
+                                            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button type="button" class="btn" :class="item.discountEdit.type === 'percent' ? 'btn-success' : 'btn-outline-success'"
+                                                            @click="setKitchenDiscountType(item, 'percent')"><i class="fas fa-percent me-1"></i>Porcentagem</button>
+                                                    <button type="button" class="btn" :class="item.discountEdit.type === 'fixed' ? 'btn-success' : 'btn-outline-success'"
+                                                            @click="setKitchenDiscountType(item, 'fixed')"><span class="fw-bold me-1">R$</span>Valor</button>
+                                                </div>
+                                                <div class="input-group input-group-sm" style="width: 9rem">
+                                                    <span class="input-group-text" x-show="item.discountEdit.type === 'fixed'">R$</span>
+                                                    <input type="text" inputmode="decimal" autocomplete="off" class="form-control text-end"
+                                                           :class="{ 'is-invalid': kDiscountPreview(item).typed && kDiscountPreview(item).error }"
+                                                           :placeholder="item.discountEdit.type === 'percent' ? 'Ex.: 10' : 'Ex.: 5,00'"
+                                                           x-model="item.discountEdit.valueText" @keydown.enter.prevent="applyKitchenDiscount(item)">
+                                                    <span class="input-group-text" x-show="item.discountEdit.type === 'percent'">%</span>
+                                                </div>
+                                            </div>
+                                            <div class="small text-danger mb-2" x-show="kDiscountPreview(item).typed && kDiscountPreview(item).error"
+                                                 x-text="kDiscountPreview(item).error"></div>
+                                            <div class="small mb-2" x-show="kDiscountPreview(item).typed && !kDiscountPreview(item).error">
+                                                De R$ <span x-text="kMoney(kDiscountPreview(item).line)"></span>
+                                                por <strong class="text-success">R$ <span x-text="kMoney(kDiscountPreview(item).line - kDiscountPreview(item).amount)"></span></strong>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <button type="button" class="btn btn-sm btn-link text-danger px-0" x-show="item.discountDraft" @click="removeKitchenDiscount(item)">Remover desconto</button>
+                                                <div class="ms-auto">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary me-1" @click="closeKitchenDiscount(item)">Cancelar</button>
+                                                    <button type="button" class="btn btn-sm btn-success" @click="applyKitchenDiscount(item)" :disabled="!!kDiscountPreview(item).error">Aplicar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         </template>
 
