@@ -81,7 +81,7 @@ Full breakdown, project-structure tree and known limitations: [`docs/architectur
 
 | Technology | Role |
 |---|---|
-| PHP >= 8.1 (`php:8.2-apache` in Docker) | Backend language and runtime |
+| PHP >= 8.1 (`php:8.2.35-apache` in Docker — patched for PHP2Shell; outside Docker use 8.2.35+, 8.3.36+, 8.4.27+ or 8.5.12+) | Backend language and runtime |
 | Slim 4 + `php-di/slim-bridge` | Routing, PSR-15 middleware, DI container |
 | Eloquent (`illuminate/database`, via `Capsule\Manager`) | ORM / query builder, without the rest of Laravel |
 | `vlucas/valitron` | Input validation |
