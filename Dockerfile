@@ -1,4 +1,8 @@
-FROM php:8.2-apache
+# Versão de patch fixada de propósito (spec 059): 8.2.35 corrige o PHP2Shell
+# (CVE-2026-109618 / CVE-2026-109619), e mod_php — este setup — é o cenário de maior
+# risco. Com só `8.2-apache`, uma imagem antiga em cache continuaria sendo usada.
+# Para atualizar: `docker compose build --pull web print-worker` e recriar os containers.
+FROM php:8.2.35-apache
 
 # 1. Adicionado 'git' na lista de dependências
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -47,5 +51,9 @@ RUN chown -R www-data:www-data /var/www/html \
 ENV TZ=America/Sao_Paulo
 RUN ln -sfn /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime \
     && echo 'date.timezone=America/Sao_Paulo' > /usr/local/etc/php/conf.d/timezone.ini
+
+# Defesa em profundidade contra o CVE-2026-109619 (spec 059): o GastroFlow não usa
+# sessões PHP (auth é JWT), então o upload progress de sessão só aumenta a superfície.
+RUN echo 'session.upload_progress.enabled=0' > /usr/local/etc/php/conf.d/zz-security.ini
 
 EXPOSE 80
