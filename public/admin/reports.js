@@ -14,6 +14,8 @@ function reportsApp() {
         peakHours: [],
         prepTime: { avg_minutes: 0, by_day: [] },
         monthlyComp: { current: {}, previous: {}, change: {} },
+        // Descontos por item no período (spec 058)
+        discounts: { total_discount: 0, orders_with_discount: 0, gross_products: 0, share: 0, top_items: [] },
 
         // Chart.js instances
         chartSales: null,
@@ -51,7 +53,7 @@ function reportsApp() {
             this.loading = true;
             this.destroyCharts();
             try {
-                const [salesData, topData, mainDishesData, diningData, peakData, prepData, monthData] = await Promise.all([
+                const [salesData, topData, mainDishesData, diningData, peakData, prepData, monthData, discountData] = await Promise.all([
                     this.api(`/api/admin/reports/sales?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
                     this.api(`/api/admin/reports/top-items?date_from=${this.dateFrom}&date_to=${this.dateTo}&limit=10`),
                     this.api(`/api/admin/reports/main-dishes?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
@@ -59,6 +61,7 @@ function reportsApp() {
                     this.api(`/api/admin/reports/peak-hours?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
                     this.api(`/api/admin/reports/prep-time?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
                     this.api(`/api/admin/reports/month-comparison?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
+                    this.api(`/api/admin/reports/discounts?date_from=${this.dateFrom}&date_to=${this.dateTo}`),
                 ]);
 
                 this.salesData = salesData.data || [];
@@ -77,6 +80,7 @@ function reportsApp() {
                 this.peakHours = peakData.data || [];
                 this.prepTime = prepData.data || { avg_minutes: 0, by_day: [] };
                 this.monthlyComp = monthData.data || { current: {}, previous: {}, change: {} };
+                this.discounts = discountData.data || { total_discount: 0, orders_with_discount: 0, gross_products: 0, share: 0, top_items: [] };
 
                 this.$nextTick(() => {
                     this.renderSalesChart();

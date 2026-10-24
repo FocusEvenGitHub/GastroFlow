@@ -65,7 +65,11 @@ paths:
 
     post:
       summary: Criar pedido
-      description: Cria um novo pedido com itens.
+      description: >-
+        Cria um novo pedido com itens. Cada item pode ter um desconto (spec 058);
+        um desconto que fere uma regra (acima do valor do item, acima do teto do
+        Admin, desconto desativado) rejeita o pedido inteiro com 400
+        INVALID_DISCOUNT, sem consumir número de senha.
       operationId: createOrder
       tags:
         - Pedidos
@@ -104,6 +108,151 @@ paths:
                   error:
                     type: string
                     example: Número da senha já utilizado hoje. Peça um novo número.
+
+  /api/orders/{id}/items/{itemId}:
+    patch:
+      summary: Atualizar item do pedido (Editar Pedido da Cozinha)
+      description: >-
+        Altera quantidade, observação e opção de consumo, e reprecifica o item
+        pelo cardápio atual (spec 052). Desconto por item (spec 058): `discount`
+        como objeto define o desconto (com todas as regras e o teto do Admin,
+        sobre o valor já reprecificado); `null` remove; ausente mantém o
+        desconto atual, reajustado automaticamente (% reaplicada, R$ limitado
+        ao novo valor do item).
+      operationId: updateOrderItem
+      tags:
+        - Pedidos
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                notes:
+                  type: string
+                  maxLength: 500
+                dining_option:
+                  type: string
+                  enum: [local, viagem_simples, viagem_vip]
+                discount:
+                  allOf:
+                    - $ref: "#/components/schemas/ItemDiscountInput"
+                  nullable: true
+      responses:
+        "200":
+          description: Item atualizado
+        "400":
+          description: VALIDATION_FAILED (formato) ou INVALID_DISCOUNT (regra do desconto; nada no item muda)
+        "404":
+          description: Item não encontrado neste pedido
+        "409":
+          description: Pedido cancelado (ORDER_CANCELLED)
+
+  /api/settings/discount:
+    get:
+      summary: Teto do desconto por item
+      description: >-
+        Público, como /api/menu (spec 058). O Caixa e o Editar Pedido da Cozinha
+        usam para validar enquanto o operador digita; o servidor valida de novo
+        ao gravar. 0 significa desconto desativado.
+      operationId: discountSettings
+      tags:
+        - Pedidos
+      responses:
+        "200":
+          description: Teto atual
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discount_max_percent:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                    example: 100
+
+  /api/admin/reports/discounts:
+    get:
+      summary: Descontos concedidos no período
+      description: >-
+        Descontos por item (spec 058) em pedidos concluídos no intervalo.
+        gross_products é o valor dos produtos antes dos descontos (sem
+        embalagem); share = total_discount / gross_products em %.
+      operationId: discountsReport
+      tags:
+        - Admin - Relatórios
+      security:
+        - jwtAuth: []
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Resumo dos descontos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      total_discount:
+                        type: number
+                        example: 8.00
+                      orders_with_discount:
+                        type: integer
+                        example: 1
+                      gross_products:
+                        type: number
+                        example: 45.00
+                      share:
+                        type: number
+                        example: 17.8
+                      top_items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: Prato do Dia
+                            lines:
+                              type: integer
+                              example: 1
+                            total:
+                              type: number
+                              example: 8.00
+        "401":
+          description: Sem token
+        "403":
+          description: Papel sem acesso (apenas admin e manager)
 
   /api/orders/next-number:
     get:
@@ -707,6 +856,7 @@ paths:
                   example:
                     restaurant_name: GastroFlow
                     restaurant_phone: "(11) 98888-7777"
+                    discount_max_percent: "30"
       responses:
         "200":
           description: Configurações salvas
@@ -899,6 +1049,22 @@ components:
                 type: number
                 format: float
                 description: Preço unitário gravado no pedido (para prato montado, base + adicionais)
+              discount:
+                type: object
+                nullable: true
+                description: Desconto do item (spec 058), ou null
+                properties:
+                  type:
+                    type: string
+                    enum: [percent, fixed]
+                  value:
+                    type: number
+                    description: O que foi digitado (20 = 20% ou R$ 20,00)
+                    example: 20
+                  amount:
+                    type: number
+                    description: Valor aplicado em reais
+                    example: 8.00
               components:
                 type: array
                 description: Adicionais escolhidos (prato montado); vazio para os demais itens
@@ -967,6 +1133,8 @@ components:
                 type: string
                 description: Observações para o item
                 example: Sem cebola
+              discount:
+                $ref: "#/components/schemas/ItemDiscountInput"
               components:
                 type: array
                 maxItems: 30
@@ -989,6 +1157,28 @@ components:
                       minimum: 1
                       maximum: 10
                       example: 2
+
+    ItemDiscountInput:
+      type: object
+      description: >-
+        Desconto de uma linha do pedido (spec 058), sobre preço × quantidade
+        (adicionais inclusos; a embalagem nunca entra). Nunca maior que o valor
+        do item nem que o teto do Admin (discount_max_percent).
+      required:
+        - type
+        - value
+      properties:
+        type:
+          type: string
+          enum: [percent, fixed]
+        value:
+          description: >-
+            Positivo, até 2 casas decimais, com ponto (ex.: 12.5 ou "12.50").
+            percent: até 100. fixed: em reais, vale para a linha toda (não por unidade).
+          oneOf:
+            - type: number
+            - type: string
+          example: 20
 
     LoginResponse:
       type: object

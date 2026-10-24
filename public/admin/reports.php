@@ -83,7 +83,7 @@ HTML;
                 <div class="card stat-card position-relative" style="border-left-color: var(--success);">
                     <div class="card-body">
                         <div class="stat-value" x-text="'R$ ' + summary.revenue.toFixed(2)">0,00</div>
-                        <div class="stat-label">Faturamento</div>
+                        <div class="stat-label">Faturamento <small class="text-muted">(líquido de descontos)</small></div>
                         <i class="fas fa-dollar-sign stat-icon"></i>
                     </div>
                 </div>
@@ -103,6 +103,45 @@ HTML;
                         <div class="stat-value" x-text="summary.items_sold">0</div>
                         <div class="stat-label">Itens Vendidos</div>
                         <i class="fas fa-utensils stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Descontos concedidos (spec 058) -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tag me-2"></i>Descontos concedidos</h5>
+            </div>
+            <div class="card-body">
+                <div x-show="discounts.total_discount === 0" class="text-center text-muted py-3">
+                    Nenhum desconto concedido no período.
+                </div>
+                <div x-show="discounts.total_discount > 0" class="row g-4 align-items-start">
+                    <div class="col-md-4">
+                        <div class="h3 text-danger mb-0" x-text="'R$ ' + Number(discounts.total_discount).toFixed(2)"></div>
+                        <div class="text-muted small">em descontos</div>
+                        <div class="mt-2 small">
+                            <div><strong x-text="discounts.orders_with_discount"></strong> pedido(s) com desconto</div>
+                            <div><strong x-text="Number(discounts.share).toFixed(1) + '%'"></strong> das vendas de produtos
+                                (R$ <span x-text="Number(discounts.gross_products).toFixed(2)"></span> antes dos descontos)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr><th>Item</th><th class="text-end">Linhas</th><th class="text-end">Total desconto</th></tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="row in discounts.top_items" :key="row.name">
+                                    <tr>
+                                        <td x-text="row.name"></td>
+                                        <td class="text-end" x-text="row.lines"></td>
+                                        <td class="text-end text-danger" x-text="'R$ ' + Number(row.total).toFixed(2)"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

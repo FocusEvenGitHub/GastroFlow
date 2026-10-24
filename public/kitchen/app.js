@@ -36,6 +36,9 @@ function kitchenApp() {
         newItemQty: 1,
         addingItem: false,
         removingItemId: null,
+        // Desconto por item (spec 058): só no modal "Editar Pedido" — o quadro e o
+        // resumo da cozinha nunca mostram desconto. Teto do Admin em centésimos de %.
+        maxDiscount: 10000,
         KITCHEN_CATEGORIES: ['Pratos Principais', 'Adicionais'],
         // 'ingredients' | 'dishes' — qual resumo mostrar no painel lateral (spec 030)
         summaryMode: localStorage.getItem('kitchenSummaryMode') === 'dishes' ? 'dishes' : 'ingredients',
@@ -322,11 +325,96 @@ function kitchenApp() {
 
         openEditModal(order) {
             // Cópia profunda: edições só afetam o servidor ao salvar/remover explicitamente.
-            this.editingOrder = JSON.parse(JSON.stringify(order));
+            const copy = JSON.parse(JSON.stringify(order));
+            copy.items.forEach(item => this.prepareDiscount(item));
+            this.editingOrder = copy;
             this.newItemId = '';
             this.newItemQty = 1;
             // Preços atuais do Admin (títulos Simples/VIP, seletor de itens) — spec 052.
             this.loadMenu();
+            GF.discount.loadMax().then(max => { this.maxDiscount = max; }).catch(() => {});
+        },
+
+        // ── Desconto por item no "Editar Pedido" (spec 058) ──
+        // item.discountDraft = { type, valueText } | null é o desconto como ficará ao salvar;
+        // discountDirty diz se a cozinha mexeu nele (só então vai no PATCH, e só então é
+        // auditado); discountEdit é o painel aberto dentro do card do item.
+
+        prepareDiscount(item) {
+            const d = item.discount;
+            item.discountDraft = d ? { type: d.type, valueText: GF.discount.rate(Math.round(Number(d.value) * 100)) } : null;
+            item.discountDirty = false;
+            item.discountEdit = { open: false, type: 'percent', valueText: '' };
+        },
+
+        kLineCents(item) {
+            return Math.round(Number(item.unit_price || 0) * 100) * item.quantity;
+        },
+
+        // { amount, error } do desconto como ficará ao salvar. Sem a cozinha mexer, o
+        // servidor só reajusta (% reaplicada, R$ limitado ao novo valor) — sem erro.
+        kDiscountState(item) {
+            const d = item.discountDraft;
+            if (!d) return null;
+            const line = this.kLineCents(item);
+            if (!item.discountDirty) {
+                const value = GF.discount.parse(d.valueText) || 0;
+                const raw = d.type === 'percent' ? GF.discount.percentOf(line, value) : value;
+                return { amount: Math.min(raw, line), error: null };
+            }
+            return GF.discount.evaluate(d.type, d.valueText, line, this.maxDiscount);
+        },
+
+        kDiscountSummary(item) {
+            const state = this.kDiscountState(item);
+            if (!state) return 'Sem desconto';
+            if (state.error) return 'Revise o desconto';
+            return `${GF.discount.badge(item.discountDraft.type, item.discountDraft.valueText)} (−R$ ${GF.discount.money(state.amount)})`;
+        },
+
+        kDiscountInvalid(item) {
+            const state = this.kDiscountState(item);
+            return !!state && !!state.error;
+        },
+
+        kDiscountPreview(item) {
+            const line = this.kLineCents(item);
+            const edit = item.discountEdit;
+            const typed = edit.valueText.trim() !== '';
+            const result = GF.discount.evaluate(edit.type, edit.valueText, line, this.maxDiscount);
+            return { line, amount: result.error ? 0 : result.amount, error: result.error, typed };
+        },
+
+        kMoney(cents) {
+            return GF.discount.money(cents);
+        },
+
+        openKitchenDiscount(item) {
+            const d = item.discountDraft;
+            item.discountEdit = { open: true, type: d ? d.type : 'percent', valueText: d ? d.valueText : '' };
+        },
+
+        closeKitchenDiscount(item) {
+            item.discountEdit = { open: false, type: 'percent', valueText: '' };
+        },
+
+        setKitchenDiscountType(item, type) {
+            if (item.discountEdit.type === type) return;
+            item.discountEdit.type = type;
+            item.discountEdit.valueText = '';
+        },
+
+        applyKitchenDiscount(item) {
+            if (this.kDiscountPreview(item).error) return;
+            item.discountDraft = { type: item.discountEdit.type, valueText: item.discountEdit.valueText.trim() };
+            item.discountDirty = true;
+            this.closeKitchenDiscount(item);
+        },
+
+        removeKitchenDiscount(item) {
+            item.discountDraft = null;
+            item.discountDirty = true;
+            this.closeKitchenDiscount(item);
         },
 
         closeEditModal() {
@@ -341,6 +429,7 @@ function kitchenApp() {
                     method: 'POST',
                     json: { menu_item_id: this.newItemId, quantity: this.newItemQty || 1 }
                 });
+                this.prepareDiscount(data.item);
                 this.editingOrder.items.push(data.item);
                 this.newItemId = '';
                 this.newItemQty = 1;
@@ -374,6 +463,10 @@ function kitchenApp() {
 
         async saveOrderChanges() {
             if (!this.editingOrder) return;
+            if (this.editingOrder.items.some(item => this.kDiscountInvalid(item))) {
+                this.showMessage('Revise o desconto marcado em vermelho antes de salvar.', 'warning');
+                return;
+            }
             this.savingOrder = true;
             try {
                 await GF.api(`/api/orders/${this.editingOrder.id}`, {
@@ -385,10 +478,15 @@ function kitchenApp() {
                 });
 
                 for (const item of this.editingOrder.items) {
-                    await GF.api(`/api/orders/${this.editingOrder.id}/items/${item.item_id}`, {
-                        method: 'PATCH',
-                        json: { quantity: item.quantity, notes: item.notes, dining_option: item.dining_option }
-                    });
+                    const json = { quantity: item.quantity, notes: item.notes, dining_option: item.dining_option };
+                    // Só manda o desconto quando a cozinha mexeu nele (spec 058): sem o campo,
+                    // o servidor mantém e reajusta o desconto existente.
+                    if (item.discountDirty) {
+                        json.discount = item.discountDraft
+                            ? GF.discount.payload(item.discountDraft.type, item.discountDraft.valueText)
+                            : null;
+                    }
+                    await GF.api(`/api/orders/${this.editingOrder.id}/items/${item.item_id}`, { method: 'PATCH', json });
                 }
 
                 this.showMessage('Pedido atualizado!', 'success');

@@ -7,6 +7,7 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\ApiResponse;
+use App\InvalidDiscountException;
 use App\OrderCancelledException;
 use App\Services\AuditLogger;
 use App\Services\OrderService;
@@ -50,6 +51,10 @@ class OrderController
             $payload = ['success' => true, 'id' => $order->id, 'message' => 'Order created'];
             $response->getBody()->write(json_encode($payload));
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
+        } catch (InvalidDiscountException $e) {
+            // Item discount breaks a business rule (spec 058). Caught before the
+            // generic DomainException it extends.
+            return ApiResponse::error($response, 400, 'INVALID_DISCOUNT', $e->getMessage());
         } catch (\DomainException $e) {
             // Nonexistent or unavailable menu item (spec 022) — bad input, not a conflict.
             return ApiResponse::error($response, 400, 'INVALID_ORDER_ITEM', $e->getMessage());
@@ -190,6 +195,10 @@ class OrderController
             return ApiResponse::error($response, 404, 'ORDER_ITEM_NOT_FOUND', 'Item não encontrado neste pedido');
         } catch (OrderCancelledException $e) {
             return ApiResponse::error($response, 409, 'ORDER_CANCELLED', $e->getMessage());
+        } catch (InvalidDiscountException $e) {
+            // Discount set in "Editar Pedido" breaks a rule (spec 058); the
+            // transaction rolled back, so nothing in the item changed.
+            return ApiResponse::error($response, 400, 'INVALID_DISCOUNT', $e->getMessage());
         }
     }
 

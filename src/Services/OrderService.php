@@ -13,17 +13,20 @@ class OrderService
     private PrintService $printService;
     private JobService $jobService;
     private EventPublisher $events;
+    private AuditLogger $auditLogger;
 
     public function __construct(
         OrderRepository $orderRepo,
         PrintService $printService,
         JobService $jobService,
-        EventPublisher $events
+        EventPublisher $events,
+        AuditLogger $auditLogger
     ) {
         $this->orderRepo = $orderRepo;
         $this->printService = $printService;
         $this->jobService = $jobService;
         $this->events = $events;
+        $this->auditLogger = $auditLogger;
     }
 
     public function getOrders(string $status, ?string $date = null): array
@@ -34,6 +37,7 @@ class OrderService
     public function createOrder(array $data): Order
     {
         $order = $this->orderRepo->createOrder($data);
+        $this->auditCashierDiscounts($order);
 
         // Dispara job de impressão assíncrono (apenas se print_ticket for true).
         // Com a impressora bloqueada o job NÃO é enfileirado — sem isso o bloqueio seria
@@ -91,8 +95,34 @@ class OrderService
 
     public function updateOrderItem(int $orderId, int $itemId, array $data): void
     {
-        $this->orderRepo->updateOrderItem($orderId, $itemId, $data);
+        $change = $this->orderRepo->updateOrderItem($orderId, $itemId, $data);
+        // Only an explicit change made in the kitchen's "Editar Pedido" is
+        // audited; the automatic recalculation is deterministic (spec 058).
+        if ($change !== null) {
+            $action = $change['action'] === 'removed' ? 'order.discount_removed' : 'order.discount_applied';
+            unset($change['action']);
+            if ($action === 'order.discount_applied') {
+                $change = ['source' => 'kitchen'] + $change;
+            }
+            $this->auditLogger->record($action, 'order', $orderId, $change);
+        }
         $this->events->publish('order.updated', ['order_id' => $orderId]);
+    }
+
+    /**
+     * One audit row per order created with at least one item discount
+     * (spec 058) — a permanent record of money given away at the cashier.
+     */
+    private function auditCashierDiscounts(Order $order): void
+    {
+        $items = $this->orderRepo->getDiscountedItems((int) $order->id);
+        if ($items === []) {
+            return;
+        }
+        $this->auditLogger->record('order.discount_applied', 'order', (int) $order->id, [
+            'source' => 'cashier',
+            'items'  => $items,
+        ]);
     }
 
     public function removeOrderItem(int $orderId, int $itemId): void

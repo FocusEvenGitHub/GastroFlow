@@ -55,6 +55,19 @@ class SettingsValidator
             $this->v->rule('max', 'printer_port', 65535);
         }
 
+        // Maximum item discount, in percent (spec 058): 0 disables discounts.
+        if (array_key_exists('discount_max_percent', $settings)) {
+            // required: Valitron skips custom rules on an empty value, and an empty
+            // string would silently fall back to 100%.
+            $this->v->rule('required', 'discount_max_percent');
+            $this->v->rule(function ($field, $val) {
+                if (!is_string($val) || preg_match('/^\d{1,3}(\.\d{1,2})?$/', $val) !== 1) {
+                    return false;
+                }
+                return (float) $val >= 0 && (float) $val <= 100;
+            }, 'discount_max_percent')->message('O desconto máximo deve ser um número de 0 a 100');
+        }
+
         return $this->v->validate();
     }
 

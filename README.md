@@ -193,10 +193,10 @@ git reset --hard
 
 ## Using the app
 
-- **Cashier** (`/cashier/`) — create an order under a pickup ticket number ("Senha"), select items, add notes, send to the kitchen.
+- **Cashier** (`/cashier/`) — create an order under a pickup ticket number ("Senha"), select items, add notes, give an item a discount (tap its price: % or R$, capped by the item's value and the Admin's maximum), send to the kitchen.
 - **Kitchen** (`/kitchen/`) — pending orders appear in real time; mark as done, reopen, edit, or reprint.
 - **Admin** (`/admin/`) — menu, dish components, ingredients, settings, audit history and the app log. Log in with the account created by `bin/create-admin` (see [Installation](#installation)).
-- **Reports** (`/admin/reports.php`) — sales summary, top items, dining-option split, peak hours, average prep time, month-over-month comparison.
+- **Reports** (`/admin/reports.php`) — sales summary, top items, dining-option split, peak hours, average prep time, month-over-month comparison, discounts given. Revenue is net of item discounts.
 
 ---
 

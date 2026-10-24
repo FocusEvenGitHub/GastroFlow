@@ -16,7 +16,8 @@ class ReportService
     /**
      * Main dishes sold within a date range (spec 032): every dish whose
      * current menu category is Pratos Principais, completed orders only.
-     * Revenue excludes packaging (same as getTopItems()).
+     * Revenue excludes packaging (same as getTopItems()) and is net of item
+     * discounts (spec 058).
      * Returns { total_qty, total_revenue, items: [{ menu_item_id, name, total_qty, total_revenue, share }] }.
      */
     public function getMainDishSales(string $dateFrom, string $dateTo): array
@@ -25,7 +26,7 @@ class ReportService
             "order_items.menu_item_id,
              MAX(order_items.id) as last_item_id,
              SUM(order_items.quantity) as total_qty,
-             SUM(order_items.unit_price * order_items.quantity) as total_revenue"
+             SUM(order_items.unit_price * order_items.quantity - order_items.discount_amount) as total_revenue"
         )
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('menu_items', 'menu_items.id', '=', 'order_items.menu_item_id')
@@ -71,8 +72,8 @@ class ReportService
         $rows = Order::selectRaw(
             "orders.business_date as date,
              COUNT(DISTINCT orders.id) as orders,
-             COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost), 0) as revenue,
-             COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost) / NULLIF(COUNT(DISTINCT orders.id), 0), 0) as avg_ticket,
+             COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost - order_items.discount_amount), 0) as revenue,
+             COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost - order_items.discount_amount) / NULLIF(COUNT(DISTINCT orders.id), 0), 0) as avg_ticket,
              COALESCE(SUM(order_items.quantity), 0) as items_sold"
         )
             ->join('order_items', 'order_items.order_id', '=', 'orders.id')
@@ -119,7 +120,7 @@ class ReportService
                  '\u{7}', 1
              ) as name,
              SUM(order_items.quantity) as total_qty,
-             SUM(order_items.unit_price * order_items.quantity) as total_revenue"
+             SUM(order_items.unit_price * order_items.quantity - order_items.discount_amount) as total_revenue"
         )
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('orders.status', Order::STATUS_DONE)
@@ -259,8 +260,8 @@ class ReportService
         foreach ($periods as $key => [$from, $to]) {
             $data = Order::selectRaw(
                 "COUNT(DISTINCT orders.id) as orders,
-                 COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost), 0) as revenue,
-                 COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost) / NULLIF(COUNT(DISTINCT orders.id), 0), 0) as avg_ticket,
+                 COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost - order_items.discount_amount), 0) as revenue,
+                 COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost - order_items.discount_amount) / NULLIF(COUNT(DISTINCT orders.id), 0), 0) as avg_ticket,
                  COALESCE(SUM(order_items.quantity), 0) as items_sold"
             )
                 ->join('order_items', 'order_items.order_id', '=', 'orders.id')
@@ -300,16 +301,18 @@ class ReportService
     }
 
     /**
-     * Quick summary for a single date (default: today).
-     * Returns { date, orders, revenue, avg_ticket, items_sold }.
+     * Quick summary for a single date (default: today). Revenue is net of
+     * item discounts; discount_total is what was given away (spec 058).
+     * Returns { date, orders, revenue, avg_ticket, items_sold, discount_total }.
      */
     public function getDailySummary(string $date): array
     {
         $data = Order::selectRaw(
             "COUNT(DISTINCT orders.id) as orders,
-             COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost), 0) as revenue,
-             COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost) / NULLIF(COUNT(DISTINCT orders.id), 0), 0) as avg_ticket,
-             COALESCE(SUM(order_items.quantity), 0) as items_sold"
+             COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost - order_items.discount_amount), 0) as revenue,
+             COALESCE(SUM(order_items.unit_price * order_items.quantity + order_items.packaging_cost - order_items.discount_amount) / NULLIF(COUNT(DISTINCT orders.id), 0), 0) as avg_ticket,
+             COALESCE(SUM(order_items.quantity), 0) as items_sold,
+             COALESCE(SUM(order_items.discount_amount), 0) as discount_total"
         )
             ->join('order_items', 'order_items.order_id', '=', 'orders.id')
             ->where('orders.status', Order::STATUS_DONE)
@@ -323,6 +326,65 @@ class ReportService
             'revenue'    => (float) ($data['revenue'] ?? 0),
             'avg_ticket' => round((float) ($data['avg_ticket'] ?? 0), 2),
             'items_sold' => (int) ($data['items_sold'] ?? 0),
+            'discount_total' => round((float) ($data['discount_total'] ?? 0), 2),
+        ];
+    }
+
+    /**
+     * Item discounts given within a date range (spec 058), completed orders
+     * only, like every other report. gross_products is product value before
+     * discounts (packaging excluded), so the share given away is
+     * total_discount / gross_products.
+     * Returns { total_discount, orders_with_discount, gross_products, share,
+     *           top_items: [{ name, lines, total }] }.
+     */
+    public function getDiscounts(string $dateFrom, string $dateTo, int $limit = 10): array
+    {
+        $totals = OrderItem::selectRaw(
+            "COALESCE(SUM(order_items.discount_amount), 0) as total_discount,
+             COUNT(DISTINCT CASE WHEN order_items.discount_amount > 0 THEN orders.id END) as orders_with_discount,
+             COALESCE(SUM(order_items.unit_price * order_items.quantity), 0) as gross_products"
+        )
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.status', Order::STATUS_DONE)
+            ->where('orders.business_date', '>=', $dateFrom)
+            ->where('orders.business_date', '<=', $dateTo)
+            ->first()
+            ->toArray();
+
+        // Same "most recent snapshot name" technique as getTopItems().
+        $rows = OrderItem::selectRaw(
+            "SUBSTRING_INDEX(
+                 GROUP_CONCAT(order_items.item_name ORDER BY order_items.id DESC SEPARATOR '\u{7}'),
+                 '\u{7}', 1
+             ) as name,
+             COUNT(*) as line_count,
+             SUM(order_items.discount_amount) as total"
+        )
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.status', Order::STATUS_DONE)
+            ->where('orders.business_date', '>=', $dateFrom)
+            ->where('orders.business_date', '<=', $dateTo)
+            ->where('order_items.discount_amount', '>', 0)
+            ->groupBy('order_items.menu_item_id')
+            ->orderByDesc('total')
+            ->limit($limit)
+            ->get()
+            ->toArray();
+
+        $totalDiscount = round((float) $totals['total_discount'], 2);
+        $grossProducts = round((float) $totals['gross_products'], 2);
+
+        return [
+            'total_discount'       => $totalDiscount,
+            'orders_with_discount' => (int) $totals['orders_with_discount'],
+            'gross_products'       => $grossProducts,
+            'share'                => $grossProducts > 0 ? round($totalDiscount / $grossProducts * 100, 1) : 0.0,
+            'top_items'            => array_map(fn ($r) => [
+                'name'  => (string) $r['name'],
+                'lines' => (int) $r['line_count'],
+                'total' => round((float) $r['total'], 2),
+            ], $rows),
         ];
     }
 }

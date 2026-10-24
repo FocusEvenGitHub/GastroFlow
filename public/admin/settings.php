@@ -88,6 +88,29 @@ $extraHead = '<style>
         </div>
     </div>
 
+    <!-- Desconto no caixa (spec 058) -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tag me-2"></i>Desconto no caixa</h5>
+                </div>
+                <div class="card-body">
+                    <label class="form-label" for="discountMax">Desconto máximo por item (%)</label>
+                    <div class="input-group" style="max-width: 12rem">
+                        <input type="text" inputmode="decimal" id="discountMax" x-model="form.discount_max_percent"
+                               class="form-control" placeholder="100">
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        O caixa (e o "Editar Pedido" da cozinha) não consegue dar mais que isso em um item.
+                        <strong>0 desativa o desconto.</strong>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Botão Salvar -->
     <div class="row">
         <div class="col-12">

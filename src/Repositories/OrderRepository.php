@@ -9,6 +9,8 @@ use App\Models\OrderItem;
 use App\Models\OrderItemComponent;
 use App\Models\MenuItem;
 use App\Models\OrderNumberCounter;
+use App\Models\Setting;
+use App\InvalidDiscountException;
 use App\Money;
 use App\OrderCancelledException;
 use App\Services\PricingService;
@@ -55,6 +57,7 @@ class OrderRepository
                     'dining_option'  => $item->dining_option ?? 'local',
                     'unit_price'     => (float) $item->unit_price,
                     'packaging_cost' => (float) $item->packaging_cost,
+                    'discount'       => self::discountPayload($item),
                     'category_name'  => $item->menuItem->category->name ?? null,
                     'components'     => $item->components->map(fn ($c) => [
                         'menu_item_id' => (int) $c->menu_item_id,
@@ -78,6 +81,42 @@ class OrderRepository
                 'items'         => $items,
             ];
         })->all();
+    }
+
+    /**
+     * An item's discount as the API shows it (spec 058), or null when none.
+     *
+     * @return array{type: string, value: float, amount: float}|null
+     */
+    private static function discountPayload(OrderItem $item): ?array
+    {
+        if ($item->discount_type === null) {
+            return null;
+        }
+        return [
+            'type'   => (string) $item->discount_type,
+            'value'  => (float) $item->discount_value,
+            'amount' => (float) $item->discount_amount,
+        ];
+    }
+
+    /**
+     * The order's discounted lines (spec 058), for the audit log.
+     *
+     * @return list<array{name: string, type: string, value: float, amount: float}>
+     */
+    public function getDiscountedItems(int $orderId): array
+    {
+        return OrderItem::where('order_id', $orderId)
+            ->whereNotNull('discount_type')
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($i) => [
+                'name'   => (string) $i->item_name,
+                'type'   => (string) $i->discount_type,
+                'value'  => (float) $i->discount_value,
+                'amount' => (float) $i->discount_amount,
+            ])->values()->all();
     }
 
     /**
@@ -121,6 +160,7 @@ class OrderRepository
             $menuItemsById = MenuItem::whereIn('id', $itemIds)->lockForUpdate()->orderBy('id')->get()->keyBy('id');
 
             $resolvedItems = [];
+            $maxDiscount = null;
             foreach ($data['items'] as $item) {
                 $menuItem = $menuItemsById->get((int) $item['id']);
                 if (!$menuItem) {
@@ -129,10 +169,32 @@ class OrderRepository
                 if (!$menuItem->available) {
                     throw new \DomainException("Item indisponível: {$menuItem->name}");
                 }
+                $components = $this->resolveComponents($menuItem, $item['components'] ?? [], $menuItemsById);
+                $unitPrice = $this->pricingService->composedUnitPrice(
+                    $this->pricingService->unitPriceFor($menuItem),
+                    array_map(fn ($c) => ['price' => $c['price'], 'quantity' => $c['quantity']], $components)
+                );
+
+                // Item discount (spec 058), checked here — before the Order row
+                // exists and before a ticket number is allocated — so a rejected
+                // discount rejects the whole order without consuming a number.
+                $discount = null;
+                if (isset($item['discount']) && is_array($item['discount'])) {
+                    $maxDiscount ??= $this->discountMaxHundredths();
+                    $discount = $this->chooseDiscount(
+                        $item['discount'],
+                        $this->pricingService->lineProductValue($unitPrice, (int) $item['quantity']),
+                        $maxDiscount,
+                        $menuItem->name
+                    );
+                }
+
                 $resolvedItems[] = [
                     'input'      => $item,
                     'menuItem'   => $menuItem,
-                    'components' => $this->resolveComponents($menuItem, $item['components'] ?? [], $menuItemsById),
+                    'components' => $components,
+                    'unitPrice'  => $unitPrice,
+                    'discount'   => $discount,
                 ];
             }
 
@@ -162,10 +224,8 @@ class OrderRepository
                 $item = $resolved['input'];
                 $menuItem = $resolved['menuItem'];
                 $components = $resolved['components'];
-                $unitPrice = $this->pricingService->composedUnitPrice(
-                    $this->pricingService->unitPriceFor($menuItem),
-                    array_map(fn ($c) => ['price' => $c['price'], 'quantity' => $c['quantity']], $components)
-                );
+                $unitPrice = $resolved['unitPrice'];
+                $discount = $resolved['discount'];
                 $diningOption = $item['dining_option'] ?? 'local';
                 $quantity = (int) $item['quantity'];
                 // array_key_exists, not ??=: a cached null (no linked item) must not re-query.
@@ -183,6 +243,9 @@ class OrderRepository
                     'dining_option'  => $diningOption,
                     'unit_price'     => $unitPrice->toReais(),
                     'packaging_cost' => $packagingCost->toReais(),
+                    'discount_type'   => $discount['type'] ?? null,
+                    'discount_value'  => $discount === null ? null : $discount['value'] / 100,
+                    'discount_amount' => $discount === null ? 0.0 : $discount['amount']->toReais(),
                 ]);
 
                 foreach ($components as $component) {
@@ -213,6 +276,40 @@ class OrderRepository
         }
         $price = MenuItem::where('packaging_option', $diningOption)->value('price');
         return $price === null ? null : Money::fromReais($price);
+    }
+
+    /**
+     * Admin's maximum item discount (spec 058), in hundredths of a percent
+     * (3000 = 30%). A missing or unreadable setting falls back to the
+     * fresh-install default of 100% rather than blocking orders.
+     */
+    private function discountMaxHundredths(): int
+    {
+        $raw = Setting::getValue('discount_max_percent');
+        if ($raw === null || !is_numeric($raw)) {
+            return 10000;
+        }
+        return max(0, min(10000, PricingService::toHundredths($raw)));
+    }
+
+    /**
+     * Validate a discount chosen by a person against one line's product value
+     * (spec 058). The item name prefixes the message so the cashier knows
+     * which line to fix.
+     *
+     * @param array{type: string, value: int|float|string} $input
+     * @return array{type: string, value: int, amount: Money}
+     */
+    private function chooseDiscount(array $input, Money $lineProductValue, int $maxHundredths, string $itemName): array
+    {
+        $type = (string) $input['type'];
+        $value = PricingService::toHundredths($input['value']);
+        try {
+            $amount = $this->pricingService->chosenDiscount($type, $value, $lineProductValue, $maxHundredths);
+        } catch (InvalidDiscountException $e) {
+            throw new InvalidDiscountException("{$itemName}: {$e->getMessage()}");
+        }
+        return ['type' => $type, 'value' => $value, 'amount' => $amount];
     }
 
     /**
@@ -464,6 +561,7 @@ class OrderRepository
                 'dining_option'  => $item->dining_option,
                 'unit_price'     => (float) $item->unit_price,
                 'packaging_cost' => (float) $item->packaging_cost,
+                'discount'       => null,
                 'category_name'  => $menuItem->category->name ?? null,
                 'components'     => [],
             ];
@@ -478,10 +576,17 @@ class OrderRepository
      * refreshes every item's price — the client's explicit choice. Names
      * stay the order-time snapshot (spec 023).
      * Throws ModelNotFoundException if the item doesn't belong to $orderId.
+     *
+     * Item discount (spec 058): `discount` as an object sets it (every rule,
+     * including the admin's maximum, against the re-priced value); null
+     * removes it; absent keeps it, recomputed by adjustedDiscount().
+     *
+     * @return array<string, mixed>|null what an explicit discount change did —
+     *   ['action' => 'applied'|'removed', ...] for the audit log — or null.
      */
-    public function updateOrderItem(int $orderId, int $itemId, array $data): void
+    public function updateOrderItem(int $orderId, int $itemId, array $data): ?array
     {
-        DB::transaction(function () use ($orderId, $itemId, $data) {
+        return DB::transaction(function () use ($orderId, $itemId, $data) {
             $order = Order::findOrFail($orderId);
             if ($order->status === Order::STATUS_CANCELLED) {
                 throw new OrderCancelledException('Não é possível editar itens de um pedido cancelado.');
@@ -511,8 +616,65 @@ class OrderRepository
                 )
                 ->toReais();
 
+            $change = $this->applyItemDiscount($item, $data);
+
             $item->save();
+
+            return $change;
         });
+    }
+
+    /**
+     * Discount part of updateOrderItem() (spec 058). Runs after the line was
+     * re-priced, so every amount refers to its new product value.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function applyItemDiscount(OrderItem $item, array $data): ?array
+    {
+        $lineValue = $this->pricingService->lineProductValue(
+            Money::fromReais($item->unit_price),
+            (int) $item->quantity
+        );
+
+        if (array_key_exists('discount', $data) && $data['discount'] === null) {
+            $hadDiscount = $item->discount_type !== null;
+            $item->discount_type = null;
+            $item->discount_value = null;
+            $item->discount_amount = 0.0;
+            return $hadDiscount
+                ? ['action' => 'removed', 'item_id' => (int) $item->id, 'name' => $item->item_name]
+                : null;
+        }
+
+        if (array_key_exists('discount', $data) && is_array($data['discount'])) {
+            $discount = $this->chooseDiscount(
+                $data['discount'],
+                $lineValue,
+                $this->discountMaxHundredths(),
+                (string) $item->item_name
+            );
+            $item->discount_type = $discount['type'];
+            $item->discount_value = $discount['value'] / 100;
+            $item->discount_amount = $discount['amount']->toReais();
+            return [
+                'action'  => 'applied',
+                'item_id' => (int) $item->id,
+                'name'    => $item->item_name,
+                'type'    => $discount['type'],
+                'value'   => $discount['value'] / 100,
+                'amount'  => $discount['amount']->toReais(),
+            ];
+        }
+
+        if ($item->discount_type !== null) {
+            $item->discount_amount = $this->pricingService->adjustedDiscount(
+                (string) $item->discount_type,
+                PricingService::toHundredths((float) $item->discount_value),
+                $lineValue
+            )->toReais();
+        }
+        return null;
     }
 
     /**

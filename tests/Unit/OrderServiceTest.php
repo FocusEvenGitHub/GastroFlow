@@ -7,6 +7,7 @@ namespace Tests\Unit;
 use App\Jobs\PrintOrderJob;
 use App\Models\Order;
 use App\Repositories\OrderRepository;
+use App\Services\AuditLogger;
 use App\Services\EventPublisher;
 use App\Services\JobService;
 use App\Services\OrderService;
@@ -49,7 +50,7 @@ class OrderServiceTest extends TestCase
             ->method('publish')
             ->with('order.created', ['order_id' => 42]);
 
-        $service = new OrderService($orderRepo, $printService, $jobService, $events);
+        $service = new OrderService($orderRepo, $printService, $jobService, $events, $this->createMock(AuditLogger::class));
 
         $result = $service->createOrder($data);
 
@@ -73,7 +74,8 @@ class OrderServiceTest extends TestCase
             $orderRepo,
             $this->createMock(PrintService::class),
             $this->createMock(JobService::class),
-            $events
+            $events,
+            $this->createMock(AuditLogger::class)
         );
 
         $service->completeOrder(1);

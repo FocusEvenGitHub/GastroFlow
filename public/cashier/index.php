@@ -42,6 +42,16 @@
         [data-theme="dark"] .build-card { background: linear-gradient(135deg, rgba(225,112,85,0.18) 0%, var(--surface) 70%); }
         [data-theme="dark"] .builder-addon.selected,
         [data-theme="dark"] .builder-chip { background: rgba(225,112,85,0.18); }
+        /* Desconto por item (spec 058): o preço da linha é o botão */
+        .price-tag { border-bottom: 1px dashed currentColor !important; border-radius: 0; line-height: 1.2; color: var(--bs-success); }
+        .price-tag:hover, .price-tag:focus { color: var(--bs-success); background: rgba(25,135,84,0.08); }
+        .price-old { text-decoration: line-through; color: var(--text-muted); font-size: 0.8rem; margin-right: 0.25rem; }
+        .discount-badge { font-size: 0.72rem; cursor: pointer; }
+        .discount-ok { background: rgba(25,135,84,0.12); color: var(--bs-success); border: 1px solid rgba(25,135,84,0.35); }
+        .discount-type .btn { font-size: 1rem; padding: 0.6rem 0.5rem; }
+        .discount-input { font-size: 1.6rem; font-weight: 700; text-align: right; }
+        .discount-preview { background: rgba(25,135,84,0.08); border: 1px solid rgba(25,135,84,0.25); border-radius: 8px; }
+        [data-theme="dark"] .discount-preview { background: rgba(25,135,84,0.15); }
     </style>
     <script>
         if (localStorage.getItem('gastroflow_darkMode') === 'true') {
@@ -260,8 +270,26 @@
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <span class="text-success fw-bold">R$ <span x-text="itemTotal(index).toFixed(2)"></span></span>
-                                    <button class="btn btn-sm btn-outline-danger ms-2" @click="removeItem(index)"><i class="fas fa-trash"></i></button>
+                                    <div class="d-flex align-items-center justify-content-end">
+                                        <!-- Desconto por item (spec 058): tocar no preço abre o modal -->
+                                        <template x-if="canDiscount(item)">
+                                            <button type="button" class="btn btn-link price-tag p-0 text-decoration-none fw-bold"
+                                                    @click="openDiscount(index)" title="Toque para dar desconto" data-testid="price-tag">
+                                                <span class="price-old" x-show="hasValidDiscount(item)">R$ <span x-text="itemGrossTotal(index).toFixed(2)"></span></span>
+                                                R$ <span x-text="itemTotal(index).toFixed(2)"></span>
+                                                <i class="fas fa-tag ms-1 small"></i>
+                                            </button>
+                                        </template>
+                                        <template x-if="!canDiscount(item)">
+                                            <span class="text-success fw-bold">R$ <span x-text="itemTotal(index).toFixed(2)"></span></span>
+                                        </template>
+                                        <button class="btn btn-sm btn-outline-danger ms-2" @click="removeItem(index)"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                    <template x-if="item.discount">
+                                        <span class="badge discount-badge mt-1" role="button" @click="openDiscount(index)"
+                                              :class="hasInvalidDiscount(item) ? 'bg-danger' : 'discount-ok'"
+                                              x-text="hasInvalidDiscount(item) ? 'Revise o desconto' : discountBadge(item)"></span>
+                                    </template>
                                 </div>
                             </div>
                             <!-- Adicionais escolhidos (Monte Seu Prato) -->
@@ -300,7 +328,10 @@
                             <template x-if="item.diningOption !== 'local'">
                                 <div class="mt-1">
                                     <small class="text-muted">
-                                        R$ <span x-text="(item.price * item.quantity).toFixed(2)"></span> item
+                                        R$ <span x-text="((lineCents(item) - discountCents(item)) / 100).toFixed(2)"></span> item
+                                        <template x-if="hasValidDiscount(item)">
+                                            <span>(−R$ <span x-text="(discountCents(item) / 100).toFixed(2)"></span> desconto)</span>
+                                        </template>
                                         + R$ <span x-text="(packagingCost(item) * item.quantity).toFixed(2)"></span> embalagem
                                     </small>
                                 </div>
@@ -316,12 +347,22 @@
                     </template>
 
                     <div x-show="selectedItems.length > 0" class="mt-3 pt-2 border-top">
+                        <!-- x-if, não x-show: o display:flex !important do .d-flex venceria o display:none -->
+                        <template x-if="discountsTotal > 0">
+                            <div class="d-flex justify-content-between text-danger">
+                                <span>Descontos:</span>
+                                <span data-testid="discounts-total">−R$ <span x-text="discountsTotal.toFixed(2)"></span></span>
+                            </div>
+                        </template>
                         <div class="d-flex justify-content-between">
                             <strong>Total:</strong>
-                            <strong class="h5 text-success">R$ <span x-text="total.toFixed(2)"></span></strong>
+                            <strong class="h5 text-success">R$ <span x-text="total.toFixed(2)" data-testid="order-total"></span></strong>
                         </div>
-                        <button class="btn btn-success btn-lg w-100 mt-2" @click="openConfirmModal()"
-                                :disabled="!orderNumber || selectedItems.length === 0 || submitting">
+                        <div class="small text-danger" x-show="anyInvalidDiscount">
+                            <i class="fas fa-exclamation-circle me-1"></i>Revise o desconto marcado em vermelho.
+                        </div>
+                        <button class="btn btn-success btn-lg w-100 mt-2" @click="openConfirmModal()" data-testid="send-order"
+                                :disabled="!orderNumber || selectedItems.length === 0 || submitting || anyInvalidDiscount">
                             <span x-show="!submitting"><i class="fas fa-paper-plane me-2"></i>Enviar Pedido</span>
                             <span x-show="submitting"><span class="spinner-border spinner-border-sm me-2"></span>Enviando...</span>
                         </button>
@@ -397,6 +438,76 @@
         </div>
     </div>
 
+    <!-- Modal: Desconto no item (spec 058) -->
+    <!-- Esc pelo Alpine, não pelo Bootstrap: fechar só no Bootstrap deixaria discountModal.open
+         verdadeiro e o próximo toque no preço não reabriria o modal. -->
+    <div class="modal fade" id="discountModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false"
+         @keydown.escape="closeDiscount()"
+         x-effect="syncDiscountModal(discountModal.open)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <template x-if="discountItem">
+                    <div>
+                        <div class="modal-header">
+                            <div>
+                                <h5 class="modal-title mb-0"><i class="fas fa-tag text-success me-2"></i>Desconto em <span x-text="discountItem.quantity + 'x ' + discountItem.name"></span></h5>
+                                <small class="text-muted">Valor do item: R$ <span x-text="money(discountPreview.line)"></span></small>
+                                <template x-if="discountItem.diningOption !== 'local'">
+                                    <small class="text-muted d-block">A embalagem não entra no desconto.</small>
+                                </template>
+                            </div>
+                            <button type="button" class="btn-close" @click="closeDiscount()"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="btn-group w-100 discount-type mb-3" role="group">
+                                <button type="button" class="btn" :class="discountModal.type === 'percent' ? 'btn-success' : 'btn-outline-success'"
+                                        @click="setDiscountType('percent')" data-testid="discount-type-percent">
+                                    <i class="fas fa-percent me-1"></i>Porcentagem
+                                </button>
+                                <button type="button" class="btn" :class="discountModal.type === 'fixed' ? 'btn-success' : 'btn-outline-success'"
+                                        @click="setDiscountType('fixed')" data-testid="discount-type-fixed">
+                                    <span class="fw-bold me-1">R$</span>Valor
+                                </button>
+                            </div>
+                            <div class="input-group input-group-lg mb-2">
+                                <span class="input-group-text" x-show="discountModal.type === 'fixed'">R$</span>
+                                <input type="text" id="discountValue" inputmode="decimal" autocomplete="off" class="form-control discount-input"
+                                       :class="{ 'is-invalid': discountPreview.typed && discountPreview.error }"
+                                       :placeholder="discountModal.type === 'percent' ? 'Ex.: 10' : 'Ex.: 5,00'"
+                                       x-model="discountModal.valueText" @keydown.enter.prevent="applyDiscount()" data-testid="discount-value">
+                                <span class="input-group-text" x-show="discountModal.type === 'percent'">%</span>
+                            </div>
+                            <div class="small text-danger mb-2" x-show="discountPreview.typed && discountPreview.error"
+                                 x-text="discountPreview.error" data-testid="discount-error"></div>
+                            <div class="discount-preview p-3 text-center" x-show="discountPreview.typed && !discountPreview.error">
+                                De <span class="price-old fs-6">R$ <span x-text="money(discountPreview.line)"></span></span>
+                                por <strong class="fs-4 text-success">R$ <span x-text="money(discountPreview.line - discountPreview.amount)"></span></strong>
+                                <div class="small text-muted">desconto de R$ <span x-text="money(discountPreview.amount)"></span></div>
+                            </div>
+                            <div class="small text-muted mt-2" x-show="maxDiscount < 10000">
+                                Desconto máximo: <span x-text="GF.discount.rate(maxDiscount)"></span>% do item.
+                            </div>
+                        </div>
+                        <div class="modal-footer d-flex justify-content-between">
+                            <div>
+                                <button type="button" class="btn btn-link text-danger px-0" x-show="discountItem.discount" @click="removeDiscount()">
+                                    <i class="fas fa-times me-1"></i>Remover desconto
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary me-2" @click="closeDiscount()">Cancelar</button>
+                                <button type="button" class="btn btn-success" @click="applyDiscount()"
+                                        :disabled="!!discountPreview.error" data-testid="discount-apply">
+                                    <i class="fas fa-check me-1"></i>Aplicar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Confirmação do pedido antes de enviar (spec 046) -->
     <div class="modal fade" id="confirmOrderModal" tabindex="-1" data-bs-backdrop="static"
          x-effect="(() => { const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmOrderModal')); confirmingOrder ? modal.show() : modal.hide(); })()">
@@ -433,7 +544,19 @@
                                     </button>
                                 </div>
                             </div>
-                            <span class="text-success fw-bold">R$ <span x-text="itemTotal(index).toFixed(2)"></span></span>
+                            <div class="text-end">
+                                <span class="price-old" x-show="hasValidDiscount(item)">R$ <span x-text="itemGrossTotal(index).toFixed(2)"></span></span>
+                                <span class="text-success fw-bold">R$ <span x-text="itemTotal(index).toFixed(2)"></span></span>
+                                <template x-if="hasValidDiscount(item)">
+                                    <div><span class="badge discount-badge discount-ok" x-text="discountBadge(item)"></span></div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="discountsTotal > 0">
+                        <div class="d-flex justify-content-between mt-3 pt-2 border-top text-danger">
+                            <span>Descontos:</span>
+                            <span>−R$ <span x-text="discountsTotal.toFixed(2)"></span></span>
                         </div>
                     </template>
                     <div class="d-flex justify-content-between mt-3 pt-2 border-top">

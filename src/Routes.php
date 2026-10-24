@@ -64,6 +64,8 @@ class Routes
             $group->post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
             $group->get('/orders/next-number', [OrderController::class, 'nextNumber']);
             $group->get('/kitchen/food-summary', [KitchenController::class, 'foodCategorySummary']);
+            // Teto do desconto por item (spec 058) — público pelo mesmo motivo de /menu.
+            $group->get('/settings/discount', [SettingsController::class, 'discountSettings']);
             // Público pelo mesmo motivo que as rotas acima (spec 018): cozinha e caixa não
             // têm login, e são exatamente elas que precisam consultar/reativar (spec 039).
             $group->get('/printer/status', [PrinterController::class, 'status']);
@@ -114,6 +116,7 @@ class Routes
             $group->get('/reports/peak-hours', [ReportController::class, 'peakHours'])->add($adminOrManager());
             $group->get('/reports/prep-time', [ReportController::class, 'prepTime'])->add($adminOrManager());
             $group->get('/reports/month-comparison', [ReportController::class, 'monthlyComparison'])->add($adminOrManager());
+            $group->get('/reports/discounts', [ReportController::class, 'discounts'])->add($adminOrManager());
         })->add($jwt);
     }
 }

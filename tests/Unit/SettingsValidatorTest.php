@@ -84,4 +84,17 @@ class SettingsValidatorTest extends TestCase
 
         $this->assertTrue($validator->validate(['printer_ip' => null]));
     }
+
+    /** Spec 058 — maximum item discount: 0–100 with at most 2 decimals. */
+    public function testDiscountMaxPercent(): void
+    {
+        $validator = new SettingsValidator();
+
+        foreach (['0', '30', '12.5', '100', '99.99'] as $ok) {
+            $this->assertTrue($validator->validate(['discount_max_percent' => $ok]), $ok);
+        }
+        foreach (['101', '-1', 'abc', '10,5', '1e2', '12.345', ''] as $bad) {
+            $this->assertFalse($validator->validate(['discount_max_percent' => $bad]), $bad);
+        }
+    }
 }

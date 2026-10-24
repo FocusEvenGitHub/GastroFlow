@@ -83,6 +83,14 @@ class OrderRepositoryTest extends TestCase
             $table->string('dining_option')->nullable();
             $table->float('unit_price')->default(0);
             $table->float('packaging_cost')->default(0);
+            $table->string('discount_type', 10)->nullable();
+            $table->float('discount_value')->nullable();
+            $table->float('discount_amount')->default(0);
+        });
+
+        Db::schema()->create('settings', function ($table) {
+            $table->string('key', 100)->primary();
+            $table->text('value')->nullable();
         });
 
         $this->menuItemId = (int) MenuItem::create([

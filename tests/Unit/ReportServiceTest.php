@@ -58,6 +58,7 @@ class ReportServiceTest extends TestCase
             $table->string('dining_option')->default('local');
             $table->float('unit_price')->default(0);
             $table->float('packaging_cost')->default(0);
+            $table->float('discount_amount')->default(0);
         });
 
         $this->service = new ReportService();
@@ -73,7 +74,7 @@ class ReportServiceTest extends TestCase
         ]);
     }
 
-    /** @param list<array{0:int,1:string,2:int,3:float,4?:float}> $lines [menu_item_id, name, qty, unit_price, packaging] */
+    /** @param list<array{0:int,1:string,2:int,3:float,4?:float,5?:float}> $lines [menu_item_id, name, qty, unit_price, packaging, discount] */
     private function order(string $date, string $status, array $lines): void
     {
         $orderId = Db::table('orders')->insertGetId([
@@ -84,6 +85,7 @@ class ReportServiceTest extends TestCase
             Db::table('order_items')->insert([
                 'order_id' => $orderId, 'menu_item_id' => $line[0], 'item_name' => $line[1],
                 'quantity' => $line[2], 'unit_price' => $line[3], 'packaging_cost' => $line[4] ?? 0,
+                'discount_amount' => $line[5] ?? 0,
             ]);
         }
     }
@@ -132,5 +134,19 @@ class ReportServiceTest extends TestCase
         $result = $this->service->getMainDishSales('2026-01-01', '2026-01-31');
 
         $this->assertSame(['total_qty' => 0, 'total_revenue' => 0.0, 'items' => []], $result);
+    }
+
+    /** Spec 058: main-dish revenue is net of item discounts; quantities are unaffected. */
+    public function testMainDishRevenueIsNetOfItemDiscounts(): void
+    {
+        $prato = $this->menuItem('Pratos Principais', 'Prato do Dia', 20.0);
+
+        $this->order('2026-09-10', 'done', [[$prato, 'Prato do Dia', 2, 20.0, 0.0, 8.0]]);
+        $this->order('2026-09-10', 'done', [[$prato, 'Prato do Dia', 1, 20.0]]);
+
+        $result = $this->service->getMainDishSales('2026-09-10', '2026-09-10');
+
+        $this->assertSame(3, $result['total_qty']);
+        $this->assertSame(52.0, $result['total_revenue']); // 40 - 8 + 20
     }
 }

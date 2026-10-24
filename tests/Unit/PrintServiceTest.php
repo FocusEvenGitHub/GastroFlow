@@ -372,4 +372,65 @@ class PrintServiceTest extends TestCase
         $this->assertStringContainsString('+ 1x Arroz Branco', $connector->data);
         $this->assertStringContainsString('TOTAL: R$ 30,00', $connector->data);
     }
+
+    private function printToString(Order $order): string
+    {
+        $connector = new CapturingPrintConnector();
+        $service = new PrintService($this->makeLogger(), new Settings(), new PricingService(), function () use ($connector) {
+            return $connector;
+        });
+        $service->printOrder($order);
+        return $connector->data;
+    }
+
+    /** Spec 058, AC13 — net line, a discount label under it, and a net TOTAL. */
+    public function testDiscountedLineIsPrintedNetWithItsDiscountLabel(): void
+    {
+        $prato = $this->makeOrderItem('Prato do Dia', 20.0, 2);
+        $prato->discount_type = 'percent';
+        $prato->discount_value = 20.0;
+        $prato->discount_amount = 8.0;
+        $coca = $this->makeOrderItem('Coca-Cola', 5.0, 1);
+        $order = $this->makeOrder();
+        $order->setRelation('items', collect([$prato, $coca]));
+
+        $data = $this->printToString($order);
+
+        $this->assertMatchesRegularExpression('/2x Prato do Dia +R\$ 32,00/', $data);
+        $this->assertStringContainsString('   Desconto 20%: -R$ 8,00', $data);
+        $this->assertStringContainsString('TOTAL: R$ 37,00', $data);
+    }
+
+    public function testFixedDiscountLabelHasNoRate(): void
+    {
+        $prato = $this->makeOrderItem('Prato do Dia', 20.0, 2);
+        $prato->discount_type = 'fixed';
+        $prato->discount_value = 5.0;
+        $prato->discount_amount = 5.0;
+        $order = $this->makeOrder();
+        $order->setRelation('items', collect([$prato]));
+
+        $data = $this->printToString($order);
+
+        $this->assertStringContainsString('   Desconto: -R$ 5,00', $data);
+        $this->assertStringContainsString('TOTAL: R$ 35,00', $data);
+    }
+
+    /** Spec 058, AC13 — no discount: identical bytes to an item that never had the fields. */
+    public function testTicketWithoutDiscountIsUnchanged(): void
+    {
+        $plain = $this->makeOrder();
+        $plain->setRelation('items', collect([$this->makeOrderItem('Prato do Dia', 20.0, 2)]));
+
+        $zeroed = $this->makeOrder();
+        $item = $this->makeOrderItem('Prato do Dia', 20.0, 2);
+        $item->discount_type = null;
+        $item->discount_value = null;
+        $item->discount_amount = 0.0;
+        $zeroed->setRelation('items', collect([$item]));
+
+        $plainData = $this->printToString($plain);
+        $this->assertStringNotContainsString('Desconto', $plainData);
+        $this->assertSame($plainData, $this->printToString($zeroed));
+    }
 }

@@ -372,7 +372,9 @@ class PrintService
             // Item total with packaging, via PricingService (spec 026) —
             // exact integer-cent arithmetic (spec 021, avoids float drift
             // across many items).
-            $itemTotal = $this->pricingService->lineTotal($price, $qty, $packagingCost);
+            // Item discount (spec 058): the printed line total is net of it.
+            $discount = Money::fromReais($orderItem->discount_amount ?? 0);
+            $itemTotal = $this->pricingService->lineTotal($price, $qty, $packagingCost, $discount);
             $lineTotals[] = $itemTotal;
             $packagingLabel = match ($diningOption) {
                 'viagem_simples' => ' [Simples]',
@@ -411,6 +413,15 @@ class PrintService
             // Dining option label
             if ($packagingLabel) {
                 $printer->text("   " . $packagingLabel . "\n");
+            }
+
+            // Discount label (spec 058) — only for a discounted line, so a
+            // ticket without discounts is byte-for-byte what it was before.
+            if (!$discount->isZero()) {
+                $rate = $orderItem->discount_type === 'percent'
+                    ? ' ' . PricingService::formatHundredths(PricingService::toHundredths((float) $orderItem->discount_value)) . '%'
+                    : '';
+                $printer->text("   Desconto" . $rate . ": -R$ " . $discount->format() . "\n");
             }
 
             // Notes
