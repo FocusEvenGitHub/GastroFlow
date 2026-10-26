@@ -21,6 +21,11 @@ cd "$repo_root"
 backups_dir="backups"
 mkdir -p "$backups_dir"
 
+if ! command -v docker >/dev/null 2>&1; then
+    echo "Erro: comando docker não encontrado. Rode no host (fora do container web): ./bin/backup-db" >&2
+    exit 1
+fi
+
 if ! docker compose exec -T db sh -c 'command -v mysqldump >/dev/null 2>&1'; then
     echo "Erro: mysqldump não encontrado no container db. O serviço está no ar?" >&2
     exit 1

@@ -20,6 +20,11 @@ const PAGES: { path: string; vendorFile?: string }[] = [
   { path: '/kitchen/' },
   { path: '/admin/index.php', vendorFile: '/vendor/tom-select-2.6.2/js/tom-select.complete.min.js' },
   { path: '/admin/reports.php', vendorFile: '/vendor/chartjs-4.4.0/chart.umd.min.js' },
+  // As demais páginas do Admin (spec 060): sem biblioteca própria, só o que todas carregam.
+  { path: '/admin/settings.php' },
+  { path: '/admin/ingredients.php' },
+  { path: '/admin/logs.php' },
+  { path: '/admin/audit-log.php' },
 ];
 
 for (const { path, vendorFile } of PAGES) {

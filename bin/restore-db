@@ -66,6 +66,11 @@ if [ ! -f "$file" ]; then
     exit 1
 fi
 
+if ! command -v docker >/dev/null 2>&1; then
+    echo "Erro: comando docker não encontrado. Rode no host (fora do container web): ./bin/restore-db" >&2
+    exit 1
+fi
+
 if ! docker compose exec -T db sh -c 'command -v mysql >/dev/null 2>&1'; then
     echo "Erro: mysql não encontrado no container db. O serviço está no ar?" >&2
     exit 1

@@ -198,6 +198,17 @@ git reset --hard
 - **Admin** (`/admin/`) — menu, dish components, ingredients, settings, audit history and the app log. Log in with the account created by `bin/create-admin` (see [Installation](#installation)).
 - **Reports** (`/admin/reports.php`) — sales summary, top items, dining-option split, peak hours, average prep time, month-over-month comparison, discounts given. Revenue is net of item discounts.
 
+### Operating over the LAN (no internet)
+
+Once installed, GastroFlow needs only the restaurant's local network: the backend makes no outbound calls, every screen's assets are served locally, and the printer is reached by IP. An internet outage doesn't stop the cashier, kitchen, printing, Admin or backups.
+
+- **Give the server a fixed IP** (a DHCP reservation on the router) and open the screens from the other devices by that IP: `http://<server-ip>:8080/cashier/`, `/kitchen/`, `/admin/`.
+- **Firewall:** if the other devices can't connect, allow inbound TCP 8080 on the server — on Windows (PowerShell as administrator): `New-NetFirewallRule -DisplayName "GastroFlow" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Private`. Open only 8080 and only on the private network; never expose GastroFlow to the internet, and don't open 3306 (MySQL).
+- **Printer by IP**, not hostname (Admin › Configurações): name resolution may depend on the router or the internet.
+- **What does need internet:** installing and upgrading (`git pull`, `docker compose build`, pulling `mysql:8.0`, `composer install`) and the developer API docs at `/api/docs/`. During an outage, don't run `docker system prune` or `docker compose down --rmi …` — without internet the images can't be rebuilt.
+- **After a reboot** `db`, `web` and `print-worker` come back on their own (`restart: unless-stopped`).
+- **The connection pill** in the cashier/kitchen nav ("Conectado" / "Reconectando…" / "Conexão perdida") reports the GastroFlow *server*, not the internet: with the internet down and the LAN up it stays "Conectado".
+
 ---
 
 ## API

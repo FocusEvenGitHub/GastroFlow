@@ -118,7 +118,7 @@ Behind `JwtMiddleware` (`/api/admin/*`):
 ### Integrations (confirmed in code / not found)
 
 - **Confirmed**: ESC/POS network thermal printer (`mike42/escpos-php`, `NetworkPrintConnector`), configured via the `settings` table/admin UI.
-- **Confirmed, internal only**: Server-Sent Events at `public/api/events/stream.php`, driven by a temp-file signal written by `OrderService`, not an external broker.
+- **Confirmed, internal only**: Server-Sent Events at `public/api/events/stream.php`, driven by a temp-file signal written by `OrderService`, not an external broker. *(Corrected 2026-10-07, spec 060's doc pass: since spec 041 the stream polls the MySQL `events` table written by `DatabaseEventPublisher`; the temp-file signal no longer exists.)*
 - **Not found**: no payment gateway, SMS/email, or third-party POS integration anywhere in `src/` or `public/`.
 
 ### Known commands (confirmed in code/config)

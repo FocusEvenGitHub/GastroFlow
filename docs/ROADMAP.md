@@ -1244,6 +1244,8 @@ Goal:
 
 > A restaurant with a functioning local network can continue normal GastroFlow operation during an internet outage.
 
+**Status (2026-10-07): spec 060.** Investigation found no runtime internet dependency left (no outbound calls in the backend, local assets since spec 055, printer by IP, no secure-context-only browser APIs). Spec 060 extends the offline browser test to every Admin page, adds `restart: unless-stopped` to `db`/`web`, and documents LAN operation in `README.md`. The verification itself — the full workflow from a second device with the WAN actually disconnected — is recorded in the spec's Validation evidence.
+
 ---
 
 ## Clean initial database
