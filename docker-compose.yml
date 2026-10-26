@@ -12,6 +12,8 @@ services:
       - ./common/sql/001_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
     ports:
       - "3306:3306"
+    # Volta sozinho depois de um reboot do servidor, como o print-worker (spec 060).
+    restart: unless-stopped
 
   web:
     build: .
@@ -43,6 +45,7 @@ services:
       - db
     ports:
       - "8080:80"
+    restart: unless-stopped
     environment:
       DB_HOST: db
       MYSQL_DATABASE: ${MYSQL_DATABASE}
