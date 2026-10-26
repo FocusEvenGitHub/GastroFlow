@@ -102,7 +102,7 @@ Not applicable — no data change.
 
 - `tests/e2e/specs/offline-assets.spec.ts` — 4 more pages in `PAGES`.
 - `docker-compose.yml` — `restart:` on `db` and `web`.
-- `README.md` — new LAN section (linked from "Using the app").
+- `README.md` — new LAN section, right below "Using the app". *(Corrected 2026-10-26 by `/spec-review`: originally said "linked from" it; it is placed under it, no separate link.)*
 - `docs/technical-decisions.md`, `docs/architecture.md` (if it describes runtime/deployment), `CHANGELOG.md`, `docs/ROADMAP.md` — docs pass.
 - No PHP layer changes.
 
@@ -180,6 +180,6 @@ Collected 2026-10-07 on branch `058`, local Docker Desktop (Windows).
 | AC3 | `README.md` › "Operating over the LAN (no internet)": fixed IP + URLs by IP; firewall rule for 8080 with `-Profile Private`, "don't open 3306"; printer by IP; what needs internet + "don't prune while offline"; restart after reboot; connection pill meaning | Met (by reading) |
 | AC4 | WAN-off run from a second device | **Pending — needs the user** (router/WAN, second device, printer) |
 | AC5 | Reboot/restart with WAN off, no `docker compose up` | **Pending — needs the user** |
-| AC6 | CI on the PR | Pending (no PR yet) |
+| AC6 | CI run `40409496152` on `682549a` (PR #46), raw log: PHPStan `[OK] No errors`; CS-Fixer `Found 0 of 113 files`; Unit `OK (238 tests, 474 assertions)`; Integration `OK (69 tests, 319 assertions)`; Playwright `29 passed / 5 skipped` (34 = the expected total), all 8 `offline-assets.spec.ts` tests ✓ — AC1 re-confirmed after the rebase onto `dbd8578` | Met |
 
 Not run in this session (by choice — no code under `src/` or `public/` changed): PHPStan, PHP-CS-Fixer, PHPUnit, the full Playwright suite; CI covers them.
