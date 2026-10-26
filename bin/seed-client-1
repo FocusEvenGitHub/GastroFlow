@@ -1,0 +1,53 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * GastroFlow — cardápio do cliente 1
+ *
+ * Uso:
+ *   php bin/seed-client-1
+ *
+ * Carrega common/seeds/client-1.sql: o cardápio completo (itens, preços, ingredientes e
+ * componentes dos pratos) que toda instalação nova recebia antes da spec 061 — o do cliente
+ * piloto usado em testes e implementações. Só roda num banco sem cardápio (instalação limpa),
+ * para nunca misturar com o cardápio de outro restaurante nem duplicar itens.
+ */
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use App\Database;
+use App\Settings;
+use Illuminate\Database\Capsule\Manager as DB;
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->safeLoad();
+
+foreach (getenv() as $key => $value) {
+    if (!array_key_exists($key, $_ENV)) {
+        $_ENV[$key] = $value;
+    }
+}
+
+Database::boot(new Settings());
+
+$hasMenu = DB::table('menu_items')
+    ->where('is_customizable', 0)
+    ->whereNull('packaging_option')
+    ->exists();
+if ($hasMenu) {
+    fwrite(STDERR, "Erro: o banco \"{$_ENV['MYSQL_DATABASE']}\" já tem cardápio. bin/seed-client-1 só roda em instalação limpa.\n");
+    exit(1);
+}
+
+$sql = file_get_contents(__DIR__ . '/../common/seeds/client-1.sql');
+if ($sql === false) {
+    fwrite(STDERR, "Erro: não foi possível ler common/seeds/client-1.sql.\n");
+    exit(1);
+}
+
+DB::transaction(fn () => DB::connection()->unprepared($sql));
+
+$items = DB::table('menu_items')->count();
+fwrite(STDOUT, "✓ Cardápio do cliente 1 carregado em \"{$_ENV['MYSQL_DATABASE']}\" ({$items} itens).\n");

@@ -19,7 +19,8 @@ declare(strict_types=1);
  * como production — Settings::getAppEnv()). Num banco que já tem pedidos, as senhas do histórico
  * continuam a partir da maior senha de cada dia. Os pedidos passam pelo OrderRepository de verdade, então
  * preço, senha e snapshot do nome saem iguais aos do caixa; só as datas são ajustadas depois.
- * Precisa do cardápio padrão (ou de itens nas categorias usadas abaixo).
+ * Sem cardápio (instalação limpa, spec 061), cria antes um cardápio fictício nas categorias
+ * padrão; se o banco já tem cardápio, usa o que existe.
  */
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -46,6 +47,39 @@ Database::boot($settings);
 if ($settings->getAppEnv() !== 'development' && Order::query()->exists()) {
     fwrite(STDERR, "Erro: o banco \"{$_ENV['MYSQL_DATABASE']}\" já tem pedidos. bin/seed-demo só roda em instalação nova ou com APP_ENV=development.\n");
     exit(1);
+}
+
+// Instalação limpa (spec 061) não traz cardápio: sem nenhum item vendável, cria um fictício.
+// Num banco que já tem cardápio, não mexe nele.
+$hasMenu = DB::table('menu_items')
+    ->where('is_customizable', 0)
+    ->whereNull('packaging_option')
+    ->exists();
+if (!$hasMenu) {
+    $demoMenu = [
+        'Pratos Principais' => [['Prato Executivo', 25.00, null], ['Frango Grelhado', 28.00, null], ['Bife Acebolado', 32.00, null], ['Massa ao Sugo', 24.00, null]],
+        'Adicionais'        => [['Arroz', 5.00, 'grain'], ['Feijão', 5.00, 'grain'], ['Batata Frita', 10.00, 'side'], ['Ovo Frito', 3.00, 'protein'], ['Salada', 6.00, 'vegetable']],
+        'Bebidas'           => [['Água', 3.00, null], ['Refrigerante Lata', 6.00, null], ['Suco Natural', 8.00, null]],
+        'Sobremesas'        => [['Pudim', 8.00, null], ['Sorvete', 7.00, null]],
+    ];
+    foreach ($demoMenu as $category => $items) {
+        $categoryId = DB::table('categories')->where('name', $category)->value('id');
+        if ($categoryId === null) {
+            fwrite(STDERR, "Erro: categoria \"{$category}\" não existe — rode o schema padrão e bin/migrate primeiro.\n");
+            exit(1);
+        }
+        foreach ($items as $position => [$name, $price, $foodCategory]) {
+            DB::table('menu_items')->insert([
+                'category_id'   => $categoryId,
+                'name'          => $name,
+                'description'   => '',
+                'price'         => $price,
+                'food_category' => $foodCategory,
+                'position'      => $position + 1,
+            ]);
+        }
+    }
+    fwrite(STDOUT, "✓ Cardápio de demonstração criado.\n");
 }
 
 /** Ids disponíveis de uma categoria, sem "Monte Seu Prato" nem itens de embalagem. */
