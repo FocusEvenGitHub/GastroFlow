@@ -96,7 +96,7 @@ abstract class IntegrationTestCase extends TestCase
     {
         Database::boot(new Settings());
 
-        // 001_schema.sql semeia categories/menu_items com INSERTs SEM guarda de idempotência,
+        // 001_schema.sql semeia categories (e os 2 itens de embalagem) com INSERTs SEM guarda de idempotência,
         // e buildSchema() roda uma vez por PROCESSO — ou seja, a cada invocação do phpunit.
         // Sem esta checagem a semente é reinserida a cada execução: o banco de teste chegou a
         // 510 categorias e 5368 itens (medido na spec 040), com o /api/menu devolvendo 1 MB.
@@ -239,22 +239,34 @@ abstract class IntegrationTestCase extends TestCase
     }
 
     /**
-     * An available, non-customizable menu item from the seeded reference data.
-     * Reference rows (categories/menu_items) survive between tests on purpose —
-     * only transactional tables are cleared.
+     * An available, non-customizable, non-packaging menu item. A clean install (spec 061) has
+     * no menu, so the first call creates one fixture item; reference rows (categories/menu_items)
+     * survive between tests on purpose — only transactional tables are cleared.
      */
     protected function availableMenuItem(): \App\Models\MenuItem
     {
-        $item = \App\Models\MenuItem::where('available', 1)
+        $query = fn () => \App\Models\MenuItem::where('available', 1)
             ->where('is_customizable', 0)
+            ->whereNull('packaging_option')
             ->orderBy('id')
             ->first();
 
+        $item = $query();
         if (!$item) {
-            $this->fail('No available menu item in the test database — schema seed missing?');
+            $categoryId = Db::table('categories')->where('name', 'Pratos Principais')->value('id');
+            if ($categoryId === null) {
+                $this->fail('No "Pratos Principais" category in the test database — schema seed missing?');
+            }
+            Db::table('menu_items')->insert([
+                'category_id' => $categoryId,
+                'name'        => 'Prato (teste)',
+                'description' => '',
+                'price'       => 20.00,
+            ]);
+            $item = $query();
         }
 
-        return $item;
+        return $item ?? $this->fail('Could not create a fixture menu item.');
     }
 
     /** @return array<string, mixed> */

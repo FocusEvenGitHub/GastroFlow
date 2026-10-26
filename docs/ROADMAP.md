@@ -1272,6 +1272,8 @@ php bin/seed-demo
 
 A fresh production installation should start clean.
 
+**Status (2026-10-26): spec 061.** `001_schema.sql` seeds only the structural categories and the two packaging items, plus a `fresh_install` marker; migration `022_clean_fresh_install.sql` removes the client menu older migrations still insert — only on a database carrying that marker, so existing installs are untouched (proven by `MigrationUpgradeTest`). `bin/seed-demo` creates a fictional menu when there is none.
+
 ---
 
 ## Installation experience

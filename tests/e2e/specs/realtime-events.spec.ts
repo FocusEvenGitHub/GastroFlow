@@ -30,8 +30,8 @@ test.beforeEach(() => {
 /** Cria um pedido pela API real — isso é o que faz OrderService publicar order.created. */
 async function createOrder(page: import('@playwright/test').Page): Promise<number> {
   const menu = await (await page.request.get(`${BASE}/api/menu`)).json();
-  const item = menu.flatMap((c: any) => c.items ?? []).find((i: any) => !i.is_customizable);
-  expect(item, 'o banco de teste precisa ter ao menos um item não customizável').toBeTruthy();
+  const item = menu.flatMap((c: any) => c.items ?? []).find((i: any) => !i.is_customizable && !i.packaging_option);
+  expect(item, 'o banco de teste precisa ter ao menos um item vendável (não customizável, não embalagem)').toBeTruthy();
 
   const res = await page.request.post(`${BASE}/api/orders`, {
     data: { items: [{ id: item.id, quantity: 1 }], customer_name: 'E2E realtime', print_ticket: false },
