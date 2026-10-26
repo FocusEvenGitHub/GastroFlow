@@ -155,7 +155,8 @@ docker compose up -d
 # Create your administrator account (no default credentials are seeded):
 docker compose exec web php bin/create-admin admin
 
-# Optional (fresh install, or APP_ENV=development): fictional orders — last 45 days + 5 pending today
+# A fresh install starts with no menu — create yours in Admin (/admin/).
+# Optional, for a demo: a fictional menu (only if there is none) + orders — last 45 days + 5 pending today
 docker compose exec web php bin/seed-demo
 ```
 

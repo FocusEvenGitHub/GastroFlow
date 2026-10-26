@@ -85,7 +85,7 @@ A restaurant order-management web app covering cashier order entry, kitchen orde
 
 ### Persistence (confirmed in code)
 
-Eloquent (`illuminate/database ^10`) via `Illuminate\Database\Capsule\Manager`, booted in `src/Database.php` from `Settings` (`DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`; MySQL, `utf8mb4`). Initial schema: `common/sql/001_schema.sql`, mounted into the `db` container's `docker-entrypoint-initdb.d` (only executes on first volume init — confirmed in `docker-compose.yml`). Incremental changes: 8 files in `common/migrations/*.sql` (`001_ingredients.sql` … `008_order_items_price.sql`), applied by the custom `App\Database\MigrationRunner` (`src/Database/MigrationRunner.php`) through `bin/migrate`, which tracks applied files in a `migrations` table. There is no ORM-style migration framework (no up/down classes) and no formal seeding mechanism beyond the one admin row in `001_schema.sql`.
+Eloquent (`illuminate/database ^10`) via `Illuminate\Database\Capsule\Manager`, booted in `src/Database.php` from `Settings` (`DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`; MySQL, `utf8mb4`). Initial schema: `common/sql/001_schema.sql`, mounted into the `db` container's `docker-entrypoint-initdb.d` (only executes on first volume init — confirmed in `docker-compose.yml`). Incremental changes: 8 files in `common/migrations/*.sql` (`001_ingredients.sql` … `008_order_items_price.sql`), applied by the custom `App\Database\MigrationRunner` (`src/Database/MigrationRunner.php`) through `bin/migrate`, which tracks applied files in a `migrations` table. There is no ORM-style migration framework (no up/down classes) and no formal seeding mechanism beyond the one admin row in `001_schema.sql`. *(Corrected 2026-10-26, spec 061: the admin row was removed by spec 015; the menu was seeded by `001_schema.sql` **and** by migrations 001/003/009/010/015/019 until spec 061, which reduced `001_schema.sql` to the structural categories + two packaging items + a `fresh_install` marker consumed by `022_clean_fresh_install.sql`. Demo data: `bin/seed-demo` (spec 054; demo menu since 061).)*
 
 ### Main entities (confirmed in code, via `$table`/`$fillable` on each Eloquent model)
 
@@ -206,6 +206,7 @@ Not applicable — this is a documentation snapshot, not a unit of implementatio
 - 2026-09-03 (spec 015) — Corrected the Authentication paragraph's mention of the seeded `admin`/`admin123` user: spec 015 removed that seed from `common/sql/001_schema.sql` and introduced `bin/create-admin` as the explicit replacement process. Corrected in place with a dated note rather than silently rewritten.
 
 - 2026-10-23 (spec 058's doc pass) — Added dated notes to the Order flow and Reports paragraphs for the per-item discount (new `order_items` columns, the kitchen's discount editing, net revenue in reports, the `discounts` report). Noted in passing that the Reports route list had never gained spec 032's `main-dishes`.
+- 2026-10-26 (spec 061's doc pass) — Corrected the Persistence paragraph's seeding sentence (stale since spec 015 and incomplete about migration seeds) with a dated note.
 
 ## Validation evidence
 
