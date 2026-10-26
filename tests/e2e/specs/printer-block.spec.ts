@@ -81,8 +81,8 @@ function setPrinterState(sql: 'blocked' | 'clear', orderId?: number): void {
 /** Cria um pedido pela API, para a cozinha ter um card com botão de reimprimir. */
 async function createOrder(page: Page): Promise<number> {
   const menu = await (await page.request.get(`${BASE}/api/menu`)).json();
-  const item = menu.flatMap((c: any) => c.items ?? []).find((i: any) => !i.is_customizable);
-  expect(item, 'o banco de teste precisa ter ao menos um item não customizável').toBeTruthy();
+  const item = menu.flatMap((c: any) => c.items ?? []).find((i: any) => !i.is_customizable && !i.packaging_option);
+  expect(item, 'o banco de teste precisa ter ao menos um item vendável (não customizável, não embalagem)').toBeTruthy();
 
   const res = await page.request.post(`${BASE}/api/orders`, {
     data: { items: [{ id: item.id, quantity: 1 }], customer_name: 'E2E', print_ticket: false },
