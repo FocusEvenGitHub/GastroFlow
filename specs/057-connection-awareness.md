@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-10-07
 - Updated: 2026-10-07
 - Owner:
@@ -232,3 +232,7 @@ Run and observed in this session:
 | AC7 | `.gastro-toast` count 0 at the end of the outage test | Met |
 | AC8 | PHPStan, CS-Fixer and PHPUnit OK; full Playwright not re-run after the final fixes; 2 pre-existing printer-block failures locally; CI not run yet (no PR) | Partially met — pending CI on the PR |
 | manual | `docker compose stop web` / `start web` / `stop db` with both screens open | OK — reported by the user (before the 4 s → 10 s timeout change), not observed in this session |
+
+### CI evidence (PR #43, recorded 2026-10-07 in spec 060's PR)
+
+CI run `37696328107` on `42eee0c` (branch `057`), all steps green: PHPUnit (Integration job `OK (53 tests, 213 assertions)`), Playwright `17 passed / 5 skipped` (skipped = the 3 `realtime-events` tests and the 2 real-SSE tests of `connection-status.spec.ts`, by design on the CI built-in server). The two `printer-block.spec.ts` tests that failed locally passed in CI, confirming they were caused by the local test database. PR #43 merged as `8f6adda`. With this, AC8 is **Met** and every acceptance criterion has recorded evidence → `Verified`.
