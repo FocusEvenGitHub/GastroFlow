@@ -16,12 +16,17 @@ Every command below runs from the repository folder. **On Windows, run them in G
 
   Git for Windows converts line endings to CRLF by default, and the scripts in `bin/` then fail inside the Linux containers. If you already cloned, see [Troubleshooting](#troubleshooting).
 
-## 2. Clone
+## 2. Clone and check out a release
 
 ```bash
 git clone https://github.com/FocusEvenGitHub/GastroFlow.git
 cd GastroFlow
+git checkout vX.Y.Z        # the newest release on the GitHub Releases page
 ```
+
+A restaurant runs a **release** (a version tag), never `master`: `master` is the next version in development and may contain unfinished work. Later updates move from tag to tag: [`docs/upgrading.md`](upgrading.md).
+
+> **Transition (until `v1.9.0` is published):** this guide covers `v1.9.0` and later — the first release with it is cut when the v1.9 milestone closes. The current release, `v1.8.3`, **cannot be installed from scratch** (its image build fails on a fresh clone: `"/legacy": not found`) and has none of these guides. Until `v1.9.0` exists, installing means staying on `master` (skip the `git checkout`) and accepting pre-release code.
 
 ## 3. Create `.env` — before any `docker compose` command
 
