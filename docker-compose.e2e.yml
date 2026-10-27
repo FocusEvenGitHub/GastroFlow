@@ -25,7 +25,6 @@ services:
       - ./public:/var/www/html/public
       - ./src:/var/www/html/src
       - ./common:/var/www/html/common
-      - ./legacy:/var/www/html/legacy
       - ./bin:/var/www/html/bin
       - ./tests:/var/www/html/tests
       - ./composer.json:/var/www/html/composer.json

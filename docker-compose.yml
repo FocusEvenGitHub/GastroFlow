@@ -10,8 +10,10 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./common/sql/001_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    # Só no próprio servidor (spec 062): o app fala com o `db` pela rede do Docker, e ferramentas
+    # no servidor seguem usando localhost:3306. Antes, qualquer aparelho da rede alcançava o MySQL.
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     # Volta sozinho depois de um reboot do servidor, como o print-worker (spec 060).
     restart: unless-stopped
 
@@ -23,7 +25,6 @@ services:
       - ./public:/var/www/html/public
       - ./src:/var/www/html/src
       - ./common:/var/www/html/common
-      - ./legacy:/var/www/html/legacy
       - ./bin:/var/www/html/bin
       - ./tests:/var/www/html/tests
       - ./composer.json:/var/www/html/composer.json
@@ -62,7 +63,6 @@ services:
       - ./public:/var/www/html/public
       - ./src:/var/www/html/src
       - ./common:/var/www/html/common
-      - ./legacy:/var/www/html/legacy
       - ./bin:/var/www/html/bin
       - ./tests:/var/www/html/tests
       - ./composer.json:/var/www/html/composer.json
