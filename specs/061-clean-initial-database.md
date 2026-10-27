@@ -205,4 +205,8 @@ Collected 2026-10-26 on branch `061`, local Docker (`restaurant_web`, PHP 8.2.35
 
 | AC7 | Clean DB (fresh-install test) → `bin/seed-client-1` → "✓ Cardápio do cliente 1 carregado … (74 itens)", exit 0. Fingerprint query (by name) on the pre-061 state (179 rows) vs. after the seed (179 rows): `diff` → **identical**. Second run → "Erro: … já tem cardápio …", exit 1. `php -l` OK, PHPStan `[OK] No errors`, CS-Fixer `Found 0 of 114 files` | Met |
 
-Status `Implemented`, not `Verified`: AC2 and AC5 are partially met and AC6 waits for CI.
+### CI evidence (PR #47, recorded 2026-10-26 in spec 062's PR)
+
+CI run `40420655166` on `014555b` (branch `061`), conclusion `success`, raw log: PHPStan `[OK] No errors`; CS-Fixer `Found 0 of 114 files`; Unit `OK (238 tests, 474 assertions)`; Integration `OK (70 tests, 330 assertions)` — on a `restaurant_test` built from scratch with the new `001_schema.sql`, i.e. the clean-install path with the `fresh_install` marker, so the fixture item came from `availableMenuItem()`; Playwright `29 passed / 5 skipped`. PR #47 merged as `cf07102`. **AC6 → Met.**
+
+Status stays `Implemented`, not `Verified`: AC2 (checksum on a copy of the dev data) and AC5 (Admin/cashier in a browser) are still partially met.
