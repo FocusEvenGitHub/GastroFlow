@@ -5,6 +5,7 @@
   "license": "proprietary",
   "require": {
     "php": ">=8.1",
+    "ext-gd": "*",
     "slim/slim": "^4.0",
     "slim/psr7": "^1.0",
     "php-di/php-di": "^7.0",

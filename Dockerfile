@@ -11,12 +11,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     libonig-dev \
     libxml2-dev \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libwebp-dev \
     zip \
     unzip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 2. Configuração e instalação de extensões
-RUN docker-php-ext-install pdo pdo_mysql mbstring xml zip
+# GD (spec 065): sem ela a logo não sai no cupom — o escpos-php precisa de GD ou Imagick
+# para ler a imagem. Imagick seria bem mais pesada.
+RUN docker-php-ext-configure gd --with-jpeg --with-webp \
+    && docker-php-ext-install pdo pdo_mysql mbstring xml zip gd
 
 RUN a2enmod rewrite
 

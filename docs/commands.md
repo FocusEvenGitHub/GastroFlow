@@ -62,7 +62,7 @@ Printing goes through a queue processed by `print-worker`. After 3 consecutive f
 | `docker compose exec web php bin/events-prune [--days=N]` | Deletes kitchen realtime events older than N days (default `EVENTS_RETENTION_DAYS`, 2). |
 | `docker compose exec web php bin/worker print --once` | Processes one print job and exits — for diagnosis. The `print-worker` service runs `bin/worker print` continuously. |
 
-Pruning also runs automatically inside `print-worker`; the commands are for doing it by hand.
+Pruning also runs automatically inside `print-worker`; the commands are for doing it by hand. Printer setup and troubleshooting: [`docs/printing.md`](printing.md).
 
 ## Sample data
 

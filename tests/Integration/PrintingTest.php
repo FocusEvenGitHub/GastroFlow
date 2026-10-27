@@ -47,6 +47,19 @@ class PrintingTest extends IntegrationTestCase
         $this->assertStringContainsString('127.0.0.1:9101', $body['error']);
     }
 
+    /**
+     * Spec 065, AC5 — through the real container (DI wiring included): the repository's
+     * logo.png is reported printable. The unprintable case is PrintServiceTest's.
+     */
+    public function testSettingsReportWhetherTheLogoPrints(): void
+    {
+        $body = $this->decode($this->request('GET', '/api/admin/settings', null, $this->authHeader('admin')));
+
+        $this->assertTrue($body['logo_printable']);
+        $this->assertNull($body['logo_problem']);
+        $this->assertArrayHasKey('settings', $body);
+    }
+
     /** AC6 — the message is operator-facing, so it must carry no internals. */
     public function testTestPrintErrorLeaksNoInternals(): void
     {

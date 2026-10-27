@@ -1343,6 +1343,18 @@ Include:
 * common failures;
 * troubleshooting.
 
+**Status (2026-10-27): spec 065.** `docs/printing.md` (what works — raw TCP 9100, no USB, 32 columns —, network, Admin setup and test print, queue/retry/block/reactivate, troubleshooting, commands). Writing it found that **the logo never printed on any install**: the image had no GD (escpos-php needs GD or Imagick), and even with GD, escpos-php 2.2 rejects PHP 8's `GdImage` objects. Fixed: GD in the image and in CI, the logo decoded and rastered by `PrintService` (scaled to 384 dots), uploads stored as real PNG, and Admin warns when the logo can't print. Pending: the owner's test print with the logo on real hardware.
+
+---
+
+## Separate deployment: development × Community production
+
+*Added 2026-10-27 (owner's v1.9 closing plan).* `docker-compose.yml` bind-mounts the source into the containers, so code goes live the moment `git checkout` finishes — before `bin/migrate` runs (`docs/upgrading.md` › "Why the order matters"). That is right for development and wrong for a restaurant.
+
+* a production compose that runs the built image — code, `vendor/` and assets inside it — with only data (database volume, logo, logs, backups) mounted;
+* the development compose keeps the bind mounts;
+* installation and upgrade guides move to the production one.
+
 ---
 
 ## Documentation structure
@@ -1436,6 +1448,22 @@ Avoid relying only on:
 ```text
 latest
 ```
+
+---
+
+## Closing order
+
+*Agreed with the owner on 2026-10-27.* The remaining v1.9 items, in this order:
+
+1. Printer documentation — spec 065;
+2. Separate deployment: development × Community production;
+3. Documentation structure — the docs still missing (security, configuration, backup & restore, troubleshooting);
+4. License (Open-source readiness — an owner decision);
+5. `SECURITY.md`, `CONTRIBUTING.md` and the Community support policy;
+6. Release automation (release artifacts, versioned image);
+7. The Exit Gate below: someone who didn't write GastroFlow installs it from the docs;
+
+then `v1.9.0` → `v2.0.0-rc.1` → release blockers only → `v2.0.0`. "Stable = release tag, `master` = development" is already done (spec 064).
 
 ---
 

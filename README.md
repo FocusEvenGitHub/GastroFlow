@@ -50,6 +50,7 @@ This README is the entry point. Depth lives alongside it, by topic:
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones: what's done, what's next, and the rules behind them |
 | [`specs/`](specs/) · [`specs/README.md`](specs/README.md) | One file per change (problem, plan, implementation log, validation evidence) and the spec lifecycle |
 | [`docs/installation.md`](docs/installation.md) | Installing GastroFlow on the restaurant's server, step by step, with troubleshooting |
+| [`docs/printing.md`](docs/printing.md) | Thermal printer: what's supported, network setup, test print, failures and troubleshooting |
 | [`docs/upgrading.md`](docs/upgrading.md) | Updating to a newer version without losing data, and rolling back |
 | [`docs/commands.md`](docs/commands.md) | Every command, by task: services, health, migrations, backup & restore, print queue, sample data, development |
 | [`CLAUDE.md`](CLAUDE.md) | Rules for AI-assisted development |
