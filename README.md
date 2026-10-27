@@ -154,6 +154,8 @@ git config --global core.autocrlf false
 
 git clone https://github.com/FocusEvenGitHub/GastroFlow.git
 cd GastroFlow
+git checkout vX.Y.Z               # newest release (GitHub Releases) — never master, which is development
+                                  # until v1.9.0 is out, see the transition note in docs/installation.md
 
 cp .env.example .env              # BEFORE any docker compose command
 # Edit .env: replace both "changeme" passwords, set JWT_SECRET to the output of:

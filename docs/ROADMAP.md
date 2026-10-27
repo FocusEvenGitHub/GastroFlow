@@ -1326,7 +1326,7 @@ Validate installation
 
 Existing restaurant data must remain intact.
 
-**Status (2026-10-27): spec 063.** `docs/upgrading.md` (backup → `git pull` on `master` → `.env` → `up -d --build` → `composer install` → `bin/migrate` → validate; rollback with the backup). `bin/migrate --status` (read-only, exit 1 when pending) and `GET /health/ready` → 503 `MIGRATIONS_PENDING` while a migration is pending. Rehearsed from an old `master` with the pilot menu and orders (spec's Validation evidence).
+**Status (2026-10-27): spec 063.** `docs/upgrading.md` (backup → `git pull` on `master` *(corrected 2026-10-27, spec 064: `git fetch --tags` + `git checkout <release tag>` — restaurants run releases, `master` is development)* → `.env` → `up -d --build` → `composer install` → `bin/migrate` → validate; rollback with the backup). `bin/migrate --status` (read-only, exit 1 when pending) and `GET /health/ready` → 503 `MIGRATIONS_PENDING` while a migration is pending. Rehearsed from an old `master` with the pilot menu and orders (spec's Validation evidence).
 
 ---
 
@@ -1400,6 +1400,8 @@ No promise should be made that every future GastroFlow capability will be added 
 ---
 
 ## Release automation
+
+*Note 2026-10-27 (spec 064): the install and upgrade guides now check out release tags, so a restaurant only ever runs a tagged release. This item is what makes publishing a release (and therefore shipping a fix to restaurants) cheap.*
 
 For official release tags:
 
