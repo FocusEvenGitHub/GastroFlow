@@ -2,9 +2,9 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-10-27
-- Updated: 2026-10-27
+- Updated: 2026-10-27 (Verified + decision revision recorded in spec 064's PR)
 - Owner:
 - Related issue: `docs/ROADMAP.md` › `v1.9.0` › "Upgrade process". Builds on spec 062 (installation guide, `docs/commands.md`).
 - Related branch: `063`
@@ -187,4 +187,12 @@ Collected 2026-10-27 on branch `063`, Docker Desktop on Windows. Rehearsal in a 
 | AC5 | `grep -c "Correção 2026-10-27, spec 063" CHANGELOG.md` → 3 = the 3 lines containing "antes de subir o código novo" | Met |
 | AC6 | Local: PHPStan `[OK] No errors`; CS-Fixer `Found 0 of 115 files`; Unit `OK (238 tests, 474 assertions)`; Integration `OK (73 tests, 336 assertions)`. CI not run yet | Pending CI |
 
-Status `Implemented`: every criterion has evidence except AC6, which waits for the PR's CI.
+### CI evidence (PR #49, recorded 2026-10-27 in spec 064's PR)
+
+CI run `40451137145` on `7b082fa` (branch `063`), conclusion `success`, raw log: PHPStan `[OK] No errors`; CS-Fixer `Found 0 of 115 files`; Unit `OK (238 tests, 474 assertions)`; Integration `OK (73 tests, 336 assertions)`; Playwright `29 passed`. PR #49 merged as `116a9d4`. **AC6 → Met.**
+
+Every acceptance criterion (AC1–AC6) now has recorded evidence → **`Verified`** (2026-10-27). The decision revised below changes the guide's step 3 wording, not any criterion: the rehearsal was an upgrade between two commits and stays valid.
+
+### Decision revised after merge (2026-10-27)
+
+Decision (1) — "`master` is the final version; restaurants upgrade with `git pull` on `master`" — was **revised by the owner** after an external review (`master` had 51 unreleased commits after `v1.8.3`). Spec 064 rewrote `docs/upgrading.md` step 3 to `git fetch --tags` + `git checkout <release tag>`.
