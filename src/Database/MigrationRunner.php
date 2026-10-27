@@ -172,6 +172,25 @@ class MigrationRunner
     }
 
     /**
+     * File names of the migrations not yet recorded in the `migrations` table, sorted.
+     * Read-only (spec 063): never creates the table — on a database that has none, every
+     * file is pending. Used by `bin/migrate --status` and `GET /health/ready`.
+     *
+     * @return list<string>
+     */
+    public function pending(): array
+    {
+        $ran = Capsule::schema()->hasTable('migrations')
+            ? Capsule::table('migrations')->pluck('migration')->all()
+            : [];
+
+        $names = array_map('basename', glob($this->sqlDir . '/*.sql') ?: []);
+        sort($names, SORT_STRING);
+
+        return array_values(array_diff($names, $ran));
+    }
+
+    /**
      * Return all SQL files in the directory sorted by filename,
      * excluding those already registered in the migrations table.
      *
@@ -179,23 +198,7 @@ class MigrationRunner
      */
     private function getPendingFiles(): array
     {
-        $ran = Capsule::table('migrations')->pluck('migration')->all();
-
-        $iterator = new \DirectoryIterator($this->sqlDir);
-
-        $files = [];
-        foreach ($iterator as $file) {
-            if ($file->isFile() && $file->getExtension() === 'sql') {
-                $name = $file->getFilename();
-                if (!in_array($name, $ran, true)) {
-                    $files[] = clone $file;
-                }
-            }
-        }
-
-        usort($files, fn (\SplFileInfo $a, \SplFileInfo $b) => strcmp($a->getFilename(), $b->getFilename()));
-
-        return $files;
+        return array_map(fn (string $name) => new \SplFileInfo($this->sqlDir . '/' . $name), $this->pending());
     }
 
     /**

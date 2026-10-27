@@ -9,6 +9,7 @@ declare(strict_types=1);
  * Uso:
  *   php bin/migrate
  *   php bin/migrate --trust-current-hashes
+ *   php bin/migrate --status
  *
  * Executa todos os arquivos .sql em common/migrations/ que ainda
  * não foram aplicados ao banco de dados.
@@ -23,6 +24,9 @@ declare(strict_types=1);
  * hash registrado de toda migração já rastreada para o conteúdo atual em
  * disco, e encerra. Rode uma vez para reconciliar, depois rode `bin/migrate`
  * normalmente. Nunca acontece sozinho — é preciso pedir explicitamente.
+ *
+ * --status: só leitura (spec 063). Lista as migrações pendentes e sai com código 1 se houver
+ * alguma, 0 se não houver — para conferir uma atualização ou usar em script. Não grava nada.
  */
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -51,6 +55,19 @@ $settings = new Settings();
 DB::boot($settings);
 
 echo "=== GastroFlow Migrations ===\n\n";
+
+if (in_array('--status', $argv, true)) {
+    $pending = (new MigrationRunner())->pending();
+    if ($pending === []) {
+        echo "✓ Nenhuma migração pendente.\n";
+        exit(0);
+    }
+    echo count($pending) . " migração(ões) pendente(s) — rode bin/migrate:\n";
+    foreach ($pending as $name) {
+        echo "  - {$name}\n";
+    }
+    exit(1);
+}
 
 $trustCurrentHashes = in_array('--trust-current-hashes', $argv, true);
 
