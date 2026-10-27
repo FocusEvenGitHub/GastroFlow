@@ -433,4 +433,70 @@ class PrintServiceTest extends TestCase
         $this->assertStringNotContainsString('Desconto', $plainData);
         $this->assertSame($plainData, $this->printToString($zeroed));
     }
+
+    /** A Settings whose logo.png holds $bytes, under a throwaway base path (spec 065). */
+    private function settingsWithLogo(string $bytes): Settings
+    {
+        $base = sys_get_temp_dir() . '/gf-logo-' . bin2hex(random_bytes(4));
+        mkdir($base . '/public/assets/img', 0777, true);
+        file_put_contents($base . '/public/assets/img/logo.png', $bytes);
+        return new Settings($base);
+    }
+
+    private function imageBytes(string $encoder, int $width = 40): string
+    {
+        $im = imagecreatetruecolor($width, 20);
+        imagefilledrectangle($im, 0, 0, 9, 19, imagecolorallocate($im, 0, 0, 0));
+        ob_start();
+        $encoder($im);
+        return (string) ob_get_clean();
+    }
+
+    private function printWith(Settings $settings): string
+    {
+        $connector = new CapturingPrintConnector();
+        $service = new PrintService($this->makeLogger(), $settings, new PricingService(), fn () => $connector);
+        $service->printOrder($this->makeOrder());
+        return $connector->data;
+    }
+
+    /**
+     * Spec 065, AC3 — the logo reaches the ticket as a raster image (GS v 0). Also covers a
+     * JPEG saved as logo.png, which is what uploads before spec 065 left on disk.
+     */
+    public function testLogoIsPrintedAsARasterImage(): void
+    {
+        if (!extension_loaded('gd')) {
+            $this->markTestSkipped('GD not loaded.');
+        }
+        foreach (['imagepng', 'imagejpeg'] as $encoder) {
+            $settings = $this->settingsWithLogo($this->imageBytes($encoder));
+            $this->assertStringContainsString("\x1dv0", $this->printWith($settings), $encoder);
+            $service = new PrintService($this->makeLogger(), $settings, new PricingService());
+            $this->assertNull($service->logoProblem(), $encoder);
+        }
+    }
+
+    /** Spec 065 — a logo wider than 58 mm paper is scaled down to 384 dots (48 bytes a row). */
+    public function testWideLogoIsScaledToThePaperWidth(): void
+    {
+        if (!extension_loaded('gd')) {
+            $this->markTestSkipped('GD not loaded.');
+        }
+        $data = $this->printWith($this->settingsWithLogo($this->imageBytes('imagepng', 1024)));
+        // GS v 0 m xL xH: width in bytes, little-endian.
+        $this->assertStringContainsString("\x1dv0\x00\x30\x00", $data);
+    }
+
+    /** Spec 065, AC5 — an unreadable logo is reported, and the ticket still prints without it. */
+    public function testUnreadableLogoIsReportedAndTheTicketStillPrints(): void
+    {
+        $settings = $this->settingsWithLogo('not an image');
+        $data = $this->printWith($settings);
+
+        $this->assertStringContainsString('Senha: 5', $data);
+        $this->assertStringNotContainsString("\x1dv0", $data);
+        $service = new PrintService($this->makeLogger(), $settings, new PricingService());
+        $this->assertNotNull($service->logoProblem());
+    }
 }

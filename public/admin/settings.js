@@ -8,6 +8,8 @@ function settingsApp() {
             discount_max_percent: '100'
         },
         logoUrl: '/assets/img/logo.png?' + Date.now(),
+        // Motivo de a logo não sair no cupom (spec 065); vazio quando ela imprime.
+        logoProblem: '',
         saving: false,
         testing: false,
 
@@ -26,6 +28,7 @@ function settingsApp() {
                     this.form.printer_port = data.settings.printer_port || '9100';
                     this.form.discount_max_percent = data.settings.discount_max_percent ?? '100';
                 }
+                this.logoProblem = (data && data.logo_problem) || '';
             } catch (err) {
                 // 403 (manager) vira o painel "Sem permissão" (spec 051).
                 if (err.forbidden || err.unauthorized) { this.handleError(err); return; }
@@ -80,6 +83,7 @@ function settingsApp() {
                 await this.api('/api/admin/settings/logo', { method: 'POST', body: formData });
                 this.logoUrl = '/assets/img/logo.png?' + Date.now();
                 this.showMessage('Logo atualizada com sucesso!', 'success');
+                this.loadSettings();
             } catch (err) {
                 this.handleError(err);
             }

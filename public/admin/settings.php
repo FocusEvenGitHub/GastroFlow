@@ -37,7 +37,7 @@ $extraHead = '<style>
                                placeholder="Ex: GastroFlow">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Logo (PNG/JPG quadrado, 1:1)</label>
+                        <label class="form-label">Logo (PNG, JPG ou WebP, quadrada 1:1)</label>
                         <div class="logo-preview mb-2">
                             <template x-if="logoUrl">
                                 <img :src="logoUrl" alt="Logo">
@@ -48,6 +48,10 @@ $extraHead = '<style>
                                     <p class="small mt-1">Nenhuma logo</p>
                                 </div>
                             </template>
+                        </div>
+                        <div x-show="logoProblem" x-cloak class="alert alert-warning small py-2 mb-2">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Esta logo não sai no cupom: <span x-text="logoProblem"></span>
                         </div>
                         <input type="file" accept="image/png,image/jpeg,image/webp"
                                class="form-control" @change="uploadLogo($event)">

@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use App\ApiResponse;
 use App\Models\Setting;
 use App\Services\AuditLogger;
+use App\Services\PrintService;
 use App\Settings;
 use App\Validators\SettingsValidator;
 
@@ -18,6 +19,7 @@ class SettingsController
         private readonly Settings $settings,
         private readonly SettingsValidator $settingsValidator,
         private readonly AuditLogger $auditLogger,
+        private readonly PrintService $printService,
     ) {
     }
 
@@ -28,7 +30,15 @@ class SettingsController
     public function getSettings(Request $request, Response $response): Response
     {
         $settings = Setting::getAll();
-        $payload = ['success' => true, 'settings' => $settings];
+        // logo_printable/logo_problem (spec 065): a logo que não sai no cupom só aparecia
+        // como warning no log; agora o Admin mostra o motivo ao lado da logo.
+        $logoProblem = $this->printService->logoProblem();
+        $payload = [
+            'success'        => true,
+            'settings'       => $settings,
+            'logo_printable' => file_exists($this->settings->getLogoPath()) && $logoProblem === null,
+            'logo_problem'   => $logoProblem,
+        ];
         $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -83,7 +93,7 @@ class SettingsController
 
     /**
      * POST /api/admin/settings/logo
-     * Faz upload da logo do restaurante (PNG/JPG).
+     * Faz upload da logo do restaurante (PNG/JPG/WebP), gravada sempre como PNG de verdade.
      * Body: multipart/form-data com campo "logo"
      */
     public function uploadLogo(Request $request, Response $response): Response
@@ -102,13 +112,24 @@ class SettingsController
             return ApiResponse::error($response, 400, 'UNSUPPORTED_FILE_TYPE', 'Formato não suportado. Use PNG, JPG ou WebP.');
         }
 
+        // Decodifica e regrava como PNG (spec 065): antes o arquivo era só movido para
+        // logo.png, então um JPEG/WebP ficava com a extensão errada. Re-codificar também
+        // descarta o que não é imagem (metadados, dados anexados ao arquivo).
+        $bytes = (string) $logoFile->getStream();
+        $image = $bytes === '' ? false : @imagecreatefromstring($bytes);
+        if ($image === false) {
+            return ApiResponse::error($response, 400, 'INVALID_IMAGE', 'Não foi possível ler a imagem. Envie um arquivo PNG, JPG ou WebP válido.');
+        }
+
         $destDir = $this->settings->getPublicAssetsImgDir();
         if (!is_dir($destDir)) {
             mkdir($destDir, 0755, true);
         }
 
-        $destPath = $destDir . '/logo.png';
-        $logoFile->moveTo($destPath);
+        imagesavealpha($image, true);
+        if (!imagepng($image, $destDir . '/logo.png')) {
+            throw new \RuntimeException('Não foi possível gravar a logo em ' . $destDir);
+        }
 
         $response->getBody()->write(json_encode([
             'success' => true,

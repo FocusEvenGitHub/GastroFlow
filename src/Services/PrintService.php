@@ -76,6 +76,78 @@ class PrintService
     }
 
     /**
+     * Largura máxima da logo em pontos: papel de 58 mm a 203 dpi, o mesmo do layout de
+     * 32 colunas. Uma imagem mais larga sai cortada ou ilegível na maioria das impressoras.
+     */
+    private const LOGO_MAX_WIDTH = 384;
+
+    /**
+     * Load the logo for printing (spec 065).
+     *
+     * Not EscposImage::load(): escpos-php 2.2's GdEscposImage checks is_resource(), and
+     * PHP 8's GD returns GdImage objects, so it fails on every image even with GD
+     * installed; it also picks the decoder by file extension, while logos uploaded
+     * before spec 065 are JPEG/WEBP bytes saved as logo.png. Decoding by content and
+     * filling the raster ourselves fixes both without a library upgrade.
+     *
+     * @throws \RuntimeException with an operator-facing (Portuguese) message
+     */
+    private function loadLogo(string $path): EscposImage
+    {
+        if (!extension_loaded('gd')) {
+            throw new \RuntimeException('A extensão GD do PHP não está instalada no servidor.');
+        }
+        $bytes = (string) file_get_contents($path);
+        // imagecreatefromstring('') throws instead of returning false.
+        $im = $bytes === '' ? false : @imagecreatefromstring($bytes);
+        if ($im === false) {
+            throw new \RuntimeException('O arquivo da logo não é uma imagem válida. Envie a logo de novo.');
+        }
+        if (imagesx($im) > self::LOGO_MAX_WIDTH) {
+            $im = imagescale($im, self::LOGO_MAX_WIDTH);
+        }
+
+        return new class ($im) extends EscposImage {
+            public function __construct(\GdImage $im)
+            {
+                parent::__construct();
+                $width = imagesx($im);
+                $height = imagesy($im);
+                $data = str_repeat("\0", $width * $height);
+                for ($y = 0; $y < $height; $y++) {
+                    for ($x = 0; $x < $width; $x++) {
+                        // Same rule as GdEscposImage: dark → 1; transparent → white.
+                        $c = imagecolorsforindex($im, imagecolorat($im, $x, $y));
+                        $grey = (int) (($c['red'] + $c['green'] + $c['blue']) / 3) >> 7;
+                        $data[$y * $width + $x] = (1 - $grey) >> ($c['alpha'] >> 6);
+                    }
+                }
+                $this->setImgWidth($width);
+                $this->setImgHeight($height);
+                $this->setImgData($data);
+            }
+        };
+    }
+
+    /**
+     * Why the current logo won't print, or null when it will (or there is none) —
+     * shown next to the logo in Admin › Configurações (spec 065).
+     */
+    public function logoProblem(): ?string
+    {
+        $path = $this->settings->getLogoPath();
+        if (!file_exists($path)) {
+            return null;
+        }
+        try {
+            $this->loadLogo($path);
+            return null;
+        } catch (\RuntimeException $e) {
+            return $e->getMessage();
+        }
+    }
+
+    /**
      * Get printer connection settings.
      */
     /**
@@ -274,7 +346,7 @@ class PrintService
         $logoPath = $this->settings->getLogoPath();
         if (file_exists($logoPath)) {
             try {
-                $logo = EscposImage::load($logoPath);
+                $logo = $this->loadLogo($logoPath);
                 $printer->bitImage($logo);
                 $printer->feed();
             } catch (\Throwable $e) {
@@ -328,7 +400,7 @@ class PrintService
         $logoPath = $this->settings->getLogoPath();
         if (file_exists($logoPath)) {
             try {
-                $logo = EscposImage::load($logoPath);
+                $logo = $this->loadLogo($logoPath);
                 $printer->bitImage($logo);
                 $printer->feed();
             } catch (\Throwable $e) {
