@@ -1298,6 +1298,8 @@ Open GastroFlow
 
 No source-code editing should be required for normal installation.
 
+**Status (2026-10-26): spec 062.** `docs/installation.md` (13 steps + troubleshooting) and `docs/commands.md`; README quickstart fixed (it lacked `composer install` and `bin/migrate`, so following it gave HTTP 500); `001_schema.sql` no longer hard-codes the `restaurant` database; `.env.example` production defaults; MySQL published on `127.0.0.1` only; the image no longer fails to build on a fresh clone (dead `COPY legacy/`, found by the clean-room run). The pass/fail test below — someone else installing — remains the v1.9 Exit Gate.
+
 **Added 2026-09-26.** The concrete test for this milestone: someone other than the person who wrote GastroFlow can download it, configure it, create an administrator, bring up `web` + MySQL + `print-worker`, configure the printer, take a backup, and upgrade to a newer version — all without the original author touching their terminal. Not a new requirement, just this milestone's existing goal stated as a pass/fail scenario, so it doesn't get diluted into a checklist of smaller, individually-satisfiable items that miss the real test.
 
 ---
