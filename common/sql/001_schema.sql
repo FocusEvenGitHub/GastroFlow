@@ -1,8 +1,5 @@
-CREATE DATABASE IF NOT EXISTS restaurant
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-
-USE restaurant;
+-- Sem CREATE DATABASE/USE (spec 062): o entrypoint do MySQL roda este arquivo já dentro do banco
+-- de MYSQL_DATABASE; um USE fixo mandava as tabelas para outro banco quando o nome era diferente.
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
