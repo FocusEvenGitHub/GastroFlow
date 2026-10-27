@@ -123,7 +123,7 @@ Behind `JwtMiddleware` (`/api/admin/*`):
 
 ### Known commands (confirmed in code/config)
 
-- `docker compose up -d` — starts `db` (MySQL 8.0, port 3306) and `web` (built from `Dockerfile`, `php:8.2-apache`, port `8080:80`, container name **`restaurant_web`**).
+- `docker compose up -d` — starts `db` (MySQL 8.0, port 3306) and `web` (built from `Dockerfile`, `php:8.2-apache`, port `8080:80`, container name **`restaurant_web`**). *(Corrected 2026-10-26, spec 062: it also starts `print-worker` (spec 008); MySQL is published on `127.0.0.1:3306` only, no longer on every interface; the image is `php:8.2.35-apache` since spec 059. Operator command reference: `docs/commands.md`.)*
 - `docker compose exec web composer install|update|require|remove` — Composer inside the running `web` container (bind-mounted `composer.json`/`composer.lock`).
 - `bin/migrate` — runs pending `common/migrations/*.sql` via `MigrationRunner`.
 - `bin/worker [--once] [queue]` — processes the `jobs` table (e.g. print jobs); handles `SIGINT`/`SIGTERM`.
@@ -191,7 +191,7 @@ Not applicable — no code changes.
 - **Not blocking**: `IngredientController.php` exists but no `/api/admin/ingredients*` (or similar) route was found in `src/Routes.php`. Is ingredient management reachable today, and if so, how?
 - **Not blocking**: `common/config.php`/`common/db.php` appear to be dead code (no callers found). Should they be removed in a future spec, or are they intentionally kept for some external/manual use not visible in `src/`?
 - **Not blocking**: the README's curl example uses `docker exec -it gastroflow_web composer update`, but `docker-compose.yml` sets `container_name: restaurant_web` — the container name in the README example does not match the actual compose file.
-- **Not blocking**: `composer.lock` is gitignored and not tracked, while the Dockerfile and README workflow assume it exists and is meaningful for reproducible installs — its actual reproducibility across machines is not confirmed.
+- **Not blocking**: `composer.lock` is gitignored and not tracked, while the Dockerfile and README workflow assume it exists and is meaningful for reproducible installs — its actual reproducibility across machines is not confirmed. *(Corrected 2026-10-26, spec 062: `composer.lock` is tracked today — `git ls-files composer.lock` lists it and `git check-ignore` does not match it.)*
 
 ## Task checklist
 
@@ -207,6 +207,7 @@ Not applicable — this is a documentation snapshot, not a unit of implementatio
 
 - 2026-10-23 (spec 058's doc pass) — Added dated notes to the Order flow and Reports paragraphs for the per-item discount (new `order_items` columns, the kitchen's discount editing, net revenue in reports, the `discounts` report). Noted in passing that the Reports route list had never gained spec 032's `main-dishes`.
 - 2026-10-26 (spec 061's doc pass) — Corrected the Persistence paragraph's seeding sentence (stale since spec 015 and incomplete about migration seeds) with a dated note.
+- 2026-10-26 (spec 062's doc pass) — Dated notes on the `docker compose up -d` command (print-worker, MySQL bound to localhost, PHP image) and on the `composer.lock` gap (it is tracked now).
 
 ## Validation evidence
 

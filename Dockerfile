@@ -40,7 +40,6 @@ RUN composer install --no-dev --no-interaction --optimize-autoloader --no-script
 COPY public/ ./public/
 COPY src/ ./src/
 COPY common/ ./common/
-COPY legacy/ ./legacy/
 COPY bin/ ./bin/
 
 # Ajustar permissões finais

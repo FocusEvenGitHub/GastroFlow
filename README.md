@@ -49,7 +49,9 @@ This README is the entry point. Depth lives alongside it, by topic:
 | [`CHANGELOG.md`](CHANGELOG.md) | Everything that has shipped, release by release |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones: what's done, what's next, and the rules behind them |
 | [`specs/`](specs/) · [`specs/README.md`](specs/README.md) | One file per change (problem, plan, implementation log, validation evidence) and the spec lifecycle |
-| [`CLAUDE.md`](CLAUDE.md) | Rules for AI-assisted development, and the full list of commands that exist (migrations, worker, tests, static analysis…) |
+| [`docs/installation.md`](docs/installation.md) | Installing GastroFlow on the restaurant's server, step by step, with troubleshooting |
+| [`docs/commands.md`](docs/commands.md) | Every command, by task: services, health, migrations, backup & restore, print queue, sample data, development |
+| [`CLAUDE.md`](CLAUDE.md) | Rules for AI-assisted development |
 | [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md) | Commit types, scopes and emoji; release and changelog workflow |
 
 ---
@@ -138,32 +140,38 @@ What changed how I approach the work, not a technology list:
 
 ### Prerequisites
 
-- Docker (v20.10+) and Docker Compose (v2.0+)
+- Docker with Compose v2 (Docker Desktop on Windows/macOS)
+- Git — on Windows, Git for Windows, and run every command below in **Git Bash**
 
 ### Installation
 
+The full guide — configuration, printer, first backup, troubleshooting — is **[`docs/installation.md`](docs/installation.md)**. In short:
+
 ```bash
+# Windows only, before cloning: keep LF line endings (see "Line endings" below)
+git config --global core.autocrlf false
+
 git clone https://github.com/FocusEvenGitHub/GastroFlow.git
 cd GastroFlow
 
-cp .env.example .env
-# Generate a JWT secret and set it as JWT_SECRET in .env:
+cp .env.example .env              # BEFORE any docker compose command
+# Edit .env: replace both "changeme" passwords, set JWT_SECRET to the output of:
 openssl rand -base64 48
 
-docker compose up -d
+docker compose up -d --build
+docker compose exec web composer install --no-dev   # the app's vendor/ lives in this folder — skip it and every page shows "Fatal error"
+docker compose exec web php bin/migrate             # creates the tables
+docker compose exec web php bin/create-admin admin  # no default credentials exist
 
-# Create your administrator account (no default credentials are seeded):
-docker compose exec web php bin/create-admin admin
-
-# A fresh install starts with no menu — create yours in Admin (/admin/).
-# Optional, for a demo: a fictional menu (only if there is none) + orders — last 45 days + 5 pending today
+# A fresh install has no menu: create yours in Admin (/admin/).
+# Optional demo — a fictional menu + 45 days of orders:
 docker compose exec web php bin/seed-demo
 ```
 
-- Application: [http://localhost:8080](http://localhost:8080)
+- Application: [http://localhost:8080](http://localhost:8080) — check with `curl http://localhost:8080/health/ready`
 - Interactive API docs: [http://localhost:8080/api/docs](http://localhost:8080/api/docs)
 
-Composer runs inside the container (`docker compose exec web composer install`). Every other command (migrations, print worker, job/event pruning, tests, static analysis) is listed in [`CLAUDE.md`](CLAUDE.md) › "Commands actually available".
+Every operational command (services, backups, print queue, sample data, tests): **[`docs/commands.md`](docs/commands.md)**.
 
 ### Backup & restore
 
@@ -204,7 +212,7 @@ git reset --hard
 Once installed, GastroFlow needs only the restaurant's local network: the backend makes no outbound calls, every screen's assets are served locally, and the printer is reached by IP. An internet outage doesn't stop the cashier, kitchen, printing, Admin or backups.
 
 - **Give the server a fixed IP** (a DHCP reservation on the router) and open the screens from the other devices by that IP: `http://<server-ip>:8080/cashier/`, `/kitchen/`, `/admin/`.
-- **Firewall:** if the other devices can't connect, allow inbound TCP 8080 on the server — on Windows (PowerShell as administrator): `New-NetFirewallRule -DisplayName "GastroFlow" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Private`. Open only 8080 and only on the private network; never expose GastroFlow to the internet, and don't open 3306 (MySQL).
+- **Firewall:** if the other devices can't connect, allow inbound TCP 8080 on the server — on Windows (PowerShell as administrator): `New-NetFirewallRule -DisplayName "GastroFlow" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Private`. Open only 8080 and only on the private network; never expose GastroFlow to the internet, and don't open 3306 (MySQL) — it is published on the server's `127.0.0.1` only.
 - **Printer by IP**, not hostname (Admin › Configurações): name resolution may depend on the router or the internet.
 - **What does need internet:** installing and upgrading (`git pull`, `docker compose build`, pulling `mysql:8.0`, `composer install`) and the developer API docs at `/api/docs/`. During an outage, don't run `docker system prune` or `docker compose down --rmi …` — without internet the images can't be rebuilt.
 - **After a reboot** `db`, `web` and `print-worker` come back on their own (`restart: unless-stopped`).

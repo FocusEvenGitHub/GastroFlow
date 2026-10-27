@@ -112,10 +112,10 @@ abstract class IntegrationTestCase extends TestCase
             $this->fail('Could not read common/sql/001_schema.sql');
         }
 
-        // 001_schema.sql opens with `CREATE DATABASE IF NOT EXISTS restaurant;` and
-        // `USE restaurant;`, both hardcoded to the live database name. Executed verbatim
-        // they would switch this connection onto the developer's real database and create
-        // tables there. Strip them; the connection is already on the test database.
+        // 001_schema.sql used to open with `CREATE DATABASE IF NOT EXISTS restaurant;` and
+        // `USE restaurant;` (removed by spec 062). Executed verbatim they would switch this
+        // connection onto the developer's real database and create tables there. The strip
+        // stays as a guard in case such a header ever comes back.
         $sql = preg_replace('/^\s*CREATE\s+DATABASE\b.*?;/is', '', $sql) ?? $sql;
         $sql = preg_replace('/^\s*USE\s+[^;]+;/im', '', $sql) ?? $sql;
 

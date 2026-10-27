@@ -17,7 +17,9 @@ PHP >=8.1 (Docker runtime: `php:8.2.35-apache`, patch version pinned on purpose 
 
 ## Commands actually available
 
-- `docker compose up -d` — starts `db` (MySQL 8.0) and `web` (container name `restaurant_web`, port `8080:80`).
+Operator-facing reference, by task: `docs/commands.md`; first installation: `docs/installation.md` (spec 062) — keep both in sync when a command changes. `.env.example` ships production defaults (`APP_ENV=production`, `APP_DEBUG=false`) since spec 062; a development `.env` sets `development`/`true` by hand.
+
+- `docker compose up -d` — starts `db` (MySQL 8.0, published on `127.0.0.1:3306` only — spec 062), `web` (container name `restaurant_web`, port `8080:80`) and `print-worker`.
 - `docker compose exec web composer install|update|require|remove`
 - `bin/migrate` — apply pending SQL migrations. Refuses to proceed if an already-applied migration's current content no longer matches what was recorded (line-ending-only differences are tolerated, not flagged). `bin/migrate --trust-current-hashes` re-baselines the recorded hash of every already-tracked migration to its current on-disk content, for legitimate cases (e.g. a `.gitattributes` line-ending normalization) — explicit, non-default, never automatic (spec 048).
 - `bin/create-admin <username>` — create an administrator (prompts for a password, minimum 8 characters; no default credentials are seeded).
