@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-10-27
 - Updated: 2026-10-27
 - Owner:
@@ -126,6 +126,6 @@ Collected 2026-10-27 on branch `064` (docs only — no code, so no test suite ru
 | AC1 | `grep -rn "released version" docs README.md` → no match | Met |
 | AC2 | `grep -n "git checkout"`: `docs/installation.md:24` (`git checkout vX.Y.Z`), `README.md:157`, `docs/upgrading.md:49` (upgrade, after `git fetch --tags`), `:110` (rollback, `git checkout <old-version>`). `grep -n "git pull" docs/upgrading.md` → only line 11, the transition note for installs that deliberately follow `master` | Met |
 | AC3 | `grep -c "v1.9.0"` → `docs/installation.md` 1 line (transition note, incl. the `v1.8.3` `"/legacy": not found` warning), `docs/upgrading.md` 4 lines | Met |
-| AC4 | CI on the PR | Pending CI |
+| AC4 | CI on PR #50: run `40454444178` on `1a49268` (event `pull_request`) → `success` — recorded 2026-10-27 by spec 065 | Met |
 
-Status `Implemented`: AC4 waits for CI. Not rehearsable yet: installing/upgrading by tag end to end needs a tag newer than `v1.8.3` — left to the v1.9 Exit Gate once `v1.9.0` is cut.
+Status `Verified` (2026-10-27, spec 065): AC4 now has its CI run. Not rehearsable yet: installing/upgrading by tag end to end needs a tag newer than `v1.8.3` — left to the v1.9 Exit Gate once `v1.9.0` is cut.

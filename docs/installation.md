@@ -100,6 +100,8 @@ Admin › **Configurações**:
 2. **IP da Impressora** and **Porta** (usually `9100`) of the ESC/POS network printer. Use the IP, not a hostname, and check it is on the same network as the server (e.g. both `192.168.1.x`).
 3. **Salvar Configurações**, then **Imprimir Teste**. A test ticket should come out.
 
+Supported printers, finding the printer's IP, what happens when printing fails, and printer troubleshooting: [`docs/printing.md`](printing.md).
+
 ## 11. Create the menu
 
 A new installation has no menu — only the categories and the packaging items ("Embalagem Simples/Especial", charged on take-away orders). Create your items in Admin.
@@ -138,4 +140,4 @@ Runs on the server itself (Git Bash on Windows), not inside a container. Restori
 | `bin/migrate` or the app can't connect after changing `MYSQL_DATABASE`/`MYSQL_USER`/passwords in `.env` | MySQL only reads them on its **first** start; the database volume keeps the old ones | On an install with no data yet: `docker compose down -v` (**deletes the database**) and start again from step 5 |
 | `bin/…: /usr/bin/env: 'php\r': No such file or directory` or `bash\r` | Cloned on Windows with `core.autocrlf=true` | Step 1's setting, then rebuild the files: `git rm --cached -r .` and `git reset --hard` (with no local changes) |
 | Another device can't open `http://<server-ip>:8080` | Server firewall | README › Operating over the LAN › Firewall |
-| "Imprimir Teste" fails | Printer IP/port, or a different network | Check the IP from the printer's own config page; ping it from the server |
+| "Imprimir Teste" fails | Printer IP/port, or a different network | Check the IP from the printer's own config page; ping it from the server — more in [`docs/printing.md`](printing.md#troubleshooting) |
