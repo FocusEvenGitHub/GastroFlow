@@ -209,4 +209,8 @@ Collected 2026-10-26 on branch `061`, local Docker (`restaurant_web`, PHP 8.2.35
 
 CI run `40420655166` on `014555b` (branch `061`), conclusion `success`, raw log: PHPStan `[OK] No errors`; CS-Fixer `Found 0 of 114 files`; Unit `OK (238 tests, 474 assertions)`; Integration `OK (70 tests, 330 assertions)` — on a `restaurant_test` built from scratch with the new `001_schema.sql`, i.e. the clean-install path with the `fresh_install` marker, so the fixture item came from `availableMenuItem()`; Playwright `29 passed / 5 skipped`. PR #47 merged as `cf07102`. **AC6 → Met.**
 
+### AC2 — additional observation (recorded 2026-10-27 in spec 063's PR)
+
+On 2026-10-26 the owner ran `bin/migrate` on the **development database** (a real-shaped install: pilot menu, 95 orders, no `fresh_install` marker): `▶ Executando 022_clean_fresh_install.sql ... [OK]`. Read afterwards: `orders=95`, `menu_items=73` (both equal to the counts read before, at the dev stack restart in spec 062's run), `ingredients=13`, `dish_components=53`, no `fresh_install` table. Counts, not the `CHECKSUM TABLE` the criterion names, and `ingredients`/`dish_components` were not counted before — so AC2 stays **Partially met**, now with a real database behind it.
+
 Status stays `Implemented`, not `Verified`: AC2 (checksum on a copy of the dev data) and AC5 (Admin/cashier in a browser) are still partially met.

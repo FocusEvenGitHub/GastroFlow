@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Database\MigrationRunner;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -11,6 +12,10 @@ use App\ApiResponse;
 
 class HealthController
 {
+    public function __construct(private readonly MigrationRunner $migrations = new MigrationRunner())
+    {
+    }
+
     /**
      * GET /health/live
      *
@@ -43,6 +48,17 @@ class HealthController
                 503,
                 'DB_UNAVAILABLE',
                 'Banco de dados indisponível.'
+            );
+        }
+
+        // Código novo com migração pendente quebra na primeira coluna nova (spec 063: foi o
+        // 500 da 021 no cliente piloto). Melhor a tela dizer que o servidor não está pronto.
+        if ($this->migrations->pending() !== []) {
+            return ApiResponse::error(
+                $response,
+                503,
+                'MIGRATIONS_PENDING',
+                'Atualização incompleta: há migrações pendentes. Rode bin/migrate.'
             );
         }
 

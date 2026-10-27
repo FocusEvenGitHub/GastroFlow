@@ -50,6 +50,7 @@ This README is the entry point. Depth lives alongside it, by topic:
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones: what's done, what's next, and the rules behind them |
 | [`specs/`](specs/) · [`specs/README.md`](specs/README.md) | One file per change (problem, plan, implementation log, validation evidence) and the spec lifecycle |
 | [`docs/installation.md`](docs/installation.md) | Installing GastroFlow on the restaurant's server, step by step, with troubleshooting |
+| [`docs/upgrading.md`](docs/upgrading.md) | Updating to a newer version without losing data, and rolling back |
 | [`docs/commands.md`](docs/commands.md) | Every command, by task: services, health, migrations, backup & restore, print queue, sample data, development |
 | [`CLAUDE.md`](CLAUDE.md) | Rules for AI-assisted development |
 | [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md) | Commit types, scopes and emoji; release and changelog workflow |
@@ -171,7 +172,7 @@ docker compose exec web php bin/seed-demo
 - Application: [http://localhost:8080](http://localhost:8080) — check with `curl http://localhost:8080/health/ready`
 - Interactive API docs: [http://localhost:8080/api/docs](http://localhost:8080/api/docs)
 
-Every operational command (services, backups, print queue, sample data, tests): **[`docs/commands.md`](docs/commands.md)**.
+Every operational command (services, backups, print queue, sample data, tests): **[`docs/commands.md`](docs/commands.md)**. Updating to a newer version: **[`docs/upgrading.md`](docs/upgrading.md)**.
 
 ### Backup & restore
 

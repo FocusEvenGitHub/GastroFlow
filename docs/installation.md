@@ -118,7 +118,7 @@ Runs on the server itself (Git Bash on Windows), not inside a container. Restori
 
 - The cashier is at `/cashier/`, the kitchen at `/kitchen/`, from any device on the restaurant's network: see the README's [Operating over the LAN](../README.md#operating-over-the-lan-no-internet) (fixed IP, firewall rule for port 8080).
 - After a server reboot, the three services come back on their own.
-- Updating to a new version: *documented in the upcoming "Upgrade process" — until then, take a backup, `git pull`, `docker compose up -d --build`, `docker compose exec web composer install --no-dev`, `docker compose exec web php bin/migrate`.*
+- Updating to a new version: [`docs/upgrading.md`](upgrading.md).
 
 ## Troubleshooting
 

@@ -192,4 +192,8 @@ Collected 2026-10-26 on branch `062`. Clean-room clones under the session scratc
 | AC4 | `docs/installation.md`: steps 1–13 + Troubleshooting; README block has `composer install --no-dev` and `bin/migrate`, links the guide and `docs/commands.md`, and starts with `git config --global core.autocrlf false` (deviation recorded above) | Met |
 | AC6 | Local: PHPStan `[OK] No errors`; CS-Fixer `Found 0 of 114 files`; Unit `OK (238 tests, 474 assertions)`; Integration `OK (70 tests, 330 assertions)` (run before the `legacy` fix, which touches no PHP). MySQL binding: `docker compose config` -> `host_ip: 127.0.0.1`; clean-room `db` container `127.0.0.1:3306->3306/tcp`. CI not run yet | Pending CI |
 
-Status `Implemented`: AC1 lacks step 10 (no printer) and AC6 waits for CI.
+### CI evidence (PR #48, recorded 2026-10-27 in spec 063's PR)
+
+CI run `40426356892` on `be48f70` (branch `062`), conclusion `success`, raw log: PHPStan `[OK] No errors`; CS-Fixer `Found 0 of 114 files`; Unit `OK (238 tests, 474 assertions)`; Integration `OK (70 tests, 330 assertions)`; Playwright `29 passed`. PR #48 merged as `a8b28d6`. **AC6 → Met.**
+
+Status stays `Implemented`: AC1 lacks step 10 (test print — no printer was available).
