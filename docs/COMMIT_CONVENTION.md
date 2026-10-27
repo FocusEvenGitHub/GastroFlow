@@ -164,6 +164,10 @@ This project follows [Semantic Versioning](https://semver.org/):
 
 > ⚠️ **Note:** the project's actual `CHANGELOG.md` currently uses the Portuguese headings `Novidades`/`Correções` instead of `Added`/`Fixed`. This convention document is now in English; `CHANGELOG.md` itself was not changed as part of this translation. Align one with the other in a future pass — don't silently pick a side.
 
+### ⚠️ Upgrade notes in `CHANGELOG.md`
+
+When a change needs something beyond the normal update (`docs/upgrading.md`) — a migration the new code depends on, an image rebuild, a new `.env` variable, a changed port — say so in a `⚠️` note under the entry. Never write "run `bin/migrate` **before** deploying the code": the containers run the code straight from the repository folder, so it is live the moment `git pull` finishes. Write "run `bin/migrate` right after updating" and link `docs/upgrading.md` (spec 063).
+
 ### 🚀 Release Steps
 
 ```bash

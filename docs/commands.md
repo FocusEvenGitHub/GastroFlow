@@ -1,6 +1,6 @@
 # Commands
 
-Every command GastroFlow has, by task. First installation, step by step: [`docs/installation.md`](installation.md).
+Every command GastroFlow has, by task. First installation, step by step: [`docs/installation.md`](installation.md); updating: [`docs/upgrading.md`](upgrading.md).
 
 Run them from the repository folder — **on Windows, in Git Bash**. Most run *inside* the `web` container (`docker compose exec web …`); the backup scripts run on the server itself and are marked **host**.
 
@@ -22,7 +22,7 @@ The application log is also readable in Admin › Logs.
 
 | Command | What it does |
 |---|---|
-| `curl http://localhost:8080/health/ready` | `{"success":true,"status":"ready"}` when the app **and** the database answer. |
+| `curl http://localhost:8080/health/ready` | `{"success":true,"status":"ready"}` when the app **and** the database answer **and** no migration is pending (otherwise 503: `DB_UNAVAILABLE` / `MIGRATIONS_PENDING`). |
 | `curl http://localhost:8080/health/live` | Answers as long as the app process is up, even with the database down. |
 | `curl http://localhost:8080/version` | The version/branch the server is running. |
 
@@ -30,7 +30,8 @@ The application log is also readable in Admin › Logs.
 
 | Command | What it does |
 |---|---|
-| `docker compose exec web php bin/migrate` | Applies pending migrations. Run after every update. Refuses to run if an already-applied migration file changed. |
+| `docker compose exec web php bin/migrate` | Applies pending migrations. Run after every update ([`docs/upgrading.md`](upgrading.md)). Refuses to run if an already-applied migration file changed. |
+| `docker compose exec web php bin/migrate --status` | Read-only: lists pending migrations; exit code 1 if there is any, 0 if none. While one is pending, `/health/ready` answers 503 `MIGRATIONS_PENDING`. |
 | `docker compose exec web php bin/migrate --trust-current-hashes` | Accepts the current content of already-applied migration files (e.g. after a line-ending normalization). Explicit, never automatic. |
 
 ## Users
