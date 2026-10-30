@@ -1355,6 +1355,8 @@ Include:
 * the development compose keeps the bind mounts;
 * installation and upgrade guides move to the production one.
 
+**Status (2026-10-30): spec 066.** `docker-compose.yml` is now the production compose: `web`/`print-worker` run the built image (code, `vendor/`, assets inside; only `.env:ro` and the `uploads`/`logs` volumes mounted) and wait for a one-shot `migrate` service, so new code can never serve before its migrations; `/version` reads a `VERSION` file baked in at build time. The old compose is `docker-compose.dev.yml` (`COMPOSE_FILE` in `.env`). Uploaded logos moved to `public/uploads/` — before, they overwrote the tracked GastroFlow logo, leaving every install that set one with a modified working tree. Installation, upgrading and commands guides rewritten for it; validated on a separate Compose project (fresh install, failed migration, data surviving recreation, an existing database switched over).
+
 ---
 
 ## Documentation structure
@@ -1456,7 +1458,7 @@ latest
 *Agreed with the owner on 2026-10-27.* The remaining v1.9 items, in this order:
 
 1. Printer documentation — spec 065;
-2. Separate deployment: development × Community production;
+2. Separate deployment: development × Community production — spec 066;
 3. Documentation structure — the docs still missing (security, configuration, backup & restore, troubleshooting);
 4. License (Open-source readiness — an owner decision);
 5. `SECURITY.md`, `CONTRIBUTING.md` and the Community support policy;

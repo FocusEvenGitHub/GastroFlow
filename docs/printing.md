@@ -41,6 +41,8 @@ If it fails, the screen says why — e.g. `IP da impressora não configurado`, o
 
 Upload it in Admin › Configurações › **Logo**. GastroFlow converts it to PNG on upload and refuses a file it cannot read. If a logo is on disk but cannot be printed, a yellow warning under the logo says **"Esta logo não sai no cupom"** and why — the ticket still prints, without the logo.
 
+Until you upload one, the ticket carries the GastroFlow logo. The uploaded logo is stored in `public/uploads/` — a Docker volume in production — so it survives upgrades (spec 066; before v1.9 it overwrote the GastroFlow logo in the code folder, see [upgrading](upgrading.md#first-upgrade-to-v19)).
+
 ## 3. How printing works
 
 1. An order is sent with **Imprimir** on → a print job goes into a queue (`jobs` table). The order itself is already saved: a printer problem never loses an order.
@@ -61,7 +63,7 @@ A successful print resets the failure count.
 | `ping` works but nothing prints | Wrong port, or the printer is not in raw/ESC/POS mode | Port from the self-test page (usually 9100); check the printer's emulation setting |
 | Ticket prints, logo doesn't | The warning under the logo in Admin says why (e.g. the file is not a valid image); on versions before v1.9, the logo never printed | Upload the logo again; `docker compose logs print-worker` shows "Logo não pôde ser carregada" |
 | Accents come out as wrong symbols | The printer's character table differs from the generic ESC/POS profile GastroFlow uses | Check the accented line of the test ticket; there is no setting for this in GastroFlow yet |
-| Nothing prints, no error, not blocked | `print-worker` stopped or restarting | `docker compose ps`; if it shows `Restarting`, see `docker compose logs print-worker` (a missing `vendor/` is the usual cause — [installation](installation.md#troubleshooting) step 6) |
+| Nothing prints, no error, not blocked | `print-worker` stopped, restarting or never started | `docker compose ps -a`; if it shows `Restarting`, see `docker compose logs print-worker`; if it is `Created` and `migrate` failed, see [installation › troubleshooting](installation.md#troubleshooting) |
 | Jobs seem stuck | A worker died mid-job, or jobs failed for good | `bin/jobs-status print` (below) |
 
 ## Commands

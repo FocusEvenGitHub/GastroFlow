@@ -4,7 +4,13 @@
 !.env.example
 logs/
 README.md
-docker-compose.yml
+docker-compose*.yml
 Dockerfile
 *.md
 .cache
+# Spec 066: nada disto entra na imagem, e backups/ tem os dados do restaurante —
+# não deve nem ser enviado ao Docker a cada build.
+vendor/
+backups/
+tests/
+public/uploads/

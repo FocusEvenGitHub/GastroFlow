@@ -7,7 +7,8 @@ function settingsApp() {
             // Desconto máximo por item, em % (spec 058). 0 desativa.
             discount_max_percent: '100'
         },
-        logoUrl: '/assets/img/logo.png?' + Date.now(),
+        // Vem do servidor (spec 066): a logo enviada fica em /uploads, a padrão em /assets/img.
+        logoUrl: '',
         // Motivo de a logo não sair no cupom (spec 065); vazio quando ela imprime.
         logoProblem: '',
         saving: false,
@@ -16,7 +17,6 @@ function settingsApp() {
         init() {
             if (!this.guard()) return;
             this.loadSettings();
-            this.checkLogo();
         },
 
         async loadSettings() {
@@ -29,6 +29,8 @@ function settingsApp() {
                     this.form.discount_max_percent = data.settings.discount_max_percent ?? '100';
                 }
                 this.logoProblem = (data && data.logo_problem) || '';
+                // Date.now() fura o cache do navegador depois de um upload.
+                this.logoUrl = (data && data.logo_url) ? data.logo_url + '?' + Date.now() : '';
             } catch (err) {
                 // 403 (manager) vira o painel "Sem permissão" (spec 051).
                 if (err.forbidden || err.unauthorized) { this.handleError(err); return; }
@@ -60,18 +62,6 @@ function settingsApp() {
         },
 
         // --- Logo ---
-        checkLogo() {
-            // Verifica se o logo existe tentando carregá-lo
-            const img = new Image();
-            img.onload = () => {
-                this.logoUrl = '/assets/img/logo.png?' + Date.now();
-            };
-            img.onerror = () => {
-                this.logoUrl = '';
-            };
-            img.src = '/assets/img/logo.png?' + Date.now();
-        },
-
         async uploadLogo(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -81,8 +71,8 @@ function settingsApp() {
 
             try {
                 await this.api('/api/admin/settings/logo', { method: 'POST', body: formData });
-                this.logoUrl = '/assets/img/logo.png?' + Date.now();
                 this.showMessage('Logo atualizada com sucesso!', 'success');
+                // Recarrega logo_url (agora /uploads) e o aviso de impressão.
                 this.loadSettings();
             } catch (err) {
                 this.handleError(err);

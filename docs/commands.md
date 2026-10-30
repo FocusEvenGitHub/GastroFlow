@@ -4,17 +4,21 @@ Every command GastroFlow has, by task. First installation, step by step: [`docs/
 
 Run them from the repository folder — **on Windows, in Git Bash**. Most run *inside* the `web` container (`docker compose exec web …`); the backup scripts run on the server itself and are marked **host**.
 
+`docker compose` uses `docker-compose.yml`, the **production** setup: the code runs from the built image, and only the database, the uploaded logo and the log live outside it, in Docker volumes (spec 066). Development uses `docker-compose.dev.yml` — see [Development](#development).
+
 ## Services
 
 | Command | What it does |
 |---|---|
-| `docker compose up -d` | Starts `db` (MySQL 8.0), `web` (the app, port 8080) and `print-worker` (print queue). Add `--build` after changing the `Dockerfile` or pulling a new version. |
-| `docker compose ps` | Status of the three services — all should be `Up`, none `Restarting`. |
+| `GASTROFLOW_VERSION=$(git describe --tags --always) docker compose up -d --build` | Builds the image from the checked-out version and starts `db` (MySQL 8.0) → `migrate` (applies pending migrations, then exits) → `web` (the app, port 8080) and `print-worker` (print queue). `web`/`print-worker` only start if `migrate` succeeds. The `GASTROFLOW_VERSION=…` prefix only labels `/version`. |
+| `docker compose up -d` | Starts the services from the image already built (e.g. after `docker compose stop`). Runs `migrate` again — a no-op when nothing is pending. |
+| `docker compose ps` | Status of the three services — all should be `Up`, none `Restarting`. `ps -a` also lists `migrate`, which should be `Exited (0)`. |
+| `docker compose logs migrate` | What the last migration run did — the first place to look when `up` reports that `migrate` failed. |
 | `docker compose stop` / `docker compose start` | Stops / starts the services. Data stays in the database volume. |
 | `docker compose restart print-worker` | Restarts one service. |
 | `docker compose logs -f web` | Follows a service's output (`web`, `print-worker`, `db`). |
-| `docker compose down` | Removes the containers. Data stays in the database volume. |
-| `docker compose down -v` | Removes the containers **and the database volume — every order, menu item and user is lost.** Only for an install with no data, or after a backup. |
+| `docker compose down` | Removes the containers. Data stays in the volumes. |
+| `docker compose down -v` | Removes the containers **and every volume — every order, menu item and user, the uploaded logo and the log are lost.** Only for an install with no data, or after a backup. |
 
 The application log is also readable in Admin › Logs.
 
@@ -30,7 +34,7 @@ The application log is also readable in Admin › Logs.
 
 | Command | What it does |
 |---|---|
-| `docker compose exec web php bin/migrate` | Applies pending migrations. Run after every update ([`docs/upgrading.md`](upgrading.md)). Refuses to run if an already-applied migration file changed. |
+| `docker compose exec web php bin/migrate` | Applies pending migrations. In production the `migrate` service already runs it on every `up`; by hand it is for development. Refuses to run if an already-applied migration file changed. |
 | `docker compose exec web php bin/migrate --status` | Read-only: lists pending migrations; exit code 1 if there is any, 0 if none. While one is pending, `/health/ready` answers 503 `MIGRATIONS_PENDING`. |
 | `docker compose exec web php bin/migrate --trust-current-hashes` | Accepts the current content of already-applied migration files (e.g. after a line-ending normalization). Explicit, never automatic. |
 
@@ -75,12 +79,21 @@ Both accept another database: `docker compose exec -e MYSQL_DATABASE=<database> 
 
 ## Development
 
+Development uses **`docker-compose.dev.yml`**: it mounts the repository folder into the containers, so an edit in `src/` or `public/` is live without rebuilding, and `composer install` / `bin/migrate` are run by hand. Select it once by adding to your `.env`:
+
+```bash
+COMPOSE_FILE=docker-compose.dev.yml
+```
+
+Docker Compose reads `COMPOSE_FILE` from `.env`, so every `docker compose …` command below (and `bin/backup-db`/`bin/restore-db`) then uses the development setup — the database volume is the same one either way. Without that line you get the production setup, where your edits don't show up until a rebuild.
+
 | Command | What it does |
 |---|---|
-| `docker compose exec web composer install` | PHP dependencies **including** the test/analysis tools (operators use `--no-dev`). Also `composer update/require/remove`. |
+| `docker compose exec web composer install` | PHP dependencies **including** the test/analysis tools, into the repository's `vendor/`. Also `composer update/require/remove`. |
+| `docker compose exec web php bin/migrate` | Applies pending migrations — by hand in development. |
 | `docker compose exec web vendor/bin/phpunit --testsuite Smoke,Unit` | Unit tests. |
 | `docker compose exec -e MYSQL_DATABASE_TEST=restaurant_test web vendor/bin/phpunit --testsuite Integration` | Integration tests against MySQL. Skip themselves without `MYSQL_DATABASE_TEST`, and fail on purpose if it equals `MYSQL_DATABASE`. One-time setup: `CREATE DATABASE restaurant_test` plus a `GRANT` for `MYSQL_USER`. `MigrationUpgradeTest` also needs `MYSQL_DATABASE_TEST_UPGRADE` (its own database, which it drops and rebuilds). |
-| `docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d web-e2e` | Second app instance on port **8081** pointed at `restaurant_test`, for the browser tests. |
+| `docker compose -f docker-compose.dev.yml -f docker-compose.e2e.yml up -d web-e2e` | Second app instance on port **8081** pointed at `restaurant_test`, for the browser tests. |
 | `cd tests/e2e && npm install && npx playwright install chromium && npx playwright test` | Browser tests (Playwright) against 8081 — never against 8080. |
 | `docker compose exec web vendor/bin/phpstan analyse` | Static analysis (level 5). |
 | `docker compose exec web vendor/bin/php-cs-fixer fix --dry-run --diff` | Code-style check (PSR-12); without `--dry-run --diff` it applies the fixes. |

@@ -33,6 +33,7 @@ class SettingsLogoTest extends TestCase
         }
         $this->base = sys_get_temp_dir() . '/gf-upload-' . bin2hex(random_bytes(4));
         mkdir($this->base . '/public/assets/img', 0777, true);
+        mkdir($this->base . '/public/uploads', 0777, true);
     }
 
     private function upload(string $bytes, string $type): Response
@@ -55,9 +56,38 @@ class SettingsLogoTest extends TestCase
         return $controller->uploadLogo($request, new Response());
     }
 
+    /** Uploads land in public/uploads since spec 066, never over the tracked default. */
     private function logoPath(): string
     {
+        return $this->base . '/public/uploads/logo.png';
+    }
+
+    private function defaultLogoPath(): string
+    {
         return $this->base . '/public/assets/img/logo.png';
+    }
+
+    /** Spec 066 — an upload never touches the default logo, and takes over from it. */
+    public function testUploadGoesToUploadsAndLeavesTheDefaultLogoAlone(): void
+    {
+        file_put_contents($this->defaultLogoPath(), 'default logo');
+        $settings = new Settings($this->base);
+        $this->assertSame($this->defaultLogoPath(), $settings->getLogoPath());
+        $this->assertSame('/assets/img/logo.png', $settings->getLogoUrl());
+
+        ob_start();
+        imagepng(imagecreatetruecolor(8, 8));
+        $response = $this->upload((string) ob_get_clean(), 'image/png');
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('default logo', file_get_contents($this->defaultLogoPath()));
+        $this->assertSame($this->logoPath(), $settings->getLogoPath());
+        $this->assertSame('/uploads/logo.png', $settings->getLogoUrl());
+    }
+
+    public function testNoLogoAtAllHasNoUrl(): void
+    {
+        $this->assertNull((new Settings($this->base))->getLogoUrl());
     }
 
     public function testJpegAndWebpAreStoredAsPng(): void

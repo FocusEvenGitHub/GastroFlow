@@ -48,9 +48,22 @@ COPY src/ ./src/
 COPY common/ ./common/
 COPY bin/ ./bin/
 
-# Ajustar permissões finais
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+# O classmap otimizado só inclui App\ depois que src/ foi copiado (spec 066).
+RUN composer dump-autoload --optimize --no-dev --no-scripts
+
+# Dados que sobrevivem à troca de imagem (spec 066): a logo enviada e o log ficam em
+# volumes montados aqui no compose de produção. Criados com dono www-data para que o
+# volume novo já nasça gravável pelo Apache e pelo print-worker; app.log já existe para
+# que um `docker compose exec` como root nunca o crie com dono root.
+RUN mkdir -p public/uploads logs \
+    && touch logs/app.log \
+    && chown -R www-data:www-data /var/www/html
+
+# Permissões (spec 066): antes `chmod -R 755` marcava todo arquivo como executável.
+# vendor/ fica como o Composer instalou.
+RUN find public src common bin logs -type d -exec chmod 755 {} + \
+    && find public src common logs -type f -exec chmod 644 {} + \
+    && chmod 755 bin/*
 
 # Timezone do servidor: America/Sao_Paulo (UTC-3)
 ENV TZ=America/Sao_Paulo
@@ -60,5 +73,11 @@ RUN ln -sfn /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime \
 # Defesa em profundidade contra o CVE-2026-109619 (spec 059): o GastroFlow não usa
 # sessões PHP (auth é JWT), então o upload progress de sessão só aumenta a superfície.
 RUN echo 'session.upload_progress.enabled=0' > /usr/local/etc/php/conf.d/zz-security.ini
+
+# Versão servida em /version (spec 066): a imagem de produção não tem .git, então a
+# versão de que ela foi construída fica gravada aqui. Por último, para não invalidar o
+# cache das camadas acima a cada versão.
+ARG GASTROFLOW_VERSION=""
+RUN printf '%s' "$GASTROFLOW_VERSION" > VERSION
 
 EXPOSE 80

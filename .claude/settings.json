@@ -2,13 +2,11 @@
   "permissions": {
     "defaultMode": "default",
     "disableBypassPermissionsMode": "disable",
-
     "allow": [
       "Read(./.env.example)",
       "Write(./.env.example)",
       "Edit(./.env.example)"
     ],
-
     "deny": [
       "Read(./.env)",
       "Read(./.env.local)",
@@ -16,13 +14,11 @@
       "Read(./.env.test)",
       "Read(./.env.production)",
       "Read(./secrets/**)",
-
       "Bash(git reset --hard *)",
       "Bash(git clean -fd *)",
       "Bash(git clean -fdx *)",
       "Bash(rm -rf *)"
     ],
-
     "ask": [
       "Bash(git commit *)",
       "Bash(git push *)",
@@ -33,12 +29,10 @@
       "Bash(docker compose down -v *)"
     ]
   },
-
   "sandbox": {
     "enabled": true,
     "allowUnsandboxedCommands": false,
     "autoAllowBashIfSandboxed": false,
-
     "filesystem": {
       "denyRead": [
         "./.env",
@@ -51,9 +45,6 @@
       ]
     }
   },
-
-  "disableClaudeAiConnectors": true,
-
   "hooks": {
     "PreToolUse": [
       {

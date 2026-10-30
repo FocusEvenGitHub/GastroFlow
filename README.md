@@ -94,7 +94,7 @@ Full breakdown, project-structure tree and known limitations: [`docs/architectur
 | `mike42/escpos-php` | ESC/POS thermal receipt printing over the network |
 | MySQL 8.0 | Persistence |
 | Alpine.js + Bootstrap 5 | Frontend reactivity and UI, no build step |
-| Docker Compose | Local dev/runtime environment |
+| Docker Compose | Runtime: `docker-compose.yml` runs the built image (production, spec 066); `docker-compose.dev.yml` mounts the source for development |
 
 ---
 
@@ -162,9 +162,8 @@ cp .env.example .env              # BEFORE any docker compose command
 # Edit .env: replace both "changeme" passwords, set JWT_SECRET to the output of:
 openssl rand -base64 48
 
-docker compose up -d --build
-docker compose exec web composer install --no-dev   # the app's vendor/ lives in this folder — skip it and every page shows "Fatal error"
-docker compose exec web php bin/migrate             # creates the tables
+# Builds the image (code + PHP dependencies inside it), creates the tables, starts everything
+GASTROFLOW_VERSION=$(git describe --tags --always) docker compose up -d --build
 docker compose exec web php bin/create-admin admin  # no default credentials exist
 
 # A fresh install has no menu: create yours in Admin (/admin/).
@@ -218,7 +217,7 @@ Once installed, GastroFlow needs only the restaurant's local network: the backen
 - **Give the server a fixed IP** (a DHCP reservation on the router) and open the screens from the other devices by that IP: `http://<server-ip>:8080/cashier/`, `/kitchen/`, `/admin/`.
 - **Firewall:** if the other devices can't connect, allow inbound TCP 8080 on the server — on Windows (PowerShell as administrator): `New-NetFirewallRule -DisplayName "GastroFlow" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Private`. Open only 8080 and only on the private network; never expose GastroFlow to the internet, and don't open 3306 (MySQL) — it is published on the server's `127.0.0.1` only.
 - **Printer by IP**, not hostname (Admin › Configurações): name resolution may depend on the router or the internet.
-- **What does need internet:** installing and upgrading (`git pull`, `docker compose build`, pulling `mysql:8.0`, `composer install`) and the developer API docs at `/api/docs/`. During an outage, don't run `docker system prune` or `docker compose down --rmi …` — without internet the images can't be rebuilt.
+- **What does need internet:** installing and upgrading (`git fetch`, `docker compose up -d --build` — which pulls the base images and the PHP dependencies) and the developer API docs at `/api/docs/`. During an outage, don't run `docker system prune` or `docker compose down --rmi …` — without internet the images can't be rebuilt.
 - **After a reboot** `db`, `web` and `print-worker` come back on their own (`restart: unless-stopped`).
 - **The connection pill** in the cashier/kitchen nav ("Conectado" / "Reconectando…" / "Conexão perdida") reports the GastroFlow *server*, not the internet: with the internet down and the LAN up it stays "Conectado".
 
@@ -257,7 +256,7 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/menu |
 ## Contributing
 
 1. Fork the repository
-2. Create a branch (this repo uses one branch per spec, named after its number — e.g. `054`; outside contributors can use `feature/feature-name`)
+2. Create a branch (this repo uses one branch per spec, named after its number — e.g. `054`; outside contributors can use `feature/feature-name`). For development, add `COMPOSE_FILE=docker-compose.dev.yml` to your `.env` — see [`docs/commands.md`](docs/commands.md#development)
 3. Commit following [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)
 4. Push and open a Pull Request
 
