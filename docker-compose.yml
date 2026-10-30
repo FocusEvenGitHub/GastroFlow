@@ -19,7 +19,11 @@ x-app: &app
     context: .
     args:
       GASTROFLOW_VERSION: ${GASTROFLOW_VERSION:-}
-  image: gastroflow:${GASTROFLOW_VERSION:-local}
+  # Tag fixa de propósito (spec 066): a versão vai dentro da imagem (arquivo VERSION), não
+  # no nome. Com o nome dependendo de GASTROFLOW_VERSION, um `docker compose up -d` sem a
+  # variável procuraria outra imagem, construiria uma nova com o que estiver na pasta e
+  # trocaria a versão no ar sem o passo de atualização.
+  image: gastroflow:local
   environment:
     DB_HOST: db
     MYSQL_DATABASE: ${MYSQL_DATABASE}
