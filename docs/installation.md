@@ -49,31 +49,28 @@ Open `.env` in a text editor and set:
 
 Everything else is optional and documented in `.env.example` itself.
 
-## 5. Start the containers
+## 5. Build and start
 
 ```bash
-docker compose up -d --build
+GASTROFLOW_VERSION=$(git describe --tags --always) docker compose up -d --build
 ```
 
-Builds the image and starts three services: `db` (MySQL), `web` (the app, port 8080) and `print-worker` (the print queue). The first start of MySQL takes about a minute — it creates the database and loads the initial schema. Until steps 6–7 are done, the app answers with errors; that's expected.
+Builds the GastroFlow image — the code and its PHP dependencies go **inside** it — and starts everything in order: `db` (MySQL), then `migrate`, which creates the database tables and exits, then `web` (the app, port 8080) and `print-worker` (the print queue). The first start takes a couple of minutes: downloading the base images, building, and MySQL's first initialization. The command returns when everything is up.
 
-## 6. Install the PHP dependencies
+`GASTROFLOW_VERSION=…` only labels the build with the release you checked out, which `/version` shows; without it, `/version` says `dev`.
+
+## 6. Check that the database is ready
 
 ```bash
-docker compose exec web composer install --no-dev
+docker compose ps -a
+# db, web, print-worker: "Up"   migrate: "Exited (0)" — it runs once per start, that is expected
+docker compose logs migrate
+# … ends with "✓ Concluído."
 ```
 
-The app's `vendor/` folder lives in the repository folder (it is mounted into the containers), and a fresh clone doesn't have one. Without this step every page — even `/health/ready` — shows `Fatal error: … vendor/autoload.php` (with HTTP status **200**, so check the text, not just the status) and `print-worker` keeps restarting.
+If `migrate` exited with any other code, `web` and `print-worker` were not started — see [Troubleshooting](#troubleshooting).
 
-## 7. Create the database tables
-
-```bash
-docker compose exec web php bin/migrate
-```
-
-If it fails with a connection error, MySQL is still starting — wait a few seconds and run it again.
-
-## 8. Create the administrator
+## 7. Create the administrator
 
 ```bash
 docker compose exec web php bin/create-admin admin
@@ -81,18 +78,20 @@ docker compose exec web php bin/create-admin admin
 
 Replace `admin` with the username you want. It asks for a password (at least 8 characters). There are no default credentials.
 
-## 9. Check the installation
+## 8. Check the installation
 
 ```bash
 curl http://localhost:8080/health/ready
-# {"success":true,"status":"ready"}   ← exactly this; anything else (an HTML "Fatal error") means a step was missed
+# {"success":true,"status":"ready"}
+curl http://localhost:8080/version
+# {"success":true,"version":"vX.Y.Z"}   ← the release from step 2
 docker compose ps
 # db, web and print-worker all "Up" — none "Restarting"
 ```
 
 Then open **`http://localhost:8080/admin/`** on the server — or `http://<server-ip>:8080/admin/` from another device — and log in.
 
-## 10. Configure the restaurant
+## 9. Configure the restaurant
 
 Admin › **Configurações**:
 
@@ -102,7 +101,7 @@ Admin › **Configurações**:
 
 Supported printers, finding the printer's IP, what happens when printing fails, and printer troubleshooting: [`docs/printing.md`](printing.md).
 
-## 11. Create the menu
+## 10. Create the menu
 
 A new installation has no menu — only the categories and the packaging items ("Embalagem Simples/Especial", charged on take-away orders). Create your items in Admin.
 
@@ -112,7 +111,7 @@ To try GastroFlow first with sample data — a fictional menu plus 45 days of or
 docker compose exec web php bin/seed-demo
 ```
 
-## 12. Take the first backup
+## 11. Take the first backup
 
 ```bash
 ./bin/backup-db
@@ -121,23 +120,24 @@ docker compose exec web php bin/seed-demo
 
 Runs on the server itself (Git Bash on Windows), not inside a container. Restoring and scheduling: [`docs/commands.md`](commands.md#backup--restore).
 
-## 13. Daily operation
+## 12. Daily operation
 
 - The cashier is at `/cashier/`, the kitchen at `/kitchen/`, from any device on the restaurant's network: see the README's [Operating over the LAN](../README.md#operating-over-the-lan-no-internet) (fixed IP, firewall rule for port 8080).
 - After a server reboot, the three services come back on their own.
+- The running version is the image built in step 5, not the folder: editing or checking out files in the folder changes nothing until the next `docker compose up -d --build`. Data lives in Docker volumes — the database, the uploaded logo and the application log — and survives rebuilding the image.
 - Updating to a new version: [`docs/upgrading.md`](upgrading.md).
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Pages (even `/health/ready`) show `Fatal error: … vendor/autoload.php` — with HTTP status 200 | Step 6 skipped | Run step 6 |
-| `print-worker` shows `Restarting` in `docker compose ps` | Same: no `vendor/` | Run step 6, then `docker compose restart print-worker` |
+| `docker compose up` ends with `service "migrate" didn't complete successfully` | Creating or updating the tables failed; `web` and `print-worker` were not started | `docker compose logs migrate` shows the error. Fix its cause (rows below), then `docker compose up -d` again |
+| `dependency failed to start: container …-db-1 is unhealthy` | MySQL didn't come up within about 3 minutes (slow first start, or wrong credentials) | `docker compose logs db`; then `docker compose up -d` again |
 | `cp: cannot create regular file '.env'` / `.env` is a folder | `docker compose up` ran before step 3 | `docker compose down`, delete the `.env` folder, redo steps 3–5 |
-| `Table '…' doesn't exist` in the log, or login fails right after install | Step 7 skipped | Run step 7 |
-| `bin/migrate` fails on `001_ingredients.sql` with `1824 Failed to open the referenced table 'menu_items'` | Installed with a GastroFlow older than v1.9 and `MYSQL_DATABASE` other than `restaurant`: the tables went to a separate `restaurant` database | On an install with no data yet: `docker compose down -v`, update, start again from step 5 |
+| `migrate` fails on `001_ingredients.sql` with `1824 Failed to open the referenced table 'menu_items'` | Installed with a GastroFlow older than v1.9 and `MYSQL_DATABASE` other than `restaurant`: the tables went to a separate `restaurant` database | On an install with no data yet: `docker compose down -v`, update, start again from step 5 |
 | `JWT_SECRET` error in the log | Empty `JWT_SECRET` | Step 4, then `docker compose up -d` |
-| `bin/migrate` or the app can't connect after changing `MYSQL_DATABASE`/`MYSQL_USER`/passwords in `.env` | MySQL only reads them on its **first** start; the database volume keeps the old ones | On an install with no data yet: `docker compose down -v` (**deletes the database**) and start again from step 5 |
-| `bin/…: /usr/bin/env: 'php\r': No such file or directory` or `bash\r` | Cloned on Windows with `core.autocrlf=true` | Step 1's setting, then rebuild the files: `git rm --cached -r .` and `git reset --hard` (with no local changes) |
+| `migrate` or the app can't connect after changing `MYSQL_DATABASE`/`MYSQL_USER`/passwords in `.env` | MySQL only reads them on its **first** start; the database volume keeps the old ones | On an install with no data yet: `docker compose down -v` (**deletes the database**) and start again from step 5 |
+| `/version` says `dev` | Built without `GASTROFLOW_VERSION` | Cosmetic. Rebuild as in step 5 to label it |
+| `bin/…: /usr/bin/env: 'php\r': No such file or directory` or `bash\r` | Cloned on Windows with `core.autocrlf=true` | Step 1's setting, then rebuild the files: `git rm --cached -r .` and `git reset --hard` (with no local changes), then step 5 again — the image is built from these files |
 | Another device can't open `http://<server-ip>:8080` | Server firewall | README › Operating over the LAN › Firewall |
 | "Imprimir Teste" fails | Printer IP/port, or a different network | Check the IP from the printer's own config page; ping it from the server — more in [`docs/printing.md`](printing.md#troubleshooting) |

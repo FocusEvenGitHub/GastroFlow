@@ -106,7 +106,7 @@ not as an audit trail) by the same hourly hook `bin/worker` already runs for the
 
 ## Background jobs and printing
 
-`PrintService` builds an ESC/POS receipt (header, items, packaging labels, per-item discount labels since spec 058, total, footer) via `mike42/escpos-php` over `NetworkPrintConnector`. *(Note 2026-10-27, spec 065: the logo had never printed — the image had no GD, and escpos-php 2.2's `GdEscposImage` rejects PHP 8's `GdImage` objects anyway. `PrintService::loadLogo()` now decodes the file by content with GD, scales it to 384 dots and fills the raster itself; `logoProblem()` feeds `logo_printable`/`logo_problem` in `GET /api/admin/settings`, and uploads are re-encoded to PNG. Operator guide: `docs/printing.md`.)* Printing is dispatched asynchronously: `src/Jobs/PrintOrderJob.php` + `src/Services/JobService.php` write to a DB-backed `jobs` table (migrations `common/migrations/007_jobs.sql` and `016_job_reliability.sql`), processed by the long-running `bin/worker` CLI script, which runs as the `print-worker` service in `docker-compose.yml` (added by spec 008). *(Note 2026-10-07, spec 060: `db`, `web` and `print-worker` all use `restart: unless-stopped`; before, only `print-worker` did.)* A print failure propagates out of `PrintService` so the queue can retry it, but never fails the order itself — order creation and printing are decoupled.
+`PrintService` builds an ESC/POS receipt (header, items, packaging labels, per-item discount labels since spec 058, total, footer) via `mike42/escpos-php` over `NetworkPrintConnector`. *(Note 2026-10-27, spec 065: the logo had never printed — the image had no GD, and escpos-php 2.2's `GdEscposImage` rejects PHP 8's `GdImage` objects anyway. `PrintService::loadLogo()` now decodes the file by content with GD, scales it to 384 dots and fills the raster itself; `logoProblem()` feeds `logo_printable`/`logo_problem` in `GET /api/admin/settings`, and uploads are re-encoded to PNG. Operator guide: `docs/printing.md`.)* Printing is dispatched asynchronously: `src/Jobs/PrintOrderJob.php` + `src/Services/JobService.php` write to a DB-backed `jobs` table (migrations `common/migrations/007_jobs.sql` and `016_job_reliability.sql`), processed by the long-running `bin/worker` CLI script, which runs as the `print-worker` service in `docker-compose.yml` (added by spec 008; since spec 066 also in `docker-compose.dev.yml`, and as `www-data` in production — see "Deployment" below). *(Note 2026-10-07, spec 060: `db`, `web` and `print-worker` all use `restart: unless-stopped`; before, only `print-worker` did.)* A print failure propagates out of `PrintService` so the queue can retry it, but never fails the order itself — order creation and printing are decoupled.
 
 **Job state machine** (spec 033). `jobs.status` is the explicit state; every value is reachable by a real code path:
 
@@ -230,9 +230,20 @@ GastroFlow
 ├── docs/                         # This directory
 ├── .claude/skills/               # /spec-plan and /spec-implement skill definitions
 ├── CLAUDE.md, ROADMAP.md, CHANGELOG.md, COMMIT_CONVENTION.md
-├── Dockerfile                    # php:8.2.35-apache (pinned — spec 059)
-└── docker-compose.yml             # db (MySQL 8.0) + web (container: restaurant_web)
+├── Dockerfile                    # php:8.2.35-apache (pinned — spec 059); code + vendor/ baked in, VERSION from a build arg (spec 066)
+├── docker-compose.yml             # PRODUCTION: db + migrate (one-shot) + web (restaurant_web) + print-worker, from the built image (spec 066)
+├── docker-compose.dev.yml         # Development: same services, source bind-mounted (the pre-066 docker-compose.yml)
+└── docker-compose.e2e.yml         # Browser-test instance on 8081, merged with docker-compose.dev.yml (spec 040)
 ```
+
+### Deployment: production vs development (spec 066)
+
+Two compose files share one `Dockerfile` and one database volume name (`<folder>_db_data`):
+
+- **`docker-compose.yml` (production, the default).** `web`, `print-worker` and the one-shot `migrate` run the image as built — code, `vendor/` (no dev packages) and assets inside it. The only mounts are `.env` (read-only) and two named volumes: `uploads` → `public/uploads/` (the uploaded logo) and `logs` → `logs/` (`app.log`, shared by `web` and `print-worker`, both writing as `www-data`). Start order is enforced with health/completion conditions: `db` healthy (`mysqladmin ping` over TCP, so MySQL's first-init temporary server doesn't count) → `migrate` (`bin/migrate`) exits 0 → `web` + `print-worker`. Observed behavior (spec 066's validation): on `up -d --build` Compose stops the old `web`/`print-worker` *before* running `migrate`, so nothing serves during the migration; if it fails, the new containers stay `Created` and `up` exits non-zero. `GET /version` reads the `VERSION` file the build wrote (`GASTROFLOW_VERSION` build arg), since the image has no `.git`.
+- **`docker-compose.dev.yml` (development).** Bind-mounts `public/`, `src/`, `common/`, `bin/`, `tests/`, `vendor/`, the quality-tool configs and `.git` (read-only, for `git describe`), so edits are live; `composer install` and `bin/migrate` are manual. Selected with `COMPOSE_FILE=docker-compose.dev.yml` in `.env`.
+
+The uploaded logo moved out of the tracked `public/assets/img/logo.png` (which uploads used to overwrite) into `public/uploads/logo.png`; `Settings::getLogoPath()` prefers the upload and falls back to the shipped GastroFlow logo.
 
 ## Known architectural limitations
 

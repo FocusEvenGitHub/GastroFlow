@@ -123,9 +123,9 @@ Behind `JwtMiddleware` (`/api/admin/*`):
 
 ### Known commands (confirmed in code/config)
 
-- `docker compose up -d` — starts `db` (MySQL 8.0, port 3306) and `web` (built from `Dockerfile`, `php:8.2-apache`, port `8080:80`, container name **`restaurant_web`**). *(Corrected 2026-10-26, spec 062: it also starts `print-worker` (spec 008); MySQL is published on `127.0.0.1:3306` only, no longer on every interface; the image is `php:8.2.35-apache` since spec 059. Operator command reference: `docs/commands.md`.)*
-- `docker compose exec web composer install|update|require|remove` — Composer inside the running `web` container (bind-mounted `composer.json`/`composer.lock`).
-- `bin/migrate` — runs pending `common/migrations/*.sql` via `MigrationRunner`.
+- `docker compose up -d` — starts `db` (MySQL 8.0, port 3306) and `web` (built from `Dockerfile`, `php:8.2-apache`, port `8080:80`, container name **`restaurant_web`**). *(Corrected 2026-10-26, spec 062: it also starts `print-worker` (spec 008); MySQL is published on `127.0.0.1:3306` only, no longer on every interface; the image is `php:8.2.35-apache` since spec 059. Operator command reference: `docs/commands.md`.)* *(Corrected 2026-10-30, spec 066: `docker-compose.yml` is now the **production** compose — `web`/`print-worker` run the built image with no source bind mounts, a one-shot `migrate` service applies migrations before they start, and `db` has a healthcheck. The compose described above, with the source mounted, is now `docker-compose.dev.yml`, selected with `COMPOSE_FILE` in `.env`.)*
+- `docker compose exec web composer install|update|require|remove` — Composer inside the running `web` container (bind-mounted `composer.json`/`composer.lock`). *(Corrected 2026-10-30, spec 066: true of the development compose only; in production the image's `vendor/` is built in and nothing is bind-mounted.)*
+- `bin/migrate` — runs pending `common/migrations/*.sql` via `MigrationRunner`. *(Note 2026-10-30, spec 066: in production it runs automatically as the `migrate` service on every `docker compose up`.)*
 - `bin/worker [--once] [queue]` — processes the `jobs` table (e.g. print jobs); handles `SIGINT`/`SIGTERM`.
 - `composer start` — `php -S 0.0.0.0:80 -t public` (the only script in `composer.json`).
 - ~~**No test or lint command exists** in `composer.json`~~ — **corrected 2026-09-24**: `composer.json` now defines `analyse`, `style` and `style:fix` (spec 034), and the suites run through `vendor/bin/phpunit` (`tests/Smoke`, `tests/Unit`, `tests/Integration`).
@@ -208,6 +208,7 @@ Not applicable — this is a documentation snapshot, not a unit of implementatio
 - 2026-10-23 (spec 058's doc pass) — Added dated notes to the Order flow and Reports paragraphs for the per-item discount (new `order_items` columns, the kitchen's discount editing, net revenue in reports, the `discounts` report). Noted in passing that the Reports route list had never gained spec 032's `main-dishes`.
 - 2026-10-26 (spec 061's doc pass) — Corrected the Persistence paragraph's seeding sentence (stale since spec 015 and incomplete about migration seeds) with a dated note.
 - 2026-10-26 (spec 062's doc pass) — Dated notes on the `docker compose up -d` command (print-worker, MySQL bound to localhost, PHP image) and on the `composer.lock` gap (it is tracked now).
+- 2026-10-30 (spec 066's doc pass) — Dated notes on the Known commands: `docker-compose.yml` is the production compose now, the old one is `docker-compose.dev.yml`, and `bin/migrate` runs as a service in production.
 
 ## Validation evidence
 
