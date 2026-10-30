@@ -38,6 +38,8 @@ class SettingsController
             'settings'       => $settings,
             'logo_printable' => file_exists($this->settings->getLogoPath()) && $logoProblem === null,
             'logo_problem'   => $logoProblem,
+            // Enviada (/uploads) ou a padrão (/assets/img), spec 066; null sem nenhuma.
+            'logo_url'       => $this->settings->getLogoUrl(),
         ];
         $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json');
@@ -121,13 +123,15 @@ class SettingsController
             return ApiResponse::error($response, 400, 'INVALID_IMAGE', 'Não foi possível ler a imagem. Envie um arquivo PNG, JPG ou WebP válido.');
         }
 
-        $destDir = $this->settings->getPublicAssetsImgDir();
+        // Fora de public/assets/img (spec 066): lá a logo sobrescrevia um arquivo rastreado
+        // pelo git, e em produção public/uploads é um volume que sobrevive à troca de imagem.
+        $destDir = $this->settings->getUploadsDir();
         if (!is_dir($destDir)) {
             mkdir($destDir, 0755, true);
         }
 
         imagesavealpha($image, true);
-        if (!imagepng($image, $destDir . '/logo.png')) {
+        if (!imagepng($image, $this->settings->getUploadedLogoPath())) {
             throw new \RuntimeException('Não foi possível gravar a logo em ' . $destDir);
         }
 

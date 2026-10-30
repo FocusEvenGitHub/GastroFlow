@@ -122,8 +122,42 @@ class Settings
         return $this->getPublicDir() . '/assets/img';
     }
 
-    public function getLogoPath(): string
+    /**
+     * Where uploads land (spec 066): outside the code tree's tracked files, so the
+     * production compose can mount it as a volume that survives an image swap.
+     */
+    public function getUploadsDir(): string
+    {
+        return $this->getPublicDir() . '/uploads';
+    }
+
+    public function getUploadedLogoPath(): string
+    {
+        return $this->getUploadsDir() . '/logo.png';
+    }
+
+    /**
+     * The GastroFlow logo shipped with the code (tracked in git). Before spec 066 uploads
+     * overwrote this very file, so on an install that set its own logo it still holds it.
+     */
+    public function getDefaultLogoPath(): string
     {
         return $this->getPublicAssetsImgDir() . '/logo.png';
+    }
+
+    /** The logo in use: the uploaded one, else the default (spec 066). */
+    public function getLogoPath(): string
+    {
+        $uploaded = $this->getUploadedLogoPath();
+        return file_exists($uploaded) ? $uploaded : $this->getDefaultLogoPath();
+    }
+
+    /** Public URL of getLogoPath(), or null when there is no logo file at all. */
+    public function getLogoUrl(): ?string
+    {
+        if (file_exists($this->getUploadedLogoPath())) {
+            return '/uploads/logo.png';
+        }
+        return file_exists($this->getDefaultLogoPath()) ? '/assets/img/logo.png' : null;
     }
 }
