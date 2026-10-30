@@ -1,3 +1,36 @@
+# Compose de PRODUÇÃO — o que um restaurante roda (spec 066).
+#
+# O código, o vendor/ e os assets estão DENTRO da imagem. Um `git checkout` na pasta não
+# muda nada do que está no ar; só `docker compose up -d --build` troca a versão. Montado
+# de fora só o que é dado ou configuração: o .env (somente leitura), o banco, a logo
+# enviada e o log.
+#
+# Ordem ao subir: db saudável → migrate (bin/migrate com o código NOVO) → web e
+# print-worker. Se uma migração falhar, web e print-worker novos não sobem — o código novo
+# nunca atende antes do banco estar pronto para ele.
+#
+# A versão mostrada em /version vem do build:
+#   GASTROFLOW_VERSION=$(git describe --tags --always) docker compose up -d --build
+#
+# Desenvolvimento usa docker-compose.dev.yml (código montado da pasta).
+
+x-app: &app
+  build:
+    context: .
+    args:
+      GASTROFLOW_VERSION: ${GASTROFLOW_VERSION:-}
+  image: gastroflow:${GASTROFLOW_VERSION:-local}
+  environment:
+    DB_HOST: db
+    MYSQL_DATABASE: ${MYSQL_DATABASE}
+    MYSQL_USER: ${MYSQL_USER}
+    MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    TZ: America/Sao_Paulo
+  volumes:
+    - ./.env:/var/www/html/.env:ro
+    - uploads:/var/www/html/public/uploads
+    - logs:/var/www/html/logs
+
 services:
   db:
     image: mysql:8.0
@@ -9,78 +42,57 @@ services:
       TZ: America/Sao_Paulo
     volumes:
       - db_data:/var/lib/mysql
-      - ./common/sql/001_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-    # Só no próprio servidor (spec 062): o app fala com o `db` pela rede do Docker, e ferramentas
-    # no servidor seguem usando localhost:3306. Antes, qualquer aparelho da rede alcançava o MySQL.
+      - ./common/sql/001_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    # Só no próprio servidor (spec 062): o app fala com o `db` pela rede do Docker.
     ports:
       - "127.0.0.1:3306:3306"
-    # Volta sozinho depois de um reboot do servidor, como o print-worker (spec 060).
     restart: unless-stopped
+    # Por TCP de propósito: na primeira inicialização o MySQL roda um servidor temporário
+    # sem rede enquanto carrega o schema, e o migrate não pode começar antes do fim disso.
+    # A senha vai por MYSQL_PWD, fora da linha de comando.
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  migrate:
+    <<: *app
+    command: php bin/migrate
+    user: www-data
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
 
   web:
-    build: .
-    image: gastroflow-web
+    <<: *app
     container_name: restaurant_web
-    volumes:
-      - ./public:/var/www/html/public
-      - ./src:/var/www/html/src
-      - ./common:/var/www/html/common
-      - ./bin:/var/www/html/bin
-      - ./tests:/var/www/html/tests
-      - ./composer.json:/var/www/html/composer.json
-      - ./composer.lock:/var/www/html/composer.lock
-      - ./phpunit.xml:/var/www/html/phpunit.xml
-      # Quality tooling configs (spec 034) — the root itself isn't mounted, only
-      # named paths, so these have to be listed explicitly to be visible in the container.
-      - ./phpstan.neon:/var/www/html/phpstan.neon
-      - ./phpstan-baseline.neon:/var/www/html/phpstan-baseline.neon
-      - ./.php-cs-fixer.dist.php:/var/www/html/.php-cs-fixer.dist.php
-      # Read-only: lets VersionController run `git describe` to show which
-      # tag/branch is currently checked out. Never served over HTTP — outside
-      # public/, and `git` itself is already installed in the image (for Composer).
-      - ./.git:/var/www/html/.git:ro
-      - ./.env:/var/www/html/.env
-      - ./vendor:/var/www/html/vendor
-      - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "8080:80"
     restart: unless-stopped
-    environment:
-      DB_HOST: db
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      TZ: America/Sao_Paulo
 
   print-worker:
-    build: .
-    image: gastroflow-web
+    <<: *app
     container_name: restaurant_print_worker
     command: php bin/worker print
-    volumes:
-      - ./public:/var/www/html/public
-      - ./src:/var/www/html/src
-      - ./common:/var/www/html/common
-      - ./bin:/var/www/html/bin
-      - ./tests:/var/www/html/tests
-      - ./composer.json:/var/www/html/composer.json
-      - ./composer.lock:/var/www/html/composer.lock
-      - ./phpunit.xml:/var/www/html/phpunit.xml
-      - ./.env:/var/www/html/.env
-      - ./vendor:/var/www/html/vendor
-      - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
+    # Mesmo usuário do Apache: o log é compartilhado com o web.
+    user: www-data
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
-    environment:
-      DB_HOST: db
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      TZ: America/Sao_Paulo
-    # No host ports exposed — the worker only consumes the print queue.
+    # Sem porta publicada — o worker só consome a fila de impressão.
 
 volumes:
   db_data:
+  uploads:
+  logs:

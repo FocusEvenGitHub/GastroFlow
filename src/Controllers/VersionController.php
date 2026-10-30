@@ -4,18 +4,25 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Settings;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class VersionController
 {
+    public function __construct(
+        private readonly Settings $settings,
+    ) {
+    }
+
     /**
      * GET /version
      *
-     * Best-effort only: reads `git describe` against the repo's own `.git`
-     * (bind-mounted read-only in docker-compose.yml). Falls back to "dev"
-     * whenever that mount, or the `git` binary, isn't available — never fails
-     * the request over a purely cosmetic version badge.
+     * Best-effort only: the production image has no `.git`, so it carries the version it
+     * was built from in a `VERSION` file (build arg, spec 066), read first. Otherwise
+     * `git describe` against the repo's own `.git` (bind-mounted read-only in the
+     * development compose). Falls back to "dev" whenever neither is available — never
+     * fails the request over a purely cosmetic version badge.
      */
     public function current(Request $request, Response $response): Response
     {
@@ -27,7 +34,15 @@ class VersionController
 
     private function describe(): string
     {
-        $gitDir = dirname(__DIR__, 2) . '/.git';
+        $versionFile = $this->settings->getBasePath() . '/VERSION';
+        if (is_file($versionFile)) {
+            $version = trim((string) @file_get_contents($versionFile));
+            if ($version !== '') {
+                return $version;
+            }
+        }
+
+        $gitDir = $this->settings->getBasePath() . '/.git';
         if (!is_dir($gitDir) || !function_exists('shell_exec')) {
             return 'dev';
         }

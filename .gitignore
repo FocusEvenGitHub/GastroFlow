@@ -30,6 +30,8 @@ node_modules/
 # ============================================
 .idea/
 .vscode/
+# Configuração pessoal do Claude Code (a do projeto, .claude/settings.json, é versionada)
+.claude/settings.local.json
 *.sublime-project
 *.sublime-workspace
 *.swp

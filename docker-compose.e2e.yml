@@ -11,9 +11,9 @@
 # para o banco de teste. Medido antes de escrever isto, não suposto.
 #
 # Uso:
-#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d web-e2e
+#   docker compose -f docker-compose.dev.yml -f docker-compose.e2e.yml up -d web-e2e
 #
-# Deliberadamente fora do docker-compose.yml principal: `docker compose up -d` continua subindo
+# Deliberadamente fora do docker-compose.dev.yml: `docker compose up -d` continua subindo
 # exatamente os três serviços de sempre.
 
 services:

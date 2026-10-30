@@ -1,0 +1,96 @@
+# Compose de DESENVOLVIMENTO (spec 066).
+#
+# O código é montado da pasta do repositório para dentro dos containers: uma mudança em
+# src/ ou public/ vale na hora, sem rebuild — e `composer install` / `bin/migrate` são
+# rodados à mão. Não é para restaurante: lá vale o docker-compose.yml (produção), em que
+# o código está dentro da imagem.
+#
+# Para usar este arquivo sem `-f` em todo comando, ponha no seu .env:
+#   COMPOSE_FILE=docker-compose.dev.yml
+#
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: America/Sao_Paulo
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./common/sql/001_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    # Só no próprio servidor (spec 062): o app fala com o `db` pela rede do Docker, e ferramentas
+    # no servidor seguem usando localhost:3306. Antes, qualquer aparelho da rede alcançava o MySQL.
+    ports:
+      - "127.0.0.1:3306:3306"
+    # Volta sozinho depois de um reboot do servidor, como o print-worker (spec 060).
+    restart: unless-stopped
+
+  web:
+    build: .
+    image: gastroflow-web
+    container_name: restaurant_web
+    volumes:
+      - ./public:/var/www/html/public
+      - ./src:/var/www/html/src
+      - ./common:/var/www/html/common
+      - ./bin:/var/www/html/bin
+      - ./tests:/var/www/html/tests
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+      - ./phpunit.xml:/var/www/html/phpunit.xml
+      # Quality tooling configs (spec 034) — the root itself isn't mounted, only
+      # named paths, so these have to be listed explicitly to be visible in the container.
+      - ./phpstan.neon:/var/www/html/phpstan.neon
+      - ./phpstan-baseline.neon:/var/www/html/phpstan-baseline.neon
+      - ./.php-cs-fixer.dist.php:/var/www/html/.php-cs-fixer.dist.php
+      # Read-only: lets VersionController run `git describe` to show which
+      # tag/branch is currently checked out. Never served over HTTP — outside
+      # public/, and `git` itself is already installed in the image (for Composer).
+      - ./.git:/var/www/html/.git:ro
+      - ./.env:/var/www/html/.env
+      - ./vendor:/var/www/html/vendor
+      - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
+    depends_on:
+      - db
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: America/Sao_Paulo
+
+  print-worker:
+    build: .
+    image: gastroflow-web
+    container_name: restaurant_print_worker
+    command: php bin/worker print
+    volumes:
+      - ./public:/var/www/html/public
+      - ./src:/var/www/html/src
+      - ./common:/var/www/html/common
+      - ./bin:/var/www/html/bin
+      - ./tests:/var/www/html/tests
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+      - ./phpunit.xml:/var/www/html/phpunit.xml
+      - ./.env:/var/www/html/.env
+      - ./vendor:/var/www/html/vendor
+      - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
+    depends_on:
+      - db
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: America/Sao_Paulo
+    # No host ports exposed — the worker only consumes the print queue.
+
+volumes:
+  db_data:

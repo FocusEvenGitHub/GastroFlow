@@ -70,7 +70,7 @@ function setPrinterState(sql: 'blocked' | 'clear', orderId?: number): void {
   execFileSync(
     'docker',
     [
-      'compose', '-f', 'docker-compose.yml', '-f', 'docker-compose.e2e.yml',
+      'compose', '-f', 'docker-compose.dev.yml', '-f', 'docker-compose.e2e.yml',
       'exec', '-T', 'web-e2e', 'php', '-r',
       script.replace(/getcwd\(\)/, '"/var/www/html"').replace(/"vendor\//, '"/var/www/html/vendor/'),
     ],
