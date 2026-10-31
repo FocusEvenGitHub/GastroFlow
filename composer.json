@@ -2,7 +2,7 @@
   "name": "focuseven/gastroflow",
   "description": "Restaurant order management system",
   "type": "project",
-  "license": "proprietary",
+  "license": "Apache-2.0",
   "require": {
     "php": ">=8.1",
     "ext-gd": "*",

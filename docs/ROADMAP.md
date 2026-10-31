@@ -1396,6 +1396,8 @@ Before the official Community release:
 
 The license must be an intentional project decision.
 
+**Status (2026-10-31): license done — spec 068.** The owner chose the **Apache License 2.0**: `LICENSE` (the ASF text, unmodified), `NOTICE` (Copyright 2025-2026 FocusEven (Henry Sampaio)), `composer.json` `"license": "Apache-2.0"` (was `"proprietary"`), README › License, and each library in `public/vendor/` with its own license file from the pinned version. Every surviving line in `git blame` is the owner's, so no one else's consent was needed. `CONTRIBUTING.md`, `SECURITY.md` and the support expectations remain — closing order item 5.
+
 ---
 
 ## Community support policy

@@ -32,8 +32,12 @@
 *.woff binary
 *.ttf binary
 public/vendor/**/LICENSE text eol=lf
+public/vendor/**/LICENSE.txt text eol=lf
 
 .gitattributes text eol=lf
+# Spec 068: licença do projeto, sem extensão.
+LICENSE text eol=lf
+NOTICE text eol=lf
 .gitignore text eol=lf
 .dockerignore text eol=lf
 .env.example text eol=lf
