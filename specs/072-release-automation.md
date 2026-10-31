@@ -189,7 +189,7 @@ This changes CI/CD, not the application; PHPUnit/Playwright don't cover it (they
 - [x] `release.yml` (tag chain + PR dry-run)
 - [x] Docs pass
 - [x] Spec 071 carried evidence
-- [ ] PR: dry-run + CI green
+- [x] PR: dry-run + CI green
 - [ ] Post-merge: first real tag (AC8), package public
 
 ## Implementation log
@@ -217,9 +217,9 @@ This is CI/CD, not application behavior: PHPUnit/Playwright don't exercise it (t
 - `not-a-tag`, `v1.8` → `error: '…' is not a release tag (vX.Y.Z or vX.Y.Z-suffix)`.
 Release-PR simulation: a copy of `CHANGELOG.md` with the heading renamed to `## v1.9.0 (2026-11-15) — Community Productization` → `--title` `v1.9.0 — Community Productization`; body exit 0 with all five subsections (Segurança, Novidades, Correções, Documentação, Infraestrutura / Qualidade) through this spec's entry, stopping before `## v1.8.3`.
 
-**AC3** — *pending (PR).* Locally, the dry-run's steps: notes for the newest dated section (`v1.8.3`) printed, the in-progress `v1.9.0` "refused, as expected"; `docker build -q --platform linux/amd64 --build-arg GASTROFLOW_VERSION=v0.0.0-dry-run --label org.opencontainers.image.source=… -t gastroflow:dry-run .` → built; `docker run --rm gastroflow:dry-run cat /var/www/html/VERSION` → `v0.0.0-dry-run`; `docker image inspect` → label `org.opencontainers.image.source: https://github.com/FocusEvenGitHub/GastroFlow`, `amd64`; the image has `vendor/` and no `.env`.
+**AC3** — *met on PR #59:* `Release` run `41229109777`, job `dry-run` **pass** (1m32s) with `GITHUB_TOKEN Permissions: Contents: read, Metadata: read`; its log: `Newest released version in CHANGELOG.md: v1.8.3`, `v1.8.3 — Limite de tentativas de login`, then the notes; `--- the in-progress section must be refused:` → `refused, as expected`; `v1.9.0 → 1.9.0 1.9 1`, `v1.8.4 → 1.8.4 1.8 1` (right for today's tags — `v1.9.0` doesn't exist yet, so `v1.8.4` would be the highest `v1.*`), `v2.0.0-rc.1 → 2.0.0-rc.1`; `VERSION in the image: v0.0.0-dry-run`. The tag-only jobs (`test`, `notes`, `image`, `release`) were **skipped**, as designed — nothing was published. Before that, locally: the dry-run's steps: notes for the newest dated section (`v1.8.3`) printed, the in-progress `v1.9.0` "refused, as expected"; `docker build -q --platform linux/amd64 --build-arg GASTROFLOW_VERSION=v0.0.0-dry-run --label org.opencontainers.image.source=… -t gastroflow:dry-run .` → built; `docker run --rm gastroflow:dry-run cat /var/www/html/VERSION` → `v0.0.0-dry-run`; `docker image inspect` → label `org.opencontainers.image.source: https://github.com/FocusEvenGitHub/GastroFlow`, `amd64`; the image has `vendor/` and no `.env`.
 
-**AC4** — *pending (PR).* `ci.yml` triggers after the change (parsed with PyYAML): `push`, `pull_request`, `workflow_call` — the first two untouched.
+**AC4** — *met on PR #59:* `CI` run `41229109729`, job `test` **pass** (1m42s); GitGuardian pass. Before that: `ci.yml` triggers after the change (parsed with PyYAML): `push`, `pull_request`, `workflow_call` — the first two untouched.
 
 **AC5** — `image-tags.sh` table:
 
