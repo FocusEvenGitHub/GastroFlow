@@ -51,6 +51,8 @@ git fetch --tags
 git checkout vX.Y.Z        # the newest release on the GitHub Releases page
 ```
 
+Each release from `v1.9.0` on also has a prebuilt image, `ghcr.io/focusevengithub/gastroflow:<version>`; this guide keeps building from the checked-out code in step 5 (pulling the image works once the maintainer has made the package public, right after the first release). *(Added 2026-10-31, spec 072.)*
+
 Only move **forward** — never check out a version older than the one running (database changes cannot be undone; going back is the [Rollback](#rollback)).
 
 If `git checkout` refuses because of local changes, someone edited a tracked file on the server — that is not part of a normal install. Show `git status` to whoever maintains the install before going on. (Before v1.9, uploading a logo in Admin modified `public/assets/img/logo.png` — see [First upgrade to v1.9](#first-upgrade-to-v19).)
