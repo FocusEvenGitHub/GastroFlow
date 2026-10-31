@@ -192,7 +192,7 @@ The 7 pre-existing tests (1–3, 7–9, 11) pass unchanged (AC4). Against the ol
 - Full Playwright suite in the same image → `33 passed`, `5 failed` — all 5 in `printer-block.spec.ts`, all `Error: spawnSync docker ENOENT` at `setPrinterState` (`printer-block.spec.ts:70`): the test shells out to `docker compose`, absent in the image. Environment; to be covered by CI.
 - `docker compose exec -T -e MYSQL_DATABASE_TEST=restaurant_test web vendor/bin/phpunit --no-progress` → `OK, but some tests were skipped! Tests: 322, Assertions: 826, Skipped: 2.` (backend unchanged; same counts as spec 066).
 - `php -l` on the three PHP views → no syntax errors. PHPStan/CS-Fixer not run locally (no PHP file under `src/`, `bin/`, `tests/` changed; CI runs them).
-- CI on the PR: pending.
+- CI on PR #56: `test` pass (1m55s, run `41217555499`) — `composer validate`/`audit`, PHPStan, CS-Fixer, PHPUnit and the Playwright suite (built-in PHP server, `E2E_PHP_DIRECT=1`; `printer-block.spec.ts` included, SSE-real tests skipped there as designed) — and GitGuardian pass. With the local run above, every Playwright test has passed in at least one of the two environments.
 
 **AC6** — pending: the pilot must update first (Rollout).
 
