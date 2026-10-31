@@ -201,4 +201,4 @@ Ambiente: `web-e2e` (porta 8081, banco `restaurant_test`) subido com `docker com
 - HTML servido por `web-e2e` (`curl` de dentro do container) em `/cashier/`, `/kitchen/`, `/admin/index.php` → `style.css?v=1793463762` e `version-badge.js?v=1793230688` nas três.
 - Playwright `offline-assets` + `build-dish-search` + `connection-status` → `26 passed`.
 
-Pendente: CI no PR.
+**CI do PR #57** *(registrado em 2026-10-31 no PR da spec 071, porque o #57 já tinha sido mergeado)*: run `41221200025` — `test` (composer validate/audit, PHPStan, CS-Fixer, PHPUnit Unit + Integration em MySQL, Playwright, incluindo o `printer-block.spec.ts` que não roda localmente) e GitGuardian, ambos `SUCCESS`. Merge `a72e092` em 2026-10-31. Isso cobre também a suíte PHPUnit completa com banco sobre o código final (ressalva do AC8 no `/spec-review`).
