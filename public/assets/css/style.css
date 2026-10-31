@@ -453,7 +453,14 @@ a:hover { color: var(--primary-dark); }
   border-color: var(--border);
   color: var(--text);
 }
-[data-theme="dark"] .ts-dropdown .active { background: rgba(225,112,85,0.2); }
+[data-theme="dark"] .ts-dropdown .active { background: rgba(225,112,85,0.2); color: var(--text); }
+/* Spec 070: o tema bootstrap5 do Tom Select deixava o campo com foco e o cabeçalho de grupo brancos */
+[data-theme="dark"] .ts-wrapper.single.input-active .ts-control,
+[data-theme="dark"] .ts-wrapper.focus .ts-control { background: #0d1117; }
+[data-theme="dark"] .ts-control input { color: var(--text); }
+[data-theme="dark"] .ts-control input::placeholder { color: var(--text-muted); }
+[data-theme="dark"] .ts-dropdown .optgroup-header { background: var(--surface); color: var(--text-muted); }
+[data-theme="dark"] .ts-dropdown .highlight { background: rgba(225,112,85,0.35); color: inherit; }
 
 /* Responsive nav */
 @media (max-width: 576px) {
