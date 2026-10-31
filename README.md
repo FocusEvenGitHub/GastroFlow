@@ -52,6 +52,11 @@ This README is the entry point. Depth lives alongside it, by topic:
 | [`docs/installation.md`](docs/installation.md) | Installing GastroFlow on the restaurant's server, step by step, with troubleshooting |
 | [`docs/printing.md`](docs/printing.md) | Thermal printer: what's supported, network setup, test print, failures and troubleshooting |
 | [`docs/upgrading.md`](docs/upgrading.md) | Updating to a newer version without losing data, and rolling back |
+| [`docs/configuration.md`](docs/configuration.md) | Every `.env` variable and every Admin setting: default, effect, when it applies |
+| [`docs/security.md`](docs/security.md) | Deployment model, what needs a login, roles, sessions, secrets, known limitations |
+| [`docs/backup-and-restore.md`](docs/backup-and-restore.md) | A complete backup (database, logo, `.env`), scheduling, restoring on the same or a new server |
+| [`docs/troubleshooting.md`](docs/troubleshooting.md) | First checks and symptom tables, linking each guide's own troubleshooting |
+| `/api/docs/` on a running server · [`openapi.yaml`](public/api/docs/openapi.yaml) | API reference (OpenAPI) |
 | [`docs/commands.md`](docs/commands.md) | Every command, by task: services, health, migrations, backup & restore, print queue, sample data, development |
 | [`CLAUDE.md`](CLAUDE.md) | Rules for AI-assisted development |
 | [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md) | Commit types, scopes and emoji; release and changelog workflow |
@@ -184,7 +189,7 @@ Every operational command (services, backups, print queue, sample data, tests): 
 ./bin/restore-db gastroflow-restaurant-20260901-030000.sql.gz    # a specific one
 ```
 
-Both run on the **host** and use the `db` container's own `mysqldump`/`mysql` — nothing to install. `bin/restore-db` drops and recreates every table, so it asks you to type `RESTAURAR` (or pass `--yes`). Backups land in `backups/` (gitignored).
+Both run on the **host** and use the `db` container's own `mysqldump`/`mysql` — nothing to install. `bin/restore-db` drops and recreates every table, so it asks you to type `RESTAURAR` (or pass `--yes`). Backups land in `backups/` (gitignored). `bin/backup-db` saves the database only — the uploaded logo and `.env`, scheduling and restoring on a new server: [`docs/backup-and-restore.md`](docs/backup-and-restore.md).
 
 ### Line endings (Windows)
 

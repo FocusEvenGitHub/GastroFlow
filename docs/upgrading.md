@@ -42,7 +42,7 @@ If a database change fails, the new `web` and `print-worker` are **not** started
 # ✔ Backup criado: backups/gastroflow-<database>-<timestamp>.sql.gz
 ```
 
-Copy that file somewhere off the server (another disk, a pen drive, the cloud). It is the **only** way back: database changes cannot be undone.
+Copy that file somewhere off the server (another disk, a pen drive, the cloud). It is the **only** way back: database changes cannot be undone. (The uploaded logo, in its own volume, is not touched by an upgrade; a complete backup is described in [`backup-and-restore.md`](backup-and-restore.md).)
 
 ## 3. Update the code
 
