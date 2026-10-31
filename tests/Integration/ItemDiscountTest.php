@@ -17,6 +17,8 @@ class ItemDiscountTest extends IntegrationTestCase
     private int $prato;
     private int $coca;
     private ?string $previousMax = null;
+    /** False when parent::setUp() skipped the test: tearDown() must not touch the database then. */
+    private bool $settingsSaved = false;
 
     protected function setUp(): void
     {
@@ -25,13 +27,17 @@ class ItemDiscountTest extends IntegrationTestCase
         $this->prato = $this->menuItem('Pratos Principais', 'Prato Desconto (teste)', 20.0);
         $this->coca = $this->menuItem('Bebidas', 'Bebida Desconto (teste)', 5.0);
         $this->previousMax = Setting::getValue('discount_max_percent');
+        $this->settingsSaved = true;
         Setting::setValue('discount_max_percent', '100');
     }
 
     protected function tearDown(): void
     {
         // settings is reference data, not cleared between tests — restore it.
-        Setting::setValue('discount_max_percent', $this->previousMax ?? '100');
+        // PHPUnit runs tearDown() even after a skip in setUp() (no MYSQL_DATABASE_TEST).
+        if ($this->settingsSaved) {
+            Setting::setValue('discount_max_percent', $this->previousMax ?? '100');
+        }
         parent::tearDown();
     }
 
