@@ -11,7 +11,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <link href="/vendor/bootstrap-5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/vendor/fontawesome-free-6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/style.css?v=<?= filemtime(dirname(__DIR__) . '/assets/css/style.css') ?>">
     <style>
         body { background: var(--bg); font-size: 1.2rem; }
         /* ── Cards de pedido ── */
@@ -565,6 +565,6 @@
 <script src="/vendor/bootstrap-5.3.0/js/bootstrap.bundle.min.js"></script>
 <script src="/assets/js/gf.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/gf.js') ?>"></script>
 <script src="app.js?v=<?= filemtime(__DIR__ . '/app.js') ?>"></script>
-<script src="/assets/js/version-badge.js"></script>
+<script src="/assets/js/version-badge.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/version-badge.js') ?>"></script>
 </body>
 </html>

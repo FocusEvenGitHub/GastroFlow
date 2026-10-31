@@ -13,7 +13,9 @@
     <link href="/vendor/bootstrap-5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="/vendor/fontawesome-free-6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <!-- Tom Select: busca de adicionais no Monte Seu Prato (spec 070) -->
+    <link href="/vendor/tom-select-2.6.2/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/style.css?v=<?= filemtime(dirname(__DIR__) . '/assets/css/style.css') ?>">
     <style>
         .menu-item-card { cursor: pointer; transition: all 0.2s; }
         .menu-item-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
@@ -401,6 +403,10 @@
                 </div>
                 <div class="modal-body">
                     <div x-show="addonGroups.length === 0" class="text-muted text-center py-4">Nenhum adicional disponível.</div>
+                    <!-- Busca de adicionais (spec 070): o Tom Select é criado em initAddonSearch() a cada abertura -->
+                    <div class="mb-3" x-show="addonGroups.length > 0">
+                        <select id="addon-search" data-testid="addon-search"></select>
+                    </div>
                     <template x-for="group in addonGroups" :key="group.key">
                         <div class="mb-3">
                             <div class="builder-group-title" x-text="group.label"></div>
@@ -590,9 +596,11 @@
 <script defer src="/vendor/alpinejs-3.17.4/cdn.min.js"></script>
 <!-- Bootstrap JS -->
 <script src="/vendor/bootstrap-5.3.0/js/bootstrap.bundle.min.js"></script>
+<!-- Tom Select -->
+<script src="/vendor/tom-select-2.6.2/js/tom-select.complete.min.js"></script>
 <!-- Nosso componente Alpine -->
 <script src="/assets/js/gf.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/gf.js') ?>"></script>
 <script src="app.js?v=<?= filemtime(__DIR__ . '/app.js') ?>"></script>
-<script src="/assets/js/version-badge.js"></script>
+<script src="/assets/js/version-badge.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/version-badge.js') ?>"></script>
 </body>
 </html>

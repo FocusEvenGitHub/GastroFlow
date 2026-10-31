@@ -32,7 +32,7 @@ $asset = static function (string $src): string {
     <link rel="manifest" href="/site.webmanifest">
     <link href="/vendor/bootstrap-5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/vendor/fontawesome-free-6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars($asset('/assets/css/style.css'), ENT_QUOTES) ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars($asset('/assets/css/admin.css'), ENT_QUOTES) ?>">
     <?= $extraHead ?? '' ?>
     <script>
@@ -48,5 +48,5 @@ $asset = static function (string $src): string {
 <?php foreach ($pageScripts as $src) : ?>
     <script defer src="<?= htmlspecialchars($asset($src), ENT_QUOTES) ?>"></script>
 <?php endforeach; ?>
-    <script defer src="/assets/js/version-badge.js"></script>
+    <script defer src="<?= htmlspecialchars($asset('/assets/js/version-badge.js'), ENT_QUOTES) ?>"></script>
     <script defer src="/vendor/alpinejs-3.17.4/cdn.min.js"></script>

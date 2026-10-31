@@ -1,4 +1,8 @@
 function cashierApp() {
+    // Instância do Tom Select da busca de adicionais (spec 070). Fica fora do objeto do
+    // Alpine de propósito: no estado reativo ela seria embrulhada num Proxy.
+    let addonSearch = null;
+
     return {
         ...GF.ui(), // toasts, showMessage, tema (spec 056)
         orderNumber: '',
@@ -214,6 +218,46 @@ function cashierApp() {
                 quantities,
                 editIndex
             };
+            this.$nextTick(() => this.initAddonSearch());
+        },
+
+        // Busca de adicionais (spec 070): escolher soma +1, como o "+" da grade, e o campo
+        // volta vazio para a próxima busca. Recriada a cada abertura com o cardápio do momento.
+        initAddonSearch() {
+            this.destroyAddonSearch();
+            const el = document.getElementById('addon-search');
+            if (!el || this.addonGroups.length === 0) return;
+
+            addonSearch = new TomSelect(el, {
+                placeholder: 'Buscar adicional…',
+                maxItems: 1,
+                valueField: 'id',
+                labelField: 'name',
+                searchField: ['name'],
+                optgroupField: 'group',
+                optgroups: this.addonGroups.map(g => ({ value: g.key, label: g.label })),
+                options: this.addonGroups.flatMap(g => g.items.map(a => ({
+                    id: String(a.id), name: a.name, price: parseFloat(a.price), group: g.key
+                }))),
+                render: {
+                    option: (data, escape) => `<div class="d-flex justify-content-between gap-2">
+                        <span>${escape(data.name)}</span>
+                        <small class="text-success">+ R$ ${data.price.toFixed(2)}</small></div>`,
+                    no_results: () => '<div class="no-results">Nenhum adicional encontrado.</div>'
+                },
+                onItemAdd: (value) => {
+                    this.stepAddon(Number(value), 1);
+                    addonSearch.clear(true);
+                    addonSearch.setTextboxValue('');
+                }
+            });
+        },
+
+        destroyAddonSearch() {
+            if (addonSearch) {
+                addonSearch.destroy();
+                addonSearch = null;
+            }
         },
 
         editBuiltItem(index) {
@@ -222,6 +266,7 @@ function cashierApp() {
         },
 
         closeBuilder() {
+            this.destroyAddonSearch();
             this.builder = { open: false, dish: null, quantities: {}, editIndex: null };
             this.searchQuery = '';
         },
