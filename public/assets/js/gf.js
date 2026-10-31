@@ -141,12 +141,15 @@ const GF = {
                 this.applyTheme();
             },
 
-            // Conexão (spec 057): 'connected' | 'reconnecting' | 'lost'. Saudável =
+            // Conexão (spec 057): 'connected' | 'reconnecting' | 'lost' | 'outdated'. Saudável =
             // último heartbeat em /health/ready ok E stream da tela (se houver) aberto.
             // /health/ready, e não /live: banco fora do ar também deixa a tela inútil.
+            // 'outdated' (spec 069): o servidor respondeu, mas com migração pendente — não é
+            // falta de conexão, e dizer "sem conexão" mandava procurar defeito na rede.
             connection: 'connected',
             connectionDownSince: null,
             beatOk: true,
+            beatOutdated: false,
             streamUp: true,
             beating: false,
             onConnectionRestore: null,
@@ -165,17 +168,25 @@ const GF = {
                 if (this.beating) return;
                 this.beating = true;
                 let ok = false;
+                let outdated = false;
                 try {
                     const res = await fetch('/health/ready', {
                         cache: 'no-store',
                         signal: AbortSignal.timeout(GF.HEARTBEAT_TIMEOUT_MS)
                     });
                     ok = res.ok;
+                    // Só o código exato conta: página de erro de proxy, DB_UNAVAILABLE ou
+                    // corpo ilegível continuam sendo queda.
+                    if (!ok) {
+                        const body = await res.json().catch(() => null);
+                        outdated = body?.code === 'MIGRATIONS_PENDING';
+                    }
                 } catch (_) {
                 } finally {
                     this.beating = false;
                 }
                 this.beatOk = ok;
+                this.beatOutdated = outdated;
                 this.updateConnection();
             },
 
@@ -185,12 +196,15 @@ const GF = {
             },
 
             updateConnection() {
-                if (this.beatOk && this.streamUp) {
-                    if (this.connection !== 'connected') {
-                        this.connection = 'connected';
-                        this.connectionDownSince = null;
-                        if (this.onConnectionRestore) this.onConnectionRestore();
-                    }
+                const reachable = (this.beatOk || this.beatOutdated) && this.streamUp;
+                if (reachable) {
+                    const next = this.beatOk ? 'connected' : 'outdated';
+                    // Recarrega só ao voltar de uma queda de verdade; outdated → connected não
+                    // é reconexão, o servidor respondeu o tempo todo.
+                    const wasDown = this.connection === 'reconnecting' || this.connection === 'lost';
+                    this.connection = next;
+                    this.connectionDownSince = null;
+                    if (wasDown && this.onConnectionRestore) this.onConnectionRestore();
                     return;
                 }
                 this.connectionDownSince ??= Date.now();
