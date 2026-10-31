@@ -80,4 +80,4 @@ Stated so nobody relies on a protection that doesn't exist. Each is tracked for 
 
 ## Reporting a vulnerability
 
-The reporting process will be defined in `SECURITY.md`. Until then, don't open a public issue describing a vulnerability; contact the maintainers privately instead.
+Report it privately through GitHub (Security › Report a vulnerability), never in a public issue. The process, what to include and which versions get fixes: [`SECURITY.md`](../SECURITY.md). *(Updated 2026-10-31, spec 071 — before, this section left the process for a future `SECURITY.md` and named no private channel.)*

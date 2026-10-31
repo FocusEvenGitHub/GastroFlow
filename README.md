@@ -59,6 +59,9 @@ This README is the entry point. Depth lives alongside it, by topic:
 | [`docs/troubleshooting.md`](docs/troubleshooting.md) | First checks and symptom tables, linking each guide's own troubleshooting |
 | `/api/docs/` on a running server · [`openapi.yaml`](public/api/docs/openapi.yaml) | API reference (OpenAPI) |
 | [`docs/commands.md`](docs/commands.md) | Every command, by task: services, health, migrations, backup & restore, print queue, sample data, development |
+| [`SECURITY.md`](SECURITY.md) | Reporting a vulnerability privately; supported versions |
+| [`SUPPORT.md`](SUPPORT.md) | Where to ask, which versions are supported, what isn't promised |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Development setup, checks, conventions, pull requests |
 | [`CLAUDE.md`](CLAUDE.md) | Rules for AI-assisted development |
 | [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md) | Commit types, scopes and emoji; release and changelog workflow |
 
@@ -260,6 +263,8 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/menu |
 ---
 
 ## Contributing
+
+Setup, the checks CI runs, conventions and what's welcome: [`CONTRIBUTING.md`](CONTRIBUTING.md). Security vulnerabilities go through [`SECURITY.md`](SECURITY.md), never a public issue. In short:
 
 1. Fork the repository
 2. Create a branch (this repo uses one branch per spec, named after its number — e.g. `054`; outside contributors can use `feature/feature-name`). For development, add `COMPOSE_FILE=docker-compose.dev.yml` to your `.env` — see [`docs/commands.md`](docs/commands.md#development)

@@ -194,7 +194,7 @@ The 7 pre-existing tests (1–3, 7–9, 11) pass unchanged (AC4). Against the ol
 - `php -l` on the three PHP views → no syntax errors. PHPStan/CS-Fixer not run locally (no PHP file under `src/`, `bin/`, `tests/` changed; CI runs them).
 - CI on PR #56: `test` pass (1m55s, run `41217555499`) — `composer validate`/`audit`, PHPStan, CS-Fixer, PHPUnit and the Playwright suite (built-in PHP server, `E2E_PHP_DIRECT=1`; `printer-block.spec.ts` included, SSE-real tests skipped there as designed) — and GitGuardian pass. With the local run above, every Playwright test has passed in at least one of the two environments.
 
-**AC6** — pending: the pilot must update first (Rollout).
+**AC6** — *partially met, recorded 2026-10-31 (in spec 071's PR, since this spec's PR #56 was already merged).* The owner ran `bin/migrate` on the pilot and reported the "sem conexão" warning gone ("rodei no cliente, está corrigido") — the second half of AC6 (after `bin/migrate`, the screens are back to "Conectado"). Not observed: whether the pilot was already on this code and showed **"Atualização incompleta"** while the migration was pending (the owner didn't confirm it), and `/health/ready` 200 over Tailscale could not be re-checked from the agent's environment (`curl` to `100.118.154.42:8080` timed out from the sandbox). Status stays `Implemented`; the first half is covered by the Playwright cases (AC1–AC4) and can be confirmed on the pilot's next pending migration.
 
 **AC7** — spec 068: AC5 evidence recorded there, status `Verified`.
 
