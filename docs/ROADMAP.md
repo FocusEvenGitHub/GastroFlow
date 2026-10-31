@@ -1379,6 +1379,8 @@ Contributing
 
 Documentation should reflect actual behavior.
 
+**Status (2026-10-31): spec 067.** New `docs/configuration.md` (every `.env` variable and Admin setting), `docs/security.md` (trusted-LAN model, what needs a login, roles, sessions and `JWT_SECRET` rotation, secrets, known limitations), `docs/backup-and-restore.md` (database + logo + `.env`, off-server copies, scheduling, same-server and new-server restore) and `docs/troubleshooting.md` (first checks, symptom tables, links to each guide's own table); README's Documentation table lists them with the API reference (`/api/docs/`). Existing: Installation, Upgrading, Printing (specs 062, 063, 065), Architecture, README. Contributing is closing-order item 5. Writing them found that `bin/backup-db` saves the database only (logo and `.env` documented as manual steps) and that `logs/app.log` is never rotated — both on the Backlog.
+
 ---
 
 ## Open-source readiness

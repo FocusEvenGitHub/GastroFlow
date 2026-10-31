@@ -118,7 +118,7 @@ docker compose exec web php bin/seed-demo
 # ✔ Backup criado: backups/gastroflow-<database>-<timestamp>.sql.gz
 ```
 
-Runs on the server itself (Git Bash on Windows), not inside a container. Restoring and scheduling: [`docs/commands.md`](commands.md#backup--restore).
+Runs on the server itself (Git Bash on Windows), not inside a container. It saves the database only; a complete backup (logo and `.env` too), scheduling and restoring: [`backup-and-restore.md`](backup-and-restore.md).
 
 ## 12. Daily operation
 
@@ -128,6 +128,8 @@ Runs on the server itself (Git Bash on Windows), not inside a container. Restori
 - Updating to a new version: [`docs/upgrading.md`](upgrading.md).
 
 ## Troubleshooting
+
+Problems during installation are below; once GastroFlow is running, start at [`troubleshooting.md`](troubleshooting.md). Every `.env` value is explained in [`configuration.md`](configuration.md).
 
 | Symptom | Cause | Fix |
 |---|---|---|

@@ -53,7 +53,7 @@ The application log is also readable in Admin › Logs.
 | `./bin/restore-db <file>` | **Host.** Restores a specific file from `backups/`. |
 | `./bin/restore-db --yes <file>` | **Host.** Same, without the confirmation prompt (for scripts). |
 
-Run inside the `web` container, these two scripts stop with "Rode no host": they need the `docker` command, which only exists on the server. `backups/` is not versioned — copy it somewhere else (another disk, the cloud) as well.
+Run inside the `web` container, these two scripts stop with "Rode no host": they need the `docker` command, which only exists on the server. `backups/` is not versioned — copy it somewhere else (another disk, the cloud) as well. They cover the **database only**; the logo, `.env`, scheduling and a new-server restore are in [`backup-and-restore.md`](backup-and-restore.md).
 
 ## Printing and the job queue
 
