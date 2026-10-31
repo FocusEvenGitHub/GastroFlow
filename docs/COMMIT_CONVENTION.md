@@ -126,89 +126,88 @@ git commit -m ":sparkles: feat(orders): add status history"
 
 ## 🏷️ Release & Changelog Workflow
 
-This section describes the process of cutting a new release, updating the changelog, and publishing a tag.
+*Rewritten 2026-10-31 (spec 072). The previous version described a `main` branch, a version derived from commits by SemVer arithmetic and an `Added`/`Fixed` changelog format — none of which this project uses.*
 
-### 📐 Semantic Versioning
+### 🔢 Which version
 
-This project follows [Semantic Versioning](https://semver.org/):
+The version comes from [`docs/ROADMAP.md`](ROADMAP.md), not from the commits:
 
-| Version bump | When                                                                 |
-|--------------|----------------------------------------------------------------------|
-| **MAJOR**    | Breaking changes (`BREAKING CHANGE` in commit footer)               |
-| **MINOR**    | New features (`feat` commits)                                        |
-| **PATCH**    | Bug fixes, refactors, docs, chores (`fix`, `refactor`, `docs`, etc.) |
+- a **milestone** (`v1.9.0`, `v2.0.0`, …) is tagged only when **every** item of that milestone is done;
+- work outside the milestones (client requests) gets a **patch** tag kept below the next reserved milestone number (as `v1.7.1` and `v1.8.1`–`v1.8.3` did);
+- release candidates use a suffix: `v2.0.0-rc.1`.
 
-### 📝 Changelog Rules
+A tag is always created by the owner, after explicit confirmation — never by automation.
 
-1. **`CHANGELOG.md`** lives at the project root and is manually curated.
-2. Every release adds a new entry at the **top** of the file (newest first).
-3. Each entry follows this format:
+### 📝 Changelog rules
 
-```markdown
-## vX.Y.Z (YYYY-MM-DD)
-
-### Added
-- Concise description with a link to the issue/PR when applicable
-
-### Fixed
-- Description of the fixed bug
-
-### Breaking Changes
-- Describe what changed and how to migrate (rare, MAJOR only)
-```
-
-4. Group changes under these headings:
-   - **Added** — from `feat`, `ui`, `api`, `database`, `security` commits
-   - **Fixed** — from `fix`, `revert`, `perf` commits
-   - **Breaking Changes** — from commits with a `BREAKING CHANGE` footer
-
-> ⚠️ **Note:** the project's actual `CHANGELOG.md` currently uses the Portuguese headings `Novidades`/`Correções` instead of `Added`/`Fixed`. This convention document is now in English; `CHANGELOG.md` itself was not changed as part of this translation. Align one with the other in a future pass — don't silently pick a side.
+1. `CHANGELOG.md` (root) is curated by hand, **one entry per spec, inside that spec's pull request**, under the in-progress heading: the milestone's (`## v1.9.0 — Community Productization (em andamento)`) or `## Não lançado` for out-of-milestone work.
+2. Headings inside a version are in Portuguese: `### Segurança`, `### Novidades`, `### Correções`, `### Documentação`, `### Infraestrutura / Qualidade`.
+3. A released version's heading is **`## vX.Y.Z (YYYY-MM-DD) — Title`**. The release workflow copies the body of exactly that section into the GitHub Release; a section without the date is refused (below).
 
 ### ⚠️ Upgrade notes in `CHANGELOG.md`
 
-When a change needs something beyond the normal update (`docs/upgrading.md`) — a migration the new code depends on, an image rebuild, a new `.env` variable, a changed port — say so in a `⚠️` note under the entry. Never write "run `bin/migrate` **before** deploying the code": the containers run the code straight from the repository folder, so it is live the moment `git pull` finishes. Write "run `bin/migrate` right after updating" and link `docs/upgrading.md` (spec 063).
+When a change needs something beyond the normal update ([`docs/upgrading.md`](upgrading.md)) — a new `.env` variable, a changed port, a manual step — say so in a `⚠️` note under the entry and link `docs/upgrading.md`. Migrations no longer need a note of their own: since v1.9 the production compose runs them in the `migrate` service before the new code starts (spec 066). *(Corrected 2026-10-31, spec 072: this rule used to say the containers run the code straight from the repository folder — true until spec 066 put the code inside the image.)*
 
-### 🚀 Release Steps
+### 🚀 Cutting a release
 
-```bash
-# 1. Ensure you are on main and up to date
-git checkout main
-git pull origin main
+1. **Release PR** — in the last spec PR of the release (or a release PR if none is open):
+   - rename the in-progress heading to `## vX.Y.Z (YYYY-MM-DD) — Title` (for client work: move the `Não lançado` entries under the new heading);
+   - bump the version where the docs state it (`docs/ROADMAP.md`, `README.md`).
 
-# 2. Decide the next version based on commits since the last tag
-#    (see SemVer table above)
+   Check the notes locally before merging:
 
-# 3. Update CHANGELOG.md — add the new version entry at the top
-#    (manual edit)
+   ```bash
+   .github/scripts/release-notes.sh --title vX.Y.Z   # "vX.Y.Z — Title"
+   .github/scripts/release-notes.sh vX.Y.Z           # the GitHub Release body
+   ```
 
-# 4. Commit the changelog update
-git add CHANGELOG.md
-git commit -m "📝 docs: add changelog for vX.Y.Z"
+2. **Merge** the PR into `master`.
+3. **Tag** — only with the owner's confirmation, on the merged `master`:
 
-# 5. Create an annotated tag
-git tag -a vX.Y.Z -m "vX.Y.Z — brief release description"
+   ```bash
+   git checkout master && git pull --ff-only
+   git tag -a vX.Y.Z -m "vX.Y.Z — Title"
+   git push origin vX.Y.Z
+   ```
 
-# 6. Push the commit and the tag
-git push origin main
-git push origin vX.Y.Z
-```
+4. **The `Release` workflow** (`.github/workflows/release.yml`) does the rest, each step only if the previous one passed:
 
-> 💡 Use `git log --oneline v<last-tag>..HEAD` to review all commits since the last release and help draft the changelog entry.
+   | Job | What it does |
+   |---|---|
+   | `test` | the full CI suite (`ci.yml`) on the tagged commit |
+   | `notes` | refuses the release if `CHANGELOG.md` has no dated `## vX.Y.Z (…)` section |
+   | `image` | builds the Docker image (amd64, `/version` answers the tag) and pushes it to `ghcr.io/focusevengithub/gastroflow` |
+   | `release` | creates the GitHub Release with the CHANGELOG section as notes |
 
-### ✅ Release Checklist
+   Nothing is published if `test` or `notes` fails.
 
-- [ ] All commits since last tag follow the commit convention
-- [ ] `CHANGELOG.md` updated with accurate date and version
-- [ ] Changelog commit pushed
-- [ ] Tag created and pushed (`git push origin vX.Y.Z`)
-- [ ] (Optional) GitHub Release created from the tag
+### 🐳 Image tags
 
-### 🔗 Automated tools (future)
+| Tag pushed | Image tags |
+|---|---|
+| `v1.9.0` (highest of its line) | `1.9.0`, `1.9`, `1` |
+| `v1.8.4` after `v1.9.0` exists | `1.8.4`, `1.8` — `1` stays on `1.9.0` |
+| `v2.0.0-rc.1` | `2.0.0-rc.1` only |
 
-For larger teams, consider automating with:
-- [**standard-version**](https://github.com/conventional-changelog/standard-version) — auto-bumps version and generates changelog from commits
-- [**semantic-release**](https://semantic-release.gitbook.io/) — fully automated release pipeline
-- **GitHub Actions** — create a workflow that runs `standard-version` on merge to main
+There is no `latest`. `.github/scripts/image-tags.sh vX.Y.Z` prints what a tag would publish. A pre-release becomes a GitHub *pre-release*; the GitHub *Latest* badge goes to the highest stable tag.
+
+**First publish only:** a new GHCR package starts **private**. Make it public once: GitHub › your profile › Packages › `gastroflow` › Package settings › Change visibility › Public. The workflow can't do it.
+
+### 🔁 When a release fails
+
+- `test` failed: fix through a PR, then move the tag to the fixed commit — `git tag -d vX.Y.Z`, `git push origin :refs/tags/vX.Y.Z`, tag again and push. Nothing had been published.
+- `notes` failed: the CHANGELOG section is missing or undated — same: fix through a PR, re-create the tag on the fixed commit.
+- `image` or `release` failed on something transient (registry, network): **Re-run failed jobs** in the Actions tab. Re-running is safe — the image tags are overwritten with the same image, and an existing release gets its notes updated instead of a second release.
+- Removing a published release: `gh release delete vX.Y.Z` and delete the image versions in the package settings. Floating image tags (`X.Y`, `X`) only move forward; to point them back, re-tag by hand (`docker pull`, `docker tag`, `docker push`).
+
+### ✅ Release checklist
+
+- [ ] Every item of the milestone is done (`docs/ROADMAP.md`), or it is an out-of-milestone patch
+- [ ] Release PR merged: dated `CHANGELOG.md` heading, version bumped in the docs, `release-notes.sh` checked
+- [ ] Owner confirmed the tag
+- [ ] Tag pushed; the `Release` workflow is green
+- [ ] GitHub Release and image tags look right (`docker run --rm ghcr.io/focusevengithub/gastroflow:X.Y.Z cat /var/www/html/VERSION`)
+- [ ] First publish only: package set to public
 
 ---
 

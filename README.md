@@ -124,7 +124,7 @@ Five picks that best represent how this project trades things off — the full l
 - **Specs before non-trivial code.** Every change goes through a file under [`specs/`](specs/) with a defined lifecycle (`Draft → Approved → In Progress → Implemented → Verified`); `Verified` requires recorded evidence for each acceptance criterion. Lifecycle and skills: [`specs/README.md`](specs/README.md).
 - **AI-assisted, human-directed.** Claude Code investigates, plans, implements and reviews; the human sets the goal and approves. [`CLAUDE.md`](CLAUDE.md) holds the hard rules (no secrets, no commits unless asked, no destructive DB operations, never claim a check passed without running it), and three checked-in skills — [`spec-plan`](.claude/skills/spec-plan/SKILL.md), [`spec-implement`](.claude/skills/spec-implement/SKILL.md), [`spec-review`](.claude/skills/spec-review/SKILL.md) — run the workflow.
 - **CI on every push and PR** ([`ci.yml`](.github/workflows/ci.yml)): line-ending check, `composer validate`, `composer audit`, PHPStan, PHP-CS-Fixer, unit tests, integration tests against real MySQL, and Playwright browser tests.
-- **Conventional commits and tagged releases** — [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md); one changelog entry per spec.
+- **Conventional commits and tagged releases** — [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md); one changelog entry per spec. A pushed tag runs the full test suite and then publishes the GitHub Release and the Docker image `ghcr.io/focusevengithub/gastroflow` by itself (`.github/workflows/release.yml`).
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-10-31
 - Updated: 2026-10-31
 - Owner: Henry (FocusEven)
@@ -221,7 +221,7 @@ No application behavior changes, so the PHPUnit/Playwright suites don't apply; c
   - `cd tests/e2e && npm install && npx playwright install chromium && npx playwright test` — line 97 (also `CLAUDE.md`).
   The CI step list in `CONTRIBUTING.md` matches `.github/workflows/ci.yml` (line endings, `composer validate --strict`, `composer audit`, PHPStan, CS-Fixer, PHPUnit unit + integration, Playwright).
 - **AC6** — `SUPPORT.md` lines 23-28: the six roadmap items (security fixes, critical bug fixes, dependency updates, compatibility improvements, documentation, selected community contributions); "Supported versions" states the same rule as `SECURITY.md` (latest release only, fixes as new tags, most recent tag until `v2.0.0`, then latest `2.x` minor).
-- **AC7** — *pending, post-merge:* `config.yml` is only read from the default branch. Pre-merge: `python3 -c "import yaml; print(yaml.safe_load(open('.github/ISSUE_TEMPLATE/config.yml')))"` → parses, `blank_issues_enabled: True`, two `contact_links` with the advisory and `SUPPORT.md` URLs.
+- **AC7** — *met, checked after the merge (2026-10-31, recorded in spec 072's PR):* `gh api graphql` on the repository → `isSecurityPolicyEnabled: true`, `securityPolicyUrl: https://github.com/FocusEvenGitHub/GastroFlow/security/policy`, `contactLinks`: "Report a security vulnerability" → `…/security/advisories/new` and "Support and supported versions" → `…/blob/master/SUPPORT.md` (the new-issue page's links). Before the merge: `config.yml` is only read from the default branch. Pre-merge: `python3 -c "import yaml; print(yaml.safe_load(open('.github/ISSUE_TEMPLATE/config.yml')))"` → parses, `blank_issues_enabled: True`, two `contact_links` with the advisory and `SUPPORT.md` URLs.
 - **AC8** — `README.md`: Documentation table rows for `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md`; › Contributing opens with a link to `CONTRIBUTING.md` and `SECURITY.md`. `docs/ROADMAP.md`: dated "Status (2026-10-31): done — spec 071" under "Open-source readiness" and "Community support policy", and closing-order item 5 marked "— spec 071". `CHANGELOG.md`: entry under `v1.9.0` › Documentação.
 - **AC9** — spec 069 › Validation evidence › AC6 (owner's report, partially met); spec 070 › Validation evidence (PR #57 CI run `41221200025`, `test` + GitGuardian `SUCCESS`, merge `a72e092`).
-- **AC10** — *pending (CI on the PR).* Locally: relative links in `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md`, `README.md`, `docs/security.md` all resolve (script: every `](path)` checked with `test -e` → no "MISSING"); `git diff --check` (with the new files) → clean; `grep -lU $'\r'` on the new files → no CRLF; `.md`/`.yml` have `eol=lf` rules in `.gitattributes`.
+- **AC10** — *met:* CI on PR #58, run `41226824001` — `test` and GitGuardian `SUCCESS`; merged as `a5c4668` (2026-10-31). Before that, locally: Locally: relative links in `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md`, `README.md`, `docs/security.md` all resolve (script: every `](path)` checked with `test -e` → no "MISSING"); `git diff --check` (with the new files) → clean; `grep -lU $'\r'` on the new files → no CRLF; `.md`/`.yml` have `eol=lf` rules in `.gitattributes`.

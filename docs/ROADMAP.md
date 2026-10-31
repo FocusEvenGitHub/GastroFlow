@@ -1459,6 +1459,8 @@ Avoid relying only on:
 latest
 ```
 
+**Status (2026-10-31): done — spec 072.** `.github/workflows/release.yml`: a pushed `v*` tag runs the full CI (`ci.yml`, now reusable) on the tagged commit → refuses to go on unless `CHANGELOG.md` has a dated section for the tag → builds the amd64 image (with `/version` answering the tag) and pushes it to `ghcr.io/focusevengithub/gastroflow` as `X.Y.Z`, plus `X.Y`/`X` only when it is the highest of its line (pre-releases only the exact tag; no `latest`) → creates the GitHub Release with that CHANGELOG section as notes. Write permissions only on the two publishing jobs. A PR touching the workflow, its scripts or the `Dockerfile` runs a dry-run that publishes nothing. The procedure is in `docs/COMMIT_CONVENTION.md` › "Release & Changelog Workflow" (rewritten). The install/upgrade guides keep building from source; the first real run is the `v1.9.0` tag.
+
 ---
 
 ## Closing order
@@ -1470,7 +1472,7 @@ latest
 3. Documentation structure — the docs still missing (security, configuration, backup & restore, troubleshooting);
 4. License (Open-source readiness — an owner decision);
 5. `SECURITY.md`, `CONTRIBUTING.md` and the Community support policy — spec 071;
-6. Release automation (release artifacts, versioned image);
+6. Release automation (release artifacts, versioned image) — spec 072;
 7. The Exit Gate below: someone who didn't write GastroFlow installs it from the docs;
 
 then `v1.9.0` → `v2.0.0-rc.1` → release blockers only → `v2.0.0`. "Stable = release tag, `master` = development" is already done (spec 064).
