@@ -13,6 +13,7 @@
   <img src="https://img.shields.io/badge/PHP-%3E%3D8.1-777BB4?style=flat-square&logo=php" alt="PHP 8.1+"/>
   <img src="https://img.shields.io/badge/Slim-4-8A2BE2?style=flat-square" alt="Slim 4"/>
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker" alt="Docker Compose"/>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square" alt="License: Apache-2.0"/></a>
   <a href="https://github.com/FocusEvenGitHub/GastroFlow/actions/workflows/ci.yml"><img src="https://github.com/FocusEvenGitHub/GastroFlow/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
 </p>
 
@@ -266,6 +267,16 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/menu |
 4. Push and open a Pull Request
 
 Bugs, questions and improvement ideas: [open an issue](https://github.com/FocusEvenGitHub/GastroFlow/issues).
+
+---
+
+## License
+
+GastroFlow is licensed under the [Apache License 2.0](LICENSE) — Copyright 2025-2026 FocusEven (Henry Sampaio); see [`NOTICE`](NOTICE).
+
+In short: you may use, modify and distribute it, including commercially and in closed-source products. If you distribute it, keep `LICENSE` and `NOTICE` and state which files you changed. The license grants no right to the "GastroFlow" name or logo (section 6), and contributions sent to this repository are accepted under the same license (section 5). This summary is not the license; [`LICENSE`](LICENSE) is.
+
+Third-party libraries shipped in `public/vendor/` keep their own licenses (MIT, Apache-2.0, SIL OFL 1.1, CC BY 4.0), listed in [`public/vendor/README.md`](public/vendor/README.md) with each license file next to its library.
 
 ---
 

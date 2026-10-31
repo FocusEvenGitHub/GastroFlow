@@ -4,24 +4,30 @@ Spec 055. O caixa, a cozinha e o Admin não dependem de CDN: sem internet (só a
 
 | Biblioteca | Versão | Licença | Origem |
 |---|---|---|---|
-| Bootstrap | 5.3.0 | MIT | `https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/` (`css/bootstrap.min.css`, `js/bootstrap.bundle.min.js`) |
-| Font Awesome Free | 6.4.0 | ícones CC BY 4.0 · fontes SIL OFL 1.1 · código MIT | `https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/` (`css/all.min.css` + os `webfonts/` que ele referencia) |
-| Alpine.js | 3.17.4 | MIT | `https://unpkg.com/alpinejs@3.17.4/dist/cdn.min.js` |
-| Tom Select | 2.6.2 | Apache-2.0 | `https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/` (`js/tom-select.complete.min.js`, `css/tom-select.bootstrap5.min.css`) |
-| Chart.js | 4.4.0 | MIT | `https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js` |
+| Bootstrap | 5.3.0 | MIT (`bootstrap-5.3.0/LICENSE`) | `https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/` (`css/bootstrap.min.css`, `js/bootstrap.bundle.min.js`) |
+| Font Awesome Free | 6.4.0 | ícones CC BY 4.0 · fontes SIL OFL 1.1 · código MIT (`fontawesome-free-6.4.0/LICENSE.txt`) | `https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/` (`css/all.min.css` + os `webfonts/` que ele referencia) |
+| Alpine.js | 3.17.4 | MIT (`alpinejs-3.17.4/LICENSE.md`) | `https://unpkg.com/alpinejs@3.17.4/dist/cdn.min.js` |
+| Tom Select | 2.6.2 | Apache-2.0 (`tom-select-2.6.2/LICENSE`) | `https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/` (`js/tom-select.complete.min.js`, `css/tom-select.bootstrap5.min.css`) |
+| Chart.js | 4.4.0 | MIT (`chartjs-4.4.0/LICENSE.md`) | `https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js` |
 | Inter (variável, subconjunto latin) | @fontsource-variable/inter 5.3.0 | SIL OFL 1.1 (`inter-5.3.0/LICENSE`) | `https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/` (`files/inter-latin-wght-normal.woff2`, `LICENSE`); declarada por `@font-face` em `/assets/css/style.css` |
 
 Alpine (`3.x.x`) e Tom Select (`@2`) eram faixas flutuantes no CDN; foram fixados na versão que essas faixas resolviam em 2026-10-03, ou seja, a que já rodava.
+
+Licenças (spec 068): cada biblioteca tem o texto da sua licença no próprio diretório, tirado do pacote npm da **mesma versão** (`https://registry.npmjs.org/<pacote>/-/<pacote>-<versão>.tgz` › `package/LICENSE*`). Exceção: o pacote npm do Alpine.js não traz licença; a dele vem do repositório na tag (`https://raw.githubusercontent.com/alpinejs/alpine/v3.17.4/LICENSE.md`). O `NOTICE` na raiz do GastroFlow aponta para eles.
 
 Fora daqui, de propósito: o Swagger UI de `/api/docs/` continua no unpkg — é página de desenvolvedor, não de operação.
 
 ## SHA-256
 
 ```text
+08b7502da6e7aa1d0bbdc97d220fbf669b9366c61bd0f072238283c89bc4773a  alpinejs-3.17.4/LICENSE.md
 232519394c6c8fdba6f362b1d9da16106db513cdbf899011f00daab4051df31c  alpinejs-3.17.4/cdn.min.js
+3d0b0c88216e4752b9afd3d24e36faaf27873b5a45a61458bb3c83e794c26832  bootstrap-5.3.0/LICENSE
 7f1d37f0d90b6385354c2ac10e2bb91563c46bd7a266ed351222ebcac8496c2a  bootstrap-5.3.0/css/bootstrap.min.css
 aa53d582f97eb594c2a5cc5824574707f9ba9837bce3046bfa5f3556860f4e04  bootstrap-5.3.0/js/bootstrap.bundle.min.js
+5a0877ad6d818529be4f33009d0942cdf7e2ed7656156f4aba7308459a546030  chartjs-4.4.0/LICENSE.md
 0e2326c6868072bec1592760c6729043caeea2960a2b46cee6a2192aac6abff0  chartjs-4.4.0/chart.umd.min.js
+0aa8f86525273b2efa4f40f4272a188e187704252170e979dc06879adf68d43c  fontawesome-free-6.4.0/LICENSE.txt
 1edb1725a9ea8ca4dcf2f5508cee183218aa1685e47c1b23056717f754f58ebf  fontawesome-free-6.4.0/css/all.min.css
 20c4a58bc9d1d69e935d06f1528923646a715be5e218665655cade8f5f1b8c00  fontawesome-free-6.4.0/webfonts/fa-brands-400.ttf
 748332090c4b8e20f95d0ff59f0be20fa9c889359d3b36d4b886d73376054207  fontawesome-free-6.4.0/webfonts/fa-brands-400.woff2
@@ -33,6 +39,7 @@ aa53d582f97eb594c2a5cc5824574707f9ba9837bce3046bfa5f3556860f4e04  bootstrap-5.3.
 694a17c3d9d6c05f8aac63c544615552a4b220e9a4de863d87341a6bcfc1bc8d  fontawesome-free-6.4.0/webfonts/fa-v4compatibility.woff2
 3b0a5fca3d17942cde889069889dedbbbd075e9b599968c82a95f4d944e9b345  inter-5.3.0/LICENSE
 3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62  inter-5.3.0/inter-latin-wght-normal.woff2
+f15dc64ea1f373c8af0ee7c020064360497addf335c9c2bcf27c3a6f56a6f0bd  tom-select-2.6.2/LICENSE
 ce467598f8953044ddfc0ff9fd4b7e2f6cced549001737d6b712a14f8b9a6599  tom-select-2.6.2/css/tom-select.bootstrap5.min.css
 8f9d7d3420e938c2c9817818b56df43ea46feae5bf1f5a2e828863c034df0e37  tom-select-2.6.2/js/tom-select.complete.min.js
 ```
@@ -43,5 +50,5 @@ Conferir: `cd public/vendor && sed -n '/^```text$/,/^```$/p' README.md | grep -v
 
 1. Baixe a nova versão, da mesma origem, para um diretório **novo** `<lib>-<versão>/` (a versão no nome do diretório é o que impede o navegador de misturar arquivo velho em cache com página nova).
 2. Troque as referências (`grep -rn "/vendor/<lib>-" public`).
-3. Atualize a tabela e os SHA-256 acima; apague o diretório antigo.
+3. Traga o `LICENSE` da mesma versão; atualize a tabela e os SHA-256 acima; apague o diretório antigo.
 4. Rode a suíte de navegador — `tests/e2e/specs/offline-assets.spec.ts` falha se alguma tela voltar a pedir algo fora do próprio servidor.
