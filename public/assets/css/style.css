@@ -293,7 +293,8 @@ a:hover { color: var(--primary-dark); }
 }
 .gf-conn i { font-size: 0.65rem; }
 .gf-conn.connected i    { color: var(--success); }
-.gf-conn.reconnecting   { color: #212529; background: var(--warning); }
+.gf-conn.reconnecting,
+.gf-conn.outdated       { color: #212529; background: var(--warning); }
 .gf-conn.lost           { background: var(--danger); }
 .gf-conn + .dark-toggle { margin-left: 0; }
 

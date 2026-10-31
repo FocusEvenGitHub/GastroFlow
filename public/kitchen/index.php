@@ -110,6 +110,16 @@
     </div>
     </template>
 
+    <!-- Atualização incompleta (spec 069): o servidor respondeu, só falta uma migração.
+         Texto não técnico de propósito — o passo técnico está em docs/troubleshooting.md. -->
+    <template x-if="connection === 'outdated'">
+    <div class="alert alert-warning m-3" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Atualização do sistema incompleta.</strong>
+        O sistema continua funcionando, mas algumas funções podem falhar. Avise o responsável pelo sistema.
+    </div>
+    </template>
+
     <!-- Impressão bloqueada após falhas consecutivas (spec 039).
          x-if, e não x-show: as utilitárias do Bootstrap 5 são !important, então
          .d-flex vence o display:none inline que o x-show aplica e o aviso nunca sumiria

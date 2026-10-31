@@ -31,6 +31,20 @@ function lostBanner(page: Page) {
   return page.locator('.alert', { hasText: 'Sem conexão com o servidor desde' });
 }
 
+function outdatedBanner(page: Page) {
+  return page.locator('.alert', { hasText: 'Atualização do sistema incompleta.' });
+}
+
+// O 503 que o /health/ready dá com migração pendente (spec 063) — o servidor está no ar.
+async function migrationsPending(page: Page): Promise<void> {
+  await page.route('**/health/ready', (route) =>
+    route.fulfill({
+      status: 503,
+      json: { success: false, error: 'Atualização incompleta: há migrações pendentes. Rode bin/migrate.', code: 'MIGRATIONS_PENDING' },
+    })
+  );
+}
+
 async function beatNow(page: Page): Promise<void> {
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
 }
@@ -88,6 +102,69 @@ test('caixa: banco fora do ar (503 em /health/ready) também sai de "Conectado"'
   await expect(pill(page)).toHaveText('Reconectando…');
 });
 
+// Spec 069: migração pendente não é falta de conexão (cliente piloto, 2026-10-31).
+test('caixa: migração pendente mostra "Atualização incompleta", nunca "sem conexão"', async ({ page }) => {
+  await page.route('**/api/printer/status', (route) =>
+    route.fulfill({ json: { success: true, blocked: false, consecutive_failures: 0, last_failed_order_id: null } })
+  );
+  await page.goto('/cashier/');
+  await expect(pill(page)).toHaveText('Conectado');
+
+  // LOST_AFTER_MS zerado: se o 503 ainda contasse como queda, "Conexão perdida" viria já.
+  await page.evaluate('GF.LOST_AFTER_MS = 0');
+  await migrationsPending(page);
+  await beatNow(page);
+  await expect(pill(page)).toHaveText('Atualização incompleta');
+  await expect(outdatedBanner(page)).toHaveText(/Avise o responsável pelo sistema\./);
+  await expect(lostBanner(page)).toHaveCount(0);
+  // Texto para quem está no caixa: nenhum comando na tela.
+  await expect(outdatedBanner(page)).not.toContainText('bin/migrate');
+
+  await page.unroute('**/health/ready');
+  await beatNow(page);
+  await expect(pill(page)).toHaveText('Conectado');
+  await expect(outdatedBanner(page)).toHaveCount(0);
+  await expect(lostBanner(page)).toHaveCount(0);
+  await expect(page.locator('.gastro-toast')).toHaveCount(0);
+});
+
+test('caixa: servidor volta com migração pendente → recarrega o cardápio', async ({ page }) => {
+  const MENU = [
+    {
+      category_name: 'Bebidas',
+      type: 'drink',
+      items: [{ id: 1, name: 'Água', description: '', price: 3, available: true, category_name: 'Bebidas' }],
+    },
+  ];
+  let serverUp = false;
+  await page.route('**/health/ready', (route) =>
+    serverUp
+      ? route.fulfill({ status: 503, json: { success: false, error: '…', code: 'MIGRATIONS_PENDING' } })
+      : route.abort('internetdisconnected')
+  );
+  await page.route('**/api/menu', (route) => (serverUp ? route.fulfill({ json: MENU }) : route.abort('internetdisconnected')));
+
+  await page.goto('/cashier/');
+  await expect(pill(page)).toHaveText('Reconectando…');
+
+  serverUp = true;
+  await beatNow(page);
+
+  await expect(pill(page)).toHaveText('Atualização incompleta');
+  await expect(page.locator('.menu-item-card', { hasText: 'Água' })).toBeVisible();
+});
+
+test('cozinha: stream caído com migração pendente continua sendo queda', async ({ page }) => {
+  await page.route('**/api/events/stream.php', (route) => route.abort('internetdisconnected'));
+  await migrationsPending(page);
+  await page.goto('/kitchen/');
+
+  await expect(pill(page)).toHaveText('Reconectando…');
+  await beatNow(page);
+  await expect(pill(page)).not.toHaveText('Atualização incompleta');
+  await expect(outdatedBanner(page)).toHaveCount(0);
+});
+
 test('caixa: aberto sem servidor, carrega o cardápio sozinho quando a conexão volta', async ({ page }) => {
   // Cardápio fixo quando o servidor "volta": o do banco de teste acumula categorias e itens
   // das outras suítes (510 categorias medidas em 2026-10-07) e nem o caixa saudável chega a
@@ -138,6 +215,23 @@ test.describe('cozinha com SSE real', () => {
 
     await expect(pill(page)).toHaveText('Conectado');
     await expect(lostBanner(page)).toHaveCount(0);
+  });
+
+  test('migração pendente com o stream no ar mostra "Atualização incompleta"', async ({ page }) => {
+    await page.goto('/kitchen/');
+    await expect(pill(page)).toHaveText('Conectado');
+
+    await page.evaluate('GF.LOST_AFTER_MS = 0');
+    await migrationsPending(page);
+    await beatNow(page);
+    await expect(pill(page)).toHaveText('Atualização incompleta');
+    await expect(outdatedBanner(page)).toBeVisible();
+    await expect(lostBanner(page)).toHaveCount(0);
+
+    await page.unroute('**/health/ready');
+    await beatNow(page);
+    await expect(pill(page)).toHaveText('Conectado');
+    await expect(outdatedBanner(page)).toHaveCount(0);
   });
 
   test('pedido criado durante a queda aparece ao reconectar', async ({ page }) => {

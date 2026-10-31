@@ -225,7 +225,7 @@ Once installed, GastroFlow needs only the restaurant's local network: the backen
 - **Printer by IP**, not hostname (Admin › Configurações): name resolution may depend on the router or the internet.
 - **What does need internet:** installing and upgrading (`git fetch`, `docker compose up -d --build` — which pulls the base images and the PHP dependencies) and the developer API docs at `/api/docs/`. During an outage, don't run `docker system prune` or `docker compose down --rmi …` — without internet the images can't be rebuilt.
 - **After a reboot** `db`, `web` and `print-worker` come back on their own (`restart: unless-stopped`).
-- **The connection pill** in the cashier/kitchen nav ("Conectado" / "Reconectando…" / "Conexão perdida") reports the GastroFlow *server*, not the internet: with the internet down and the LAN up it stays "Conectado".
+- **The connection pill** in the cashier/kitchen nav ("Conectado" / "Reconectando…" / "Conexão perdida" / "Atualização incompleta" — the last one: server up, an update step missing, [`docs/troubleshooting.md`](docs/troubleshooting.md#operation)) reports the GastroFlow *server*, not the internet: with the internet down and the LAN up it stays "Conectado".
 
 ---
 
