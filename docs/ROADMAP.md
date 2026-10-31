@@ -1398,6 +1398,8 @@ The license must be an intentional project decision.
 
 **Status (2026-10-31): license done — spec 068.** The owner chose the **Apache License 2.0**: `LICENSE` (the ASF text, unmodified), `NOTICE` (Copyright 2025-2026 FocusEven (Henry Sampaio)), `composer.json` `"license": "Apache-2.0"` (was `"proprietary"`), README › License, and each library in `public/vendor/` with its own license file from the pinned version. Every surviving line in `git blame` is the owner's, so no one else's consent was needed. `CONTRIBUTING.md`, `SECURITY.md` and the support expectations remain — closing order item 5.
 
+**Status (2026-10-31): done — spec 071.** `SECURITY.md` (one channel: GitHub private vulnerability reporting, now enabled on the repository; no response deadline promised; fixes only for the latest release, always as a new tag; scope), `CONTRIBUTING.md` (setup on the development compose, the checks CI runs with the real commands, conventions, commits/branches/specs/PRs, Apache-2.0 contributions without a CLA) and `SUPPORT.md` (support policy, below). The new-issue page links to the private report form.
+
 ---
 
 ## Community support policy
@@ -1414,6 +1416,8 @@ Community 2.x may continue receiving:
 * selected community contributions.
 
 No promise should be made that every future GastroFlow capability will be added to Community.
+
+**Status (2026-10-31): done — spec 071.** Published as `SUPPORT.md`: where to ask (issues; security via `SECURITY.md`; no private or paid channel), only the latest release supported (fixes as new tags; until `v2.0.0` the most recent tag, then the latest `2.x` minor), the list above, and what is not promised (response times, every future capability, older releases, `master`, modified installations).
 
 ---
 
@@ -1465,7 +1469,7 @@ latest
 2. Separate deployment: development × Community production — spec 066;
 3. Documentation structure — the docs still missing (security, configuration, backup & restore, troubleshooting);
 4. License (Open-source readiness — an owner decision);
-5. `SECURITY.md`, `CONTRIBUTING.md` and the Community support policy;
+5. `SECURITY.md`, `CONTRIBUTING.md` and the Community support policy — spec 071;
 6. Release automation (release artifacts, versioned image);
 7. The Exit Gate below: someone who didn't write GastroFlow installs it from the docs;
 
