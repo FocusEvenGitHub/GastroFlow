@@ -8,7 +8,7 @@ Run the commands from the repository folder on the server — **on Windows, in G
 
 A restaurant runs a **release**: a version tag such as `v1.9.0`, listed on the [GitHub Releases page](https://github.com/FocusEvenGitHub/GastroFlow/releases). `master` is the next version **in development** — it may contain unfinished work, and is only for development and for test installs that accept that.
 
-> **Transition (until `v1.9.0` is published):** this guide was written for `v1.9.0`, the first release it covers — it is cut when the v1.9 milestone closes. The current release, `v1.8.3`, predates it. Installs that follow `master` today (e.g. the pilot install) upgrade with `git pull` instead of step 3's `git checkout`, knowing they receive unreleased code. Coming from a version before v1.9 also needs the one-time steps in [First upgrade to v1.9](#first-upgrade-to-v19).
+> **Transition (until `v1.9.0` is published):** this guide was written for `v1.9.0`, the first release it covers — it is cut when the v1.9 milestone closes. The current release, `v1.8.4`, predates it; on `v1.8.3`, apply its security fix with the steps in `CHANGELOG.md`. Installs that follow `master` today (e.g. the pilot install) upgrade with `git pull` instead of step 3's `git checkout`, knowing they receive unreleased code. Coming from a version before v1.9 also needs the one-time steps in [First upgrade to v1.9](#first-upgrade-to-v19).
 
 ## What changes when
 

@@ -133,7 +133,7 @@ git commit -m ":sparkles: feat(orders): add status history"
 The version comes from [`docs/ROADMAP.md`](ROADMAP.md), not from the commits:
 
 - a **milestone** (`v1.9.0`, `v2.0.0`, …) is tagged only when **every** item of that milestone is done;
-- work outside the milestones (client requests) gets a **patch** tag kept below the next reserved milestone number (as `v1.7.1` and `v1.8.1`–`v1.8.3` did);
+- work outside the milestones (client requests) gets a **patch** tag kept below the next reserved milestone number (as `v1.7.1` and `v1.8.1`–`v1.8.4` did);
 - release candidates use a suffix: `v2.0.0-rc.1`.
 
 A tag is always created by the owner, after explicit confirmation — never by automation.

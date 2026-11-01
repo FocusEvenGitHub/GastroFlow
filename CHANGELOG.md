@@ -6,10 +6,6 @@ Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`** — sa
 
 > ⚠️ **Rodar `bin/migrate` antes de subir o código novo (spec 058):** a migração `021_order_item_discount.sql` cria as colunas de desconto em `order_items`, que a criação de pedido e todos os relatórios passam a usar. Código novo sem a migração = pedidos e relatórios falhando com erro de SQL. Pedidos antigos ficam com desconto 0,00, então nenhum total histórico muda. *(Correção 2026-10-27, spec 063: "antes" não é possível — os containers rodam o código direto da pasta, então ele entra no ar no `git pull`. Atualize com o restaurante fechado e rode `bin/migrate` logo após o `git pull`/`docker compose up -d --build`, seguindo [`docs/upgrading.md`](docs/upgrading.md).)*
 
-### Segurança
-- **PHP atualizado contra o PHP2Shell (CVE-2026-109618 / CVE-2026-109619)**: a imagem passa de `php:8.2-apache` para **`php:8.2.35-apache`**, a versão corrigida. As duas falhas permitem atacar o PHP com uma única requisição sem login, antes de qualquer código do GastroFlow rodar, e Apache com mod_php — exatamente o que a imagem do GastroFlow usa — é o cenário de maior risco. A versão de patch fica fixada no `Dockerfile` para que uma imagem antiga em cache não continue sendo usada. Como defesa extra, `session.upload_progress.enabled=0` (o GastroFlow não usa sessões PHP) (spec 059)
-- ⚠️ **Para aplicar, é preciso reconstruir a imagem** — só atualizar o código não basta: `git pull`, depois `docker compose build --pull web print-worker` e `docker compose up -d`. Confira com `docker compose exec web php -v` (tem que mostrar `8.2.35`). Quem roda sem Docker precisa de PHP 8.2.35+, 8.3.36+, 8.4.27+ ou 8.5.12+; a linha 8.1 não recebe mais correção oficial
-
 ### Novidades
 - **Desconto por item no caixa**: no "Resumo do Pedido", o preço de cada item vira um botão (sublinhado tracejado, ícone de etiqueta). Ao tocar, o modal "Desconto no item" pede **% ou R$**, mostra na hora "De R$ 40,00 por R$ 32,00" e só deixa aplicar um valor válido. O desconto vale para a linha toda (2× R$ 20 − R$ 5 = R$ 35), nunca para a embalagem, e nunca passa do valor do item. A linha mostra o preço antigo riscado e um selo (`−20%` ou `−R$ 5,00`); o resumo e o modal de confirmação mostram "Descontos" e o total já líquido. Se o caixa diminuir a quantidade e um desconto em R$ deixar de caber, o selo fica vermelho ("Revise o desconto") e o envio é bloqueado — o caixa nunca corta o desconto em silêncio. O servidor recalcula e valida tudo de novo (`400 INVALID_DISCOUNT` com a mensagem em português; o pedido inteiro é recusado sem gastar número de senha). Cada pedido com desconto gera uma linha `order.discount_applied` na Auditoria (spec 058)
 - **Teto do desconto no Admin**: Configurações › "Desconto no caixa" › "Desconto máximo por item (%)". Padrão **100%**; **0 desativa** o desconto (o preço volta a ser só texto). Vale para o caixa e para a cozinha, e o servidor também o aplica. Lido pelas telas em `GET /api/settings/discount` (spec 058)
@@ -56,6 +52,17 @@ Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`** — sa
 
 ### Infraestrutura / Qualidade
 - **Release automático a partir da tag**: empurrar uma tag de versão (`v1.9.0`) agora faz o resto sozinho, e só se cada passo anterior passar: roda todos os testes no commit da tag; confere que o `CHANGELOG.md` tem a seção daquela versão **com data** (sem ela, nada é publicado); constrói a imagem Docker e publica em `ghcr.io/focusevengithub/gastroflow` como `1.9.0`, `1.9` e `1` (uma correção numa versão antiga nunca puxa o `1` para trás; versões candidatas, como `2.0.0-rc.1`, só com a tag exata; não existe `latest`); e cria o release no GitHub com a seção do CHANGELOG como notas. A instalação e a atualização continuam construindo a imagem a partir do código, como antes — a imagem publicada é uma opção a mais. O passo a passo de release em `docs/COMMIT_CONVENTION.md` foi reescrito: o anterior falava em branch `main` e em decidir a versão pelos commits, nada disso usado aqui (spec 072)
+
+## v1.8.4 (2026-11-01) — Correção de segurança: PHP2Shell
+
+Correção de segurança fora dos milestones. Sai como patch a partir da `v1.8.3`, no branch `release/1.8.x` (PR #60), sem nenhum trabalho da v1.9 e sem migração. Esta tag não está no histórico do `master`; a mesma correção já está nele.
+
+### Segurança
+- **PHP atualizado contra o PHP2Shell (CVE-2026-109618 / CVE-2026-109619)**: a imagem passa de `php:8.2-apache` para **`php:8.2.35-apache`**, a versão corrigida. As duas falhas permitem atacar o PHP com uma única requisição sem login, antes de qualquer código do GastroFlow rodar, e Apache com mod_php — exatamente o que a imagem do GastroFlow usa — é o cenário de maior risco. A versão de patch fica fixada no `Dockerfile`, para que uma imagem antiga em cache não continue sendo usada. Como defesa extra, `session.upload_progress.enabled=0` (o GastroFlow não usa sessões PHP) (spec 059)
+- ⚠️ **Para aplicar, é preciso reconstruir a imagem** — só trocar o código não basta: `git fetch --tags`, `git checkout v1.8.4`, `docker compose build --pull web print-worker` e `docker compose up -d`. Confira com `docker compose exec web php -v` (tem que mostrar `8.2.35`). Quem roda sem Docker precisa de PHP 8.2.35+, 8.3.36+, 8.4.27+ ou 8.5.12+; a linha 8.1 não recebe mais correção oficial
+
+### Correções
+- **A imagem volta a construir num clone novo**: o `Dockerfile` copiava `legacy/`, uma pasta vazia que não existe no repositório, e o build falhava. A linha foi removida (mesma correção da spec 062)
 
 ## v1.8.3 (2026-10-03) — Limite de tentativas de login
 
