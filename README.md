@@ -119,7 +119,7 @@ Full request lifecycle, the annotated project-structure tree, and the current li
 - **Specs before non-trivial code.** Features, fixes and improvements go through a spec file under [`specs/`](specs/) — problem, proposed behavior, acceptance criteria, then an implementation log and validation evidence as work happens. `specs/000-project-baseline.md` is a code-verified snapshot of the whole system, written before any feature spec.
 - **A defined lifecycle**, not just a folder of markdown: `Draft → Approved → In Progress → Implemented → Verified` (or `Cancelled`), per [`specs/README.md`](specs/README.md). `Verified` requires recorded evidence tied to acceptance criteria — it isn't granted on trust.
 - **Persistent, written project rules.** [`CLAUDE.md`](CLAUDE.md) documents the confirmed stack, the actual code layering, the commands that really exist, and explicit security rules — a checked-in artifact, not tribal knowledge.
-- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.8.3`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
+- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.8.4`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
 
 ```mermaid
 flowchart LR
@@ -160,7 +160,7 @@ What that means in practice:
 
 | Technology | Role |
 |---|---|
-| PHP >= 8.1 (`php:8.2-apache` in Docker) | Backend language and runtime |
+| PHP >= 8.1 (`php:8.2.35-apache` in Docker — patched for PHP2Shell; outside Docker use 8.2.35+, 8.3.36+, 8.4.27+ or 8.5.12+) | Backend language and runtime |
 | Slim 4 + `php-di/slim-bridge` | Routing, PSR-15 middleware, DI container |
 | Eloquent (`illuminate/database`, via `Capsule\Manager`) | ORM / query builder, without the rest of Laravel |
 | `vlucas/valitron` | Input validation (`OrderValidator`, `MenuItemValidator`, `IngredientValidator`, `SettingsValidator`, `AuthValidator`) |
@@ -230,6 +230,10 @@ Full detail for all of the above in [`CHANGELOG.md`](CHANGELOG.md).
 
 - **Login throttling** (spec 053): `POST /api/login` blocks for 15 minutes after 10 failures in 15 minutes for the same client IP + username (or 30 from one IP across usernames), answering `429` with `Retry-After`; failures live in a `login_attempts` table (migration 020) and expire on their own. Under Docker Desktop every host request arrives as the Docker gateway IP, so per-IP limits collapse there — documented
 
+**`v1.8.4`** (security follow-up, outside the roadmap milestones; tagged 2026-11-01)
+
+- **PHP2Shell** (spec 059): the image is pinned to `php:8.2.35-apache`. Rebuild it to apply: `docker compose build --pull web print-worker`, then `docker compose up -d`.
+
 **Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
 
 - Frontend modularization: shared `common.js` (toasts, theme, fetch wrapper), a real build step (Vite) instead of CDN-loaded dependencies
@@ -280,7 +284,7 @@ docker compose exec web php bin/create-admin admin
 
 ### Managing dependencies
 
-The `web` container is built from `Dockerfile` (`php:8.2-apache`), container name `restaurant_web`. `composer.json`/`composer.lock` are bind-mounted, so Composer commands run inside the container and are reflected on the host:
+The `web` container is built from `Dockerfile` (`php:8.2.35-apache`), container name `restaurant_web`. `composer.json`/`composer.lock` are bind-mounted, so Composer commands run inside the container and are reflected on the host:
 
 ```bash
 docker compose exec web composer install
