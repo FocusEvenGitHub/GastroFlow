@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.8.4 (2026-11-01) — Correção de segurança: PHP2Shell
+
+Correção de segurança fora dos milestones — sai como patch a partir da `v1.8.3`, sem nenhum trabalho da v1.9 e sem migração.
+
+### Segurança
+- **PHP atualizado contra o PHP2Shell (CVE-2026-109618 / CVE-2026-109619)**: a imagem passa de `php:8.2-apache` para **`php:8.2.35-apache`**, a versão corrigida. As duas falhas permitem atacar o PHP com uma única requisição sem login, antes de qualquer código do GastroFlow rodar, e Apache com mod_php — exatamente o que a imagem do GastroFlow usa — é o cenário de maior risco. A versão de patch fica fixada no `Dockerfile`, para que uma imagem antiga em cache não continue sendo usada. Como defesa extra, `session.upload_progress.enabled=0` (o GastroFlow não usa sessões PHP) (spec 059)
+- ⚠️ **Para aplicar, é preciso reconstruir a imagem** — só trocar o código não basta: `git fetch --tags`, `git checkout v1.8.4`, `docker compose build --pull web print-worker` e `docker compose up -d`. Confira com `docker compose exec web php -v` (tem que mostrar `8.2.35`). Quem roda sem Docker precisa de PHP 8.2.35+, 8.3.36+, 8.4.27+ ou 8.5.12+; a linha 8.1 não recebe mais correção oficial
+
+### Correções
+- **A imagem volta a construir num clone novo**: o `Dockerfile` copiava `legacy/`, uma pasta vazia que não existe no repositório, e o build falhava. A linha foi removida (mesma correção da spec 062)
+
 ## v1.8.3 (2026-10-03) — Limite de tentativas de login
 
 Item do Backlog sem milestone (o "Authentication hardening" de origem fazia parte do `v1.6.0`, já fechado) — sai como patch, como o trabalho de cliente do `v1.8.x`.

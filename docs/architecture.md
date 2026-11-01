@@ -227,7 +227,7 @@ GastroFlow
 ├── docs/                         # This directory
 ├── .claude/skills/               # /spec-plan and /spec-implement skill definitions
 ├── CLAUDE.md, ROADMAP.md, CHANGELOG.md, COMMIT_CONVENTION.md
-├── Dockerfile                    # php:8.2-apache
+├── Dockerfile                    # php:8.2.35-apache (pinned — spec 059)
 └── docker-compose.yml             # db (MySQL 8.0) + web (container: restaurant_web)
 ```
 
