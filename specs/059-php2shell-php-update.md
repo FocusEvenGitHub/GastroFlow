@@ -6,7 +6,7 @@
 
 - Status: Implemented
 - Created: 2026-10-23
-- Updated: 2026-10-23
+- Updated: 2026-11-01
 - Owner: Henry
 - Related issue: Not applicable (urgent security fix — out of milestone, patch release)
 - Related branch: `059`
@@ -119,3 +119,4 @@ None blocking.
 - Tag exists: Docker Hub API `GET /v2/repositories/library/php/tags/?name=8.2.35-apache` → `8.2.35-apache` (last updated 2026-10-21T21:59:43Z), plus `-bookworm`/`-trixie` variants.
 - Directive valid: `php -d session.upload_progress.enabled=0 -r 'var_dump(ini_get("session.upload_progress.enabled"));'` → `string(1) "0"` (PHP 8.3.6 CLI).
 - Image build: **not run** — Docker Hub blocked from the sandbox (`Forbidden`). AC1–AC4 pending; CI (AC3) runs on the PR.
+- **2026-11-01, released as `v1.8.4` (PR #60, merge `f512d70`, from `v1.8.3`):** `docker build --pull` on a clean tree succeeded; in the image, `php -v` → `PHP 8.2.35`, `php -i` → `session.upload_progress.enabled => Off => Off`; CI run `41358505914` green. `v1.8.3` itself fails that build (`"/legacy": not found`), so the release also removed `COPY legacy/`. Not exercised: `docker compose up` on an existing install.

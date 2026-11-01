@@ -1,6 +1,6 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.8.3
+> **Current version:** v1.8.4
 > **Target:** v2.0.0
 > **Current milestone:** v1.9.0 — Community Productization
 > **Edition:** GastroFlow Community
@@ -1154,6 +1154,14 @@ Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for
 **Status: Released.** Tagged `v1.8.3` (2026-10-03), documented in `CHANGELOG.md`.
 
 - Login throttling: 10 failures / 15 min per client IP + username (30 per IP across usernames) → `429 TOO_MANY_LOGIN_ATTEMPTS` with `Retry-After` for 15 minutes, stored in `login_attempts` (migration 020). Closes the last open item of `v1.6.0`'s "Authentication hardening" (spec 053, `Verified`, PR #37).
+
+---
+
+# v1.8.4 — security follow-up, outside the milestones
+
+**Status: Released.** Tagged `v1.8.4` (2026-11-01), documented in `CHANGELOG.md`. Cut from `v1.8.3` on the `release/1.8.x` branch (PR #60), without the v1.9 work on `master`, so the tag is not in `master`'s history. It predates the release workflow on that branch, so it published no image or GitHub Release.
+
+- PHP pinned to `php:8.2.35-apache` against PHP2Shell (spec 059), and the `COPY legacy/` line that broke the image build on a fresh clone removed (same fix as spec 062).
 
 ---
 

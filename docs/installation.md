@@ -28,7 +28,7 @@ A restaurant runs a **release** (a version tag), never `master`: `master` is the
 
 From `v1.9.0` on, each release also publishes a prebuilt Docker image, `ghcr.io/focusevengithub/gastroflow:<version>` (e.g. `1.9.0`). This guide still builds the image from the checked-out code (step 5), which gives the same result; the published image is there for whoever prefers to pull it (`docker pull` works once the maintainer has made the package public, right after the first release). *(Added 2026-10-31, spec 072.)*
 
-> **Transition (until `v1.9.0` is published):** this guide covers `v1.9.0` and later — the first release with it is cut when the v1.9 milestone closes. The current release, `v1.8.3`, **cannot be installed from scratch** (its image build fails on a fresh clone: `"/legacy": not found`) and has none of these guides. Until `v1.9.0` exists, installing means staying on `master` (skip the `git checkout`) and accepting pre-release code.
+> **Transition (until `v1.9.0` is published):** this guide covers `v1.9.0` and later — the first release with it is cut when the v1.9 milestone closes. The current release, `v1.8.4`, has none of these guides; its image builds on a fresh clone (`v1.8.3`'s does not: `"/legacy": not found`), but its install path was not tested from scratch. Until `v1.9.0` exists, installing means staying on `master` (skip the `git checkout`) and accepting pre-release code.
 
 ## 3. Create `.env` — before any `docker compose` command
 
