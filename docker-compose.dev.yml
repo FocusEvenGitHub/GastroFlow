@@ -52,6 +52,7 @@ services:
       - ./.env:/var/www/html/.env
       - ./vendor:/var/www/html/vendor
       - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
+      - ./docker/php-dev.ini:/usr/local/etc/php/conf.d/zzz-dev.ini:ro
     depends_on:
       - db
     ports:
@@ -81,6 +82,7 @@ services:
       - ./.env:/var/www/html/.env
       - ./vendor:/var/www/html/vendor
       - ./docker/php-timezone.ini:/usr/local/etc/php/conf.d/90-timezone.ini:ro
+      - ./docker/php-dev.ini:/usr/local/etc/php/conf.d/zzz-dev.ini:ro
     depends_on:
       - db
     restart: unless-stopped

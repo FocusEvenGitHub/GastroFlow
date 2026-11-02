@@ -78,6 +78,7 @@ The print queue and the kitchen's realtime events are stored in the database and
 | `APP_ENV` | `production` | `development` |
 | `APP_DEBUG` | `false` | `true` |
 | `COMPOSE_FILE` | unset | `docker-compose.dev.yml` |
+| PHP errors | only in the container logs (`docker compose logs web`) | also on the page (`docker/php-dev.ini`) |
 | Code | inside the image, from a release tag | mounted from the folder |
 
 ## Admin › Configurações

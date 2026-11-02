@@ -76,7 +76,6 @@ Stated so nobody relies on a protection that doesn't exist. Each is tracked for 
 | No HTTPS | Traffic, including Admin passwords, is readable on the network | Same; no open or shared Wi-Fi |
 | `CORS_ALLOWED_ORIGIN` defaults to `*` | Another website opened on a device of the network could call the open API from that browser | Set it to the address the screens use, e.g. `http://192.168.1.10:8080` |
 | Sessions can't be revoked one by one | A leaked Admin session works until it expires (8 h) | Rotate `JWT_SECRET` (above) |
-| PHP's `display_errors` is on in the image | A fatal error that happens before the app starts shows internal file paths in the page, even with `APP_DEBUG=false` | None needed in normal operation; report it if you see one |
 
 ## Reporting a vulnerability
 

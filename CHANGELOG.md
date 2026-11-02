@@ -17,6 +17,7 @@ Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`** — sa
 ## v1.9.0 — Community Productization (em andamento)
 
 ### Segurança
+- **Erros do PHP fora da página**: a imagem não trazia `php.ini`, então um erro fatal aparecia na tela com caminhos internos, mesmo com `APP_DEBUG=false`, e o `/health/ready` respondia 200. Agora `display_errors` fica desligado na imagem: o erro fatal responde **500** sem nenhum texto e a causa vai para `docker compose logs web`. O desenvolvimento continua vendo os erros na tela (`docker/php-dev.ini`; recrie os containers para valer) (spec 073)
 - **MySQL só no próprio servidor**: a porta 3306 passa a ser publicada só em `127.0.0.1` — antes, qualquer aparelho da rede do restaurante alcançava o banco (protegido por senha). O GastroFlow não muda: ele fala com o banco pela rede interna do Docker. Ferramentas no servidor continuam usando `localhost:3306`; um cliente de banco em **outra** máquina deixa de conectar. Vale ao recriar o container (`docker compose up -d`) (spec 062)
 - **Modelo de `.env` seguro por padrão**: `.env.example` passa a vir com `APP_ENV=production` e `APP_DEBUG=false` — antes, quem só preenchia o `JWT_SECRET` rodava com o modo debug, que devolve mensagens internas e stack trace nos erros da API. Quem desenvolve define `development`/`true` no próprio `.env`; um `.env` já existente não muda (spec 062)
 
