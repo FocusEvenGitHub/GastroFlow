@@ -1,15 +1,15 @@
 # Spec 074 — Database password out of PHP stack traces
 
-<!-- Follow-up to spec 073. Security fix: read Open questions before publishing anything about it. -->
+<!-- Follow-up to spec 073. Security fix, published 2026-11-02: v1.8.5 and advisory GHSA-rp7v-47mr-x2wx. -->
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-11-01
 - Updated: 2026-11-02
 - Owner: Henry
 - Related issue: Follow-up to `specs/073-display-errors-off-in-image.md`; Trello card "[Follow-up 073] Senha do banco nos rastros de erro do PHP"
-- Related branch: `release/1.8.5` (PR #63, tag `v1.8.5`) and `ghsa-074-master`; advisory GHSA-rp7v-47mr-x2wx
+- Related branch: `release/1.8.5` (PR #63, tag `v1.8.5`) and `ghsa-074-master` (PR #64); advisory GHSA-rp7v-47mr-x2wx
 
 ## Context
 
@@ -150,10 +150,10 @@ It ships with the next release, by rebuilding the image, as `docs/upgrading.md` 
 
 ## Open questions
 
-1. **Resolved 2026-11-02 by the owner — publication route: private GitHub security advisory**, per `SECURITY.md`, with this spec published after the release. Nothing about this goes to a public branch, PR or issue before then.
+1. **Resolved 2026-11-02 by the owner — publication route: private GitHub security advisory**, per `SECURITY.md`, with this spec published after the release. *(What happened 2026-11-02: the details reached a public branch shortly before the tag; see the Implementation log. The advisory was published at 05:19 UTC, about 20 minutes after PR #63 merged.)*
 2. **Resolved 2026-11-02 by the owner — release `v1.8.5`.** `SECURITY.md` promises security fixes for the latest release, which was `v1.8.4`, and that tag carried neither this fix nor spec 073, whose Non-goals excluded the backport. AC5 confirmed the leak in the HTTP response. `v1.8.5` carries both settings, cut from `release/1.8.x` (PR #63, merged 2026-11-02 05:00 UTC by the owner), with advisory `GHSA-rp7v-47mr-x2wx` telling restaurants to check their logs.
 3. Resolved 2026-11-02 — the password change steps: `ALTER USER`, the matching `.env` edit and recreating the containers work, as measured by AC9 and written in `docs/security.md`.
-4. Non-blocking — GitHub Actions does not run on an advisory's temporary private fork, so the `dry-run` check first runs after the merge, and the `image` job of `release.yml` does not call the script. If a tag is cut right after the merge, consider running the script against the image by hand, or adding the step to the `image` job.
+4. Non-blocking, still open — the `image` job of `release.yml` does not call `image-php-check.sh`, so only pull requests that touch the `Dockerfile`, the workflow or its scripts run the check. Adding the step there would also guard a tagged build.
 
 ## Task checklist
 
@@ -161,12 +161,12 @@ It ships with the next release, by rebuilding the image, as `docs/upgrading.md` 
 - [x] Baselines on `v1.8.4` and on the current image (AC5, AC6)
 - [x] `Dockerfile` setting
 - [x] AC1 to AC4 run
-- [x] CI step, and its regression proven on real Docker (AC7; the CI run is pending)
+- [x] CI step, its regression proven on real Docker, and green on CI (AC7)
 - [x] AC8 and AC11 on the development stack (with the gaps recorded in Validation evidence)
 - [x] Docs pass, `CHANGELOG.md`, correction in spec 073
 - [x] Owner decision on Open question 2
 - [x] `/spec-review`
-- [ ] Published by the chosen route, CI green
+- [x] Published: tag `v1.8.5` and the advisory; PR #64 with CI green, its merge pending the owner
 
 ## Implementation log
 
@@ -226,7 +226,7 @@ bin/jobs-status            exit=255  stdout=[FAKEPASSWORD123, fake_user, createP
 
 **AC6 — met.** Image from before this change (tree identical to `c9c13c7`): `/api/events/stream.php` answers 500 with 0 bytes, and `docker logs` has `createPdoConnection('mysql:host=127....', 'fake_user', 'FAKEPASSWORD123...', Array)`. The three `bin/*` commands have the prefix on stderr.
 
-**AC7 — partly met.** `.github/scripts/image-php-check.sh` exits 0 on the new image and 1 on the old one, with `FAIL` on `zend.exception_ignore_args`, on the password and on the user. That run replayed real output captured from both images through a stand-in `docker` command, because the script cannot reach Docker from the sandbox, so that replay did not exercise its own `docker run` lines. On 2026-11-02 the owner ran the script on real Docker against `gf074-after`: all 7 lines `ok`, no `FAIL`, nothing on stderr (the exit code was not displayed). Against `gf074-before`: `FAIL` on `zend.exception_ignore_args`, on the password and on the user, `exit=1`. Still pending: the job on CI, which will not run on the advisory's private fork (Open question 4).
+**AC7 — met.** `.github/scripts/image-php-check.sh` exits 0 on the new image and 1 on the old one, with `FAIL` on `zend.exception_ignore_args`, on the password and on the user. That run replayed real output captured from both images through a stand-in `docker` command, because the script cannot reach Docker from the sandbox, so that replay did not exercise its own `docker run` lines. On 2026-11-02 the owner ran the script on real Docker against `gf074-after`: all 7 lines `ok`, no `FAIL`, nothing on stderr (the exit code was not displayed). Against `gf074-before`: `FAIL` on `zend.exception_ignore_args`, on the password and on the user, `exit=1`. On PR #64, `dry-run` passed (run 41391851184), with the step `PHP error settings of the image: success`, and `test` passed (run 41391851144), including PHPStan, PHP-CS-Fixer, PHPUnit, the integration tests and Playwright. Only the step results were read, not the test counts.
 
 **AC8 — met.** After `docker compose -f docker-compose.dev.yml up -d --build --no-deps web print-worker` and recreating `web-e2e` (database untouched), all three report `display_errors => STDOUT => STDOUT` and `zend.exception_ignore_args => On => On`.
 
@@ -239,7 +239,7 @@ password=fake_new_pw  503  MIGRATIONS_PENDING   (it connected; the throwaway dat
 
 The SQL was run non-interactively, not typed at the prompt that the doc describes, and with plain `docker`, not the Compose stack. The count's search string matches the old image's captured trace (1 line) and not the new one's (0), checked with `grep -cF` on the captures. It was not run on real logs. After `/spec-review`, the `migrate` service left the main command: `docker compose -f docker-compose.dev.yml logs --tail 0 web print-worker migrate` answered `no such service: migrate`, exit 1, confirming the false `0` it would have caused.
 
-**AC10 — partly met.** The entry is under `v1.9.0` › Segurança, and spec 073 has its correction. If `v1.8.5` is cut (Open question 2), that release needs its own entry.
+**AC10 — met.** The entry is under `v1.9.0` › Segurança, `v1.8.5` has its own dated section on both `release/1.8.x` and PR #64, and spec 073 has its correction.
 
 **AC11 — run, with the known gaps.**
 
@@ -272,4 +272,4 @@ exception_ignore_args='1'
 
 With a throwaway database loaded from that tree's `common/sql` and `bin/migrate` (exit 0), `/health/live`, `/health/ready`, `/api/menu`, `/cashier/`, `/kitchen/` and `/admin/index.php` answer 200 with no PHP error text, and `/api/events/stream.php` answers 200 with its `connected` event. The PHPUnit and Playwright suites were not run on this branch: it changes no PHP, and its `Dockerfile` carries the same settings as this spec's.
 
-`Implemented`, not `Verified`: AC7 waits for the `dry-run` job on CI, and AC10 for the `master` PR.
+`Verified`: every criterion has its evidence above, with these limits on record. AC9's SQL ran non-interactively, outside Compose, and its count ran on captures. In AC11, the 2 upgrade tests and the 5 `printer-block` tests did not exercise the development stack; CI ran those suites and passed. `v1.8.5` has no suite run of its own, as it changes no PHP.
