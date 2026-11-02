@@ -75,11 +75,14 @@ RUN ln -sfn /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime \
 # A imagem não traz php.ini e o padrão do PHP mostra os erros na página, com caminhos
 # internos, mesmo com APP_DEBUG=false (spec 073). Eles passam a ir só para o log do
 # container, e um erro fatal responde 500. O desenvolvimento religa em docker/php-dev.ini.
+# Sem exception_ignore_args, o rastro de um erro traz os argumentos das funções, e numa
+# falha de conexão com o banco isso inclui o usuário e o começo da senha (spec 074).
 RUN printf '%s\n' \
     'session.upload_progress.enabled=0' \
     'display_errors=Off' \
     'display_startup_errors=Off' \
     'log_errors=On' \
+    'zend.exception_ignore_args=On' \
     > /usr/local/etc/php/conf.d/zz-security.ini
 
 # Versão servida em /version (spec 066): a imagem de produção não tem .git, então a

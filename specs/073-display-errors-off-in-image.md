@@ -87,7 +87,7 @@ Not applicable: no data changes.
 
 ## Security considerations
 
-This closes an information leak: internal paths and any value PHP prints in a warning or fatal error no longer reach the response. A warning in a view or API response also stops being written into the page or the JSON. The same messages now go to the logs, which were already restricted to whoever operates the server.
+This closes an information leak: internal paths and any value PHP prints in a warning or fatal error no longer reach the response. A warning in a view or API response also stops being written into the page or the JSON. The same messages now go to the logs, which were already restricted to whoever operates the server. *(Corrected 2026-11-02, spec 074: this was incomplete. Those messages included part of the database password in the trace of a failed connection, so the logs received a partial secret until spec 074 set `zend.exception_ignore_args=On`. Spec 074 also measured that the empty 500 from `/api/events/stream.php` noted in the Implementation log is an unreachable database: the uncaught `QueryException` at `stream.php:49`.)*
 
 ## Backward compatibility
 

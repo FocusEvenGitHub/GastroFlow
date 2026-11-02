@@ -50,6 +50,27 @@ If a password or an Admin device is compromised:
 - Change both `changeme` passwords **before the first start** ([`configuration.md`](configuration.md#database)).
 - **Backups contain everything**: every order, every user's password hash, and — if you copy it, as [`backup-and-restore.md`](backup-and-restore.md) recommends — the `.env`. Store them like the server itself: an encrypted disk or a private cloud folder, not a shared one.
 
+### Database password in older logs
+
+Before spec 074, a failed database connection wrote the database user and the first 15 characters of its password into the PHP error trace. On `v1.8.4` that text also reached the response of `/api/events/stream.php`, which needs no login, while the database was down; older releases are expected to behave the same. The current image no longer records them, but updating does not clean what was already written.
+
+To check, count the affected lines without printing them:
+
+```bash
+docker compose logs web print-worker | grep -cF "createPdoConnection('"
+docker compose exec web grep -cF "createPdoConnection('" logs/app.log
+```
+
+From `v1.9` on, also check the `migrate` service, which older versions don't have: `docker compose logs migrate | grep -cF "createPdoConnection('"`.
+
+Each should print `0`, with no error next to it: if `docker compose` reports an error such as `no such service`, the `grep` still prints `0`, and that count means nothing. A missing `logs/app.log` only means there is nothing to check there. Container logs only last until the container is recreated, so `0` does not prove it never happened. Change the password if a count is above `0`, if you ran `v1.8.4` or older with the network open to people you don't trust, or if those logs were shared:
+
+1. Open MySQL as root: `docker compose exec db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD"'`
+2. Change the password, using your `MYSQL_USER` and a new strong password: `ALTER USER 'your_user'@'%' IDENTIFIED BY 'new_password';`, then `exit`.
+3. Put the same password in `MYSQL_PASSWORD` in `.env`, and run `docker compose up -d`.
+
+The GastroFlow screens lose the connection between steps 2 and 3, so do this with the restaurant closed. Editing `.env` alone is not enough: MySQL only reads that value when the database is first created. Logs that may hold the old password stop mattering once it is changed.
+
 ## Production settings
 
 A restaurant runs with `.env.example`'s defaults:
