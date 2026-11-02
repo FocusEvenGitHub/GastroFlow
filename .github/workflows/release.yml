@@ -20,6 +20,7 @@ on:
       - .github/workflows/release.yml
       - .github/scripts/release-notes.sh
       - .github/scripts/image-tags.sh
+      - .github/scripts/image-php-check.sh
       - Dockerfile
 
 permissions:
@@ -159,3 +160,6 @@ jobs:
           version=$(docker run --rm gastroflow:dry-run cat /var/www/html/VERSION)
           echo "VERSION in the image: $version"
           test "$version" = "v0.0.0-dry-run"
+
+      - name: PHP error settings of the image
+        run: .github/scripts/image-php-check.sh gastroflow:dry-run

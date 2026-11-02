@@ -47,6 +47,7 @@ Every API response carries an `X-Request-Id` header (browser developer tools ›
 | Another device can't open `http://<server-ip>:8080` at all | Firewall, or wrong IP | README › Operating over the LAN › Firewall |
 | An error toast you don't understand, or "Erro do servidor (HTTP 500)." | An error in the server | Admin › Logs, or `logs/app.log`, at that time; with `APP_DEBUG=false` the details are only there |
 | A blank or browser error page, or `/health/ready` answering 500 | PHP failed before GastroFlow started (e.g. a broken image). The cause is never shown on the page | `docker compose logs web` has the `PHP Fatal error` line; rebuild with `docker compose up -d --build` |
+| The logs show `createPdoConnection('…` with text inside the parentheses | The log was written by an image from before spec 074 and may hold part of the database password. Today's image writes `createPdoConnection()` | Don't share that log. Follow [`security.md`](security.md#database-password-in-older-logs) |
 
 ## Admin
 
