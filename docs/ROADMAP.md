@@ -1,6 +1,6 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.8.4
+> **Current version:** v1.8.5
 > **Target:** v2.0.0
 > **Current milestone:** v1.9.0 — Community Productization
 > **Edition:** GastroFlow Community
@@ -1162,6 +1162,14 @@ Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for
 **Status: Released.** Tagged `v1.8.4` (2026-11-01), documented in `CHANGELOG.md`. Cut from `v1.8.3` on the `release/1.8.x` branch, without the v1.9 work on `master`.
 
 - PHP pinned to `php:8.2.35-apache` against PHP2Shell (spec 059), and the `COPY legacy/` line that broke the image build on a fresh clone removed (same fix as spec 062).
+
+---
+
+# v1.8.5 — security follow-up, outside the milestones
+
+**Status: Released.** Tagged `v1.8.5` (2026-11-02), documented in `CHANGELOG.md`. Cut from `v1.8.4` on the `release/1.8.x` branch, without the v1.9 work on `master`.
+
+- PHP errors out of the response and argument values out of stack traces (specs 073 and 074, advisory GHSA-rp7v-47mr-x2wx): a failed database connection exposed the database user and the first 15 characters of its password.
 
 ---
 

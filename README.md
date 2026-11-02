@@ -119,7 +119,7 @@ Full request lifecycle, the annotated project-structure tree, and the current li
 - **Specs before non-trivial code.** Features, fixes and improvements go through a spec file under [`specs/`](specs/) — problem, proposed behavior, acceptance criteria, then an implementation log and validation evidence as work happens. `specs/000-project-baseline.md` is a code-verified snapshot of the whole system, written before any feature spec.
 - **A defined lifecycle**, not just a folder of markdown: `Draft → Approved → In Progress → Implemented → Verified` (or `Cancelled`), per [`specs/README.md`](specs/README.md). `Verified` requires recorded evidence tied to acceptance criteria — it isn't granted on trust.
 - **Persistent, written project rules.** [`CLAUDE.md`](CLAUDE.md) documents the confirmed stack, the actual code layering, the commands that really exist, and explicit security rules — a checked-in artifact, not tribal knowledge.
-- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.8.4`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
+- **Conventional commit history and tagged releases.** Every commit follows a documented type/scope/emoji convention ([`COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)); each release gets an annotated Git tag (`v1.0.0` … `v1.8.5`) and a [`CHANGELOG.md`](CHANGELOG.md) entry.
 
 ```mermaid
 flowchart LR
@@ -233,6 +233,10 @@ Full detail for all of the above in [`CHANGELOG.md`](CHANGELOG.md).
 **`v1.8.4`** (security follow-up, outside the roadmap milestones; tagged 2026-11-01)
 
 - **PHP2Shell** (spec 059): the image is pinned to `php:8.2.35-apache`. Rebuild it to apply: `docker compose build --pull web print-worker`, then `docker compose up -d`.
+
+**`v1.8.5`** (security follow-up, outside the roadmap milestones; tagged 2026-11-02)
+
+- **Database password out of error output** (specs 073 and 074): PHP errors no longer reach the response, and stack traces no longer carry argument values. Rebuild the image to apply: `docker compose up -d --build`. After updating, follow [the advisory](https://github.com/FocusEvenGitHub/GastroFlow/security/advisories/GHSA-rp7v-47mr-x2wx) to check your logs.
 
 **Future ideas** (`docs/ROADMAP.md`'s `v1.9.0 — Community Productization`)
 

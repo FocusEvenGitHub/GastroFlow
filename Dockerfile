@@ -53,6 +53,17 @@ RUN ln -sfn /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime \
 
 # Defesa em profundidade contra o CVE-2026-109619 (spec 059): o GastroFlow não usa
 # sessões PHP (auth é JWT), então o upload progress de sessão só aumenta a superfície.
-RUN echo 'session.upload_progress.enabled=0' > /usr/local/etc/php/conf.d/zz-security.ini
+# A imagem não traz php.ini e o padrão do PHP mostra os erros na página, com caminhos
+# internos, mesmo com APP_DEBUG=false. Eles passam a ir só para o log do container, e um
+# erro fatal responde 500 (spec 073). Sem exception_ignore_args, o rastro de um erro traz os
+# argumentos das funções, e numa falha de conexão com o banco isso inclui o usuário e o
+# começo da senha (spec 074).
+RUN printf '%s\n' \
+    'session.upload_progress.enabled=0' \
+    'display_errors=Off' \
+    'display_startup_errors=Off' \
+    'log_errors=On' \
+    'zend.exception_ignore_args=On' \
+    > /usr/local/etc/php/conf.d/zz-security.ini
 
 EXPOSE 80
