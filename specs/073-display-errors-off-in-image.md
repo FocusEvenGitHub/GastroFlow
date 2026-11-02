@@ -139,7 +139,7 @@ None blocking.
 - [x] Docs pass and `CHANGELOG.md`
 - [x] PHPUnit and Playwright (with the gaps recorded in Validation evidence)
 - [x] `/spec-review`
-- [ ] PR and CI
+- [x] PR and CI (PR #62)
 
 ## Implementation log
 
@@ -191,7 +191,7 @@ log_errors => Off => Off
 
 **AC7 — met.** The row is gone from `docs/security.md`, and `docs/troubleshooting.md` describes the new symptom.
 
-**AC8 — pending:** the PR does not exist yet.
+**AC8 — met.** PR #62: `test` passed (run 41371991200, every step `success`, including PHPStan, PHP-CS-Fixer, PHPUnit and Playwright) and `dry-run` passed (run 41371991293, which builds the `Dockerfile`).
 
 **AC9 — partly met.**
 
@@ -199,4 +199,6 @@ log_errors => Off => Off
 - PHPStan: `[OK] No errors`.
 - Playwright (`mcr.microsoft.com/playwright:v1.63.0-noble`, port 8081): `40 passed, 5 failed`. All 5 are in `printer-block.spec.ts` with `Error: spawnSync docker ENOENT`: the test calls `docker` from inside the Playwright container, where it does not exist, as recorded in spec 070. So those 5 did not exercise the screens here.
 
-`Implemented`, not `Verified`: AC8 waits for CI and AC9 has the two gaps above.
+- In the CI of PR #62, the integration and Playwright steps passed, with `MYSQL_DATABASE_TEST_UPGRADE` set by the workflow. That run uses `setup-php`, without the image or `docker/php-dev.ini`, so it covers those tests but not on the development stack that AC9 names. Only the step results were read: the job log answered HTTP 403, so the test counts were not seen.
+
+`Implemented`, not `Verified`: AC9 still has those two gaps on the development stack.
