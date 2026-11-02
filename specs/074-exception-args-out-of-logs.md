@@ -9,7 +9,7 @@
 - Updated: 2026-11-02
 - Owner: Henry
 - Related issue: Follow-up to `specs/073-display-errors-off-in-image.md`; Trello card "[Follow-up 073] Senha do banco nos rastros de erro do PHP"
-- Related branch: None on the public repository; published through a private GitHub security advisory (Open question 1)
+- Related branch: `release/1.8.5` (PR #63, tag `v1.8.5`) and `ghsa-074-master`; advisory GHSA-rp7v-47mr-x2wx
 
 ## Context
 
@@ -151,7 +151,7 @@ It ships with the next release, by rebuilding the image, as `docs/upgrading.md` 
 ## Open questions
 
 1. **Resolved 2026-11-02 by the owner — publication route: private GitHub security advisory**, per `SECURITY.md`, with this spec published after the release. Nothing about this goes to a public branch, PR or issue before then.
-2. **Resolved 2026-11-02 by the owner — release `v1.8.5`.** `SECURITY.md` promises security fixes for the latest release, which was `v1.8.4`, and that tag carried neither this fix nor spec 073, whose Non-goals excluded the backport. AC5 confirmed the leak in the HTTP response. `v1.8.5` carries both settings, cut from `release/1.8.x`, with advisory `GHSA-rp7v-47mr-x2wx` telling restaurants to check their logs.
+2. **Resolved 2026-11-02 by the owner — release `v1.8.5`.** `SECURITY.md` promises security fixes for the latest release, which was `v1.8.4`, and that tag carried neither this fix nor spec 073, whose Non-goals excluded the backport. AC5 confirmed the leak in the HTTP response. `v1.8.5` carries both settings, cut from `release/1.8.x` (PR #63, merged 2026-11-02 05:00 UTC by the owner), with advisory `GHSA-rp7v-47mr-x2wx` telling restaurants to check their logs.
 3. Resolved 2026-11-02 — the password change steps: `ALTER USER`, the matching `.env` edit and recreating the containers work, as measured by AC9 and written in `docs/security.md`.
 4. Non-blocking — GitHub Actions does not run on an advisory's temporary private fork, so the `dry-run` check first runs after the merge, and the `image` job of `release.yml` does not call the script. If a tag is cut right after the merge, consider running the script against the image by hand, or adding the step to the `image` job.
 
@@ -177,6 +177,7 @@ It ships with the next release, by rebuilding the image, as `docs/upgrading.md` 
 - 2026-11-02: the log check in `docs/security.md` searches for `createPdoConnection('`, with the quote, not for the function name as the spec's wording could suggest: the name stays in today's traces (FR3), so it would count fixed logs too.
 - 2026-11-02: `print-worker` is on the check's list because `bin/worker` also dies on a connection failure (AC4), and each attempt writes the trace to the container logs, so a database outage may have left the prefix there.
 - 2026-11-02: first `/spec-review` found no blocker in the code. Applied from it: the log check named `migrate`, which `v1.8.4` and the development compose lack, so the command would report `no such service` and `grep` would still print `0`, a false all-clear; "up to `v1.8.4`" in the docs claimed more than was measured; stale text in this spec; and AC12 added for a promise with no evidence. AC12 then corrected this spec's own table about `APP_DEBUG`.
+- 2026-11-02: release order, and a deviation from Open question 1. `release/1.8.5` reached the public repository before its PR existed, and creating the PR was then refused twice by the session's permission check, so the details in that branch were public before the tag. The PR text was rewritten without the details, the owner reviewed and merged PR #63, and the tag was created through the GitHub API on the merge commit (`a0cfd80`), as `git fetch` has no network in the sandbox. The advisory's temporary fork carries both branches, but the public PRs did the shipping: GitHub Actions does not run on that fork.
 - 2026-11-02: docs pass: `docs/architecture.md`, `docs/technical-decisions.md`, `specs/000-project-baseline.md` and `README.md` assert nothing about trace contents, so they did not change.
 
 ## Validation evidence

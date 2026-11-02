@@ -55,6 +55,14 @@ Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`** — sa
 ### Infraestrutura / Qualidade
 - **Release automático a partir da tag**: empurrar uma tag de versão (`v1.9.0`) agora faz o resto sozinho, e só se cada passo anterior passar: roda todos os testes no commit da tag; confere que o `CHANGELOG.md` tem a seção daquela versão **com data** (sem ela, nada é publicado); constrói a imagem Docker e publica em `ghcr.io/focusevengithub/gastroflow` como `1.9.0`, `1.9` e `1` (uma correção numa versão antiga nunca puxa o `1` para trás; versões candidatas, como `2.0.0-rc.1`, só com a tag exata; não existe `latest`); e cria o release no GitHub com a seção do CHANGELOG como notas. A instalação e a atualização continuam construindo a imagem a partir do código, como antes — a imagem publicada é uma opção a mais. O passo a passo de release em `docs/COMMIT_CONVENTION.md` foi reescrito: o anterior falava em branch `main` e em decidir a versão pelos commits, nada disso usado aqui (spec 072)
 
+## v1.8.5 (2026-11-02) — Correção de segurança: senha do banco nos rastros de erro
+
+Correção de segurança fora dos milestones — sai como patch a partir da `v1.8.4`, sem nenhum trabalho da v1.9 e sem migração. Advisory: [GHSA-rp7v-47mr-x2wx](https://github.com/FocusEvenGitHub/GastroFlow/security/advisories/GHSA-rp7v-47mr-x2wx).
+
+### Segurança
+- **Senha do banco fora das respostas e dos rastros de erro**: quando a conexão com o banco falhava, o rastro do erro do PHP trazia o usuário e os 15 primeiros caracteres da senha do banco. Na v1.8.4, esse texto aparecia na resposta de `/api/events/stream.php`, que não pede login, enquanto o banco estivesse fora do ar (versões anteriores devem se comportar igual), e na saída do `bin/worker` e dos outros comandos. Agora a imagem não mostra erros do PHP na resposta: um erro fatal responde **500** sem texto e a causa vai para `docker compose logs`. Os rastros também não trazem mais os valores dos argumentos (specs 073 e 074)
+- ⚠️ **Para aplicar, é preciso reconstruir a imagem**: `git fetch --tags`, `git checkout v1.8.5`, `docker compose up -d --build`. Confira com `docker compose exec web php -i | grep exception_ignore_args` (tem que mostrar `On`). Isso não limpa o que já foi gravado nos logs nem invalida uma senha já lida: siga o passo a passo do advisory para conferir os logs e, se preciso, trocar a senha do banco
+
 ## v1.8.4 (2026-11-01) — Correção de segurança: PHP2Shell
 
 Correção de segurança fora dos milestones. Sai como patch a partir da `v1.8.3`, no branch `release/1.8.x` (PR #60), sem nenhum trabalho da v1.9 e sem migração. Esta tag não está no histórico do `master`; a mesma correção já está nele.

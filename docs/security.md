@@ -52,7 +52,7 @@ If a password or an Admin device is compromised:
 
 ### Database password in older logs
 
-Before spec 074, a failed database connection wrote the database user and the first 15 characters of its password into the PHP error trace. On `v1.8.4` that text also reached the response of `/api/events/stream.php`, which needs no login, while the database was down; older releases are expected to behave the same. The current image no longer records them, but updating does not clean what was already written.
+Before spec 074, a failed database connection wrote the database user and the first 15 characters of its password into the PHP error trace. On `v1.8.4` that text also reached the response of `/api/events/stream.php`, which needs no login, while the database was down; older releases are expected to behave the same. `v1.8.5` fixed it ([advisory](https://github.com/FocusEvenGitHub/GastroFlow/security/advisories/GHSA-rp7v-47mr-x2wx)). The current image no longer records them, but updating does not clean what was already written.
 
 To check, count the affected lines without printing them:
 
