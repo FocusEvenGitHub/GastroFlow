@@ -16,7 +16,8 @@ docker compose logs --tail=50 web          # or db, migrate, print-worker
 | `{"success":true,"status":"ready"}` | App and database fine — the problem is elsewhere (network, printer, browser) |
 | 503 `DB_UNAVAILABLE` | The app can't reach MySQL: `docker compose logs db` |
 | 503 `MIGRATIONS_PENDING` | An upgrade is half done: [`upgrading.md` › Troubleshooting](upgrading.md#troubleshooting) |
-| No answer | `web` is down: `docker compose ps`, `docker compose logs web` |
+| Nothing printed, no error from `curl` (HTTP 500 with an empty body) | PHP failed before GastroFlow started: `docker compose logs web` has the `PHP Fatal error` line |
+| No answer (`curl` reports it can't connect) | `web` is down: `docker compose ps`, `docker compose logs web` |
 
 The application log — errors, failed prints, logins — is in **Admin › Logs** (admin users), or on the server:
 
@@ -45,7 +46,7 @@ Every API response carries an `X-Request-Id` header (browser developer tools ›
 | Kitchen stops showing new orders but says "Conectado" | The live update stream stalled while the server stayed up (known issue) | Reload the kitchen page (F5) |
 | Another device can't open `http://<server-ip>:8080` at all | Firewall, or wrong IP | README › Operating over the LAN › Firewall |
 | An error toast you don't understand, or "Erro do servidor (HTTP 500)." | An error in the server | Admin › Logs, or `logs/app.log`, at that time; with `APP_DEBUG=false` the details are only there |
-| The page shows `Fatal error: …` with file paths | PHP failed before GastroFlow started (e.g. a broken image) | `docker compose logs web`; rebuild with `docker compose up -d --build` |
+| A blank or browser error page, or `/health/ready` answering 500 | PHP failed before GastroFlow started (e.g. a broken image). The cause is never shown on the page | `docker compose logs web` has the `PHP Fatal error` line; rebuild with `docker compose up -d --build` |
 
 ## Admin
 
