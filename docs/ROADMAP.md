@@ -1159,7 +1159,7 @@ Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for
 
 # v1.8.4 — security follow-up, outside the milestones
 
-**Status: Released.** Tagged `v1.8.4` (2026-11-01), documented in `CHANGELOG.md`. Cut from `v1.8.3` on the `release/1.8.x` branch (PR #60), without the v1.9 work on `master`, so the tag is not in `master`'s history. It predates the release workflow on that branch, so it published no image or GitHub Release.
+**Status: Released.** Tagged `v1.8.4` (2026-11-01), documented in `CHANGELOG.md`. Cut from `v1.8.3` on the `release/1.8.x` branch (PR #60), without the v1.9 work on `master`, so the tag is not in `master`'s history. It predates the release workflow on that branch, so it published no image. *(Corrected 2026-11-02: this also said it published no GitHub Release, but one exists, created by hand.)*
 
 - PHP pinned to `php:8.2.35-apache` against PHP2Shell (spec 059), and the `COPY legacy/` line that broke the image build on a fresh clone removed (same fix as spec 062).
 
@@ -1167,7 +1167,7 @@ Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for
 
 # v1.8.5 — security follow-up, outside the milestones
 
-**Status: Released.** Tagged `v1.8.5` (2026-11-02), documented in `CHANGELOG.md`. Cut from `v1.8.4` on the `release/1.8.x` branch (PR #63), without the v1.9 work on `master`, so the tag is not in `master`'s history. Like `v1.8.4`, it published no image or GitHub Release, because the release workflow is not on that branch.
+**Status: Released.** Tagged `v1.8.5` (2026-11-02), documented in `CHANGELOG.md`. Cut from `v1.8.4` on the `release/1.8.x` branch (PR #63), without the v1.9 work on `master`, so the tag is not in `master`'s history. Like `v1.8.4`, it published no image, because the release workflow is not on that branch, and its GitHub Release was created by hand. *(Corrected 2026-11-02: this first said it published no GitHub Release.)*
 
 - PHP errors out of the response and argument values out of stack traces (specs 073 and 074, advisory GHSA-rp7v-47mr-x2wx): a failed database connection exposed the database user and the first 15 characters of its password.
 
