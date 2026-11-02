@@ -166,7 +166,7 @@ It ships with the next release, by rebuilding the image, as `docs/upgrading.md` 
 - [x] Docs pass, `CHANGELOG.md`, correction in spec 073
 - [x] Owner decision on Open question 2
 - [x] `/spec-review`
-- [x] Published: tag `v1.8.5` and the advisory; PR #64 with CI green, its merge pending the owner
+- [x] Published: tag `v1.8.5`, its GitHub Release and the advisory; PR #64 merged (`d71516f`), CI green
 
 ## Implementation log
 
@@ -178,6 +178,7 @@ It ships with the next release, by rebuilding the image, as `docs/upgrading.md` 
 - 2026-11-02: `print-worker` is on the check's list because `bin/worker` also dies on a connection failure (AC4), and each attempt writes the trace to the container logs, so a database outage may have left the prefix there.
 - 2026-11-02: first `/spec-review` found no blocker in the code. Applied from it: the log check named `migrate`, which `v1.8.4` and the development compose lack, so the command would report `no such service` and `grep` would still print `0`, a false all-clear; "up to `v1.8.4`" in the docs claimed more than was measured; stale text in this spec; and AC12 added for a promise with no evidence. AC12 then corrected this spec's own table about `APP_DEBUG`.
 - 2026-11-02: release order, and a deviation from Open question 1. `release/1.8.5` reached the public repository before its PR existed, and creating the PR was then refused twice by the session's permission check, so the details in that branch were public before the tag. The PR text was rewritten without the details, the owner reviewed and merged PR #63, and the tag was created through the GitHub API on the merge commit (`a0cfd80`), as `git fetch` has no network in the sandbox. The advisory's temporary fork carries both branches, but the public PRs did the shipping: GitHub Actions does not run on that fork.
+- 2026-11-02: the GitHub Release of `v1.8.5` was created by hand at 05:34 UTC, after the owner asked about it. It should have followed the tag: the plan copied from `docs/ROADMAP.md` that `v1.8.4` had no Release, which was false, so until then the Releases page marked `v1.8.4` as Latest, after the advisory was already public.
 - 2026-11-02: docs pass: `docs/architecture.md`, `docs/technical-decisions.md`, `specs/000-project-baseline.md` and `README.md` assert nothing about trace contents, so they did not change.
 
 ## Validation evidence
