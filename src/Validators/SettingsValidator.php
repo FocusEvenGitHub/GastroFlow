@@ -68,6 +68,14 @@ class SettingsValidator
             }, 'discount_max_percent')->message('O desconto máximo deve ser um número de 0 a 100');
         }
 
+        // "Imprimir a logo no cupom" (spec 075): só '1' ou '0' — outro valor contaria como
+        // ligado em PrintService::logoEnabled() e esconderia um erro do cliente.
+        if (array_key_exists('print_logo', $settings)) {
+            $this->v->rule('required', 'print_logo');
+            // strict: sem ele o Valitron compara com ==, e ' 1' == '1' no PHP 8.
+            $this->v->rule('in', 'print_logo', ['0', '1'], true)->message('print_logo deve ser "0" ou "1"');
+        }
+
         return $this->v->validate();
     }
 

@@ -5,7 +5,9 @@ function settingsApp() {
             printer_ip: '',
             printer_port: '9100',
             // Desconto máximo por item, em % (spec 058). 0 desativa.
-            discount_max_percent: '100'
+            discount_max_percent: '100',
+            // "Imprimir a logo no cupom" (spec 075). Sem a linha no banco = ligado.
+            print_logo: true
         },
         // Vem do servidor (spec 066): a logo enviada fica em /uploads, a padrão em /assets/img.
         logoUrl: '',
@@ -27,6 +29,7 @@ function settingsApp() {
                     this.form.printer_ip = data.settings.printer_ip || '';
                     this.form.printer_port = data.settings.printer_port || '9100';
                     this.form.discount_max_percent = data.settings.discount_max_percent ?? '100';
+                    this.form.print_logo = data.settings.print_logo !== '0';
                 }
                 this.logoProblem = (data && data.logo_problem) || '';
                 // Date.now() fura o cache do navegador depois de um upload.
@@ -49,7 +52,8 @@ function settingsApp() {
                             printer_ip: this.form.printer_ip,
                             printer_port: this.form.printer_port,
                             // Aceita vírgula ("12,5"); o servidor só aceita ponto.
-                            discount_max_percent: String(this.form.discount_max_percent ?? '').trim().replace(',', '.')
+                            discount_max_percent: String(this.form.discount_max_percent ?? '').trim().replace(',', '.'),
+                            print_logo: this.form.print_logo ? '1' : '0'
                         }
                     }
                 });

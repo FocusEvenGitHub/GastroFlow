@@ -60,6 +60,29 @@ class PrintingTest extends IntegrationTestCase
         $this->assertArrayHasKey('settings', $body);
     }
 
+    /** Spec 075 — the logo switch goes through PUT validation and comes back in GET. */
+    public function testLogoSwitchIsValidatedAndSaved(): void
+    {
+        $previous = Setting::getValue('print_logo');
+        $admin = $this->authHeader('admin');
+        try {
+            $bad = $this->request('PUT', '/api/admin/settings', ['settings' => ['print_logo' => 'yes']], $admin);
+            $this->assertSame(400, $bad->getStatusCode());
+
+            $ok = $this->request('PUT', '/api/admin/settings', ['settings' => ['print_logo' => '0']], $admin);
+            $this->assertSame(200, $ok->getStatusCode());
+            $body = $this->decode($this->request('GET', '/api/admin/settings', null, $admin));
+            $this->assertSame('0', $body['settings']['print_logo']);
+        } finally {
+            // settings is reference data, not cleared between tests.
+            if ($previous === null) {
+                Db::table('settings')->where('key', 'print_logo')->delete();
+            } else {
+                Setting::setValue('print_logo', $previous);
+            }
+        }
+    }
+
     /** AC6 — the message is operator-facing, so it must carry no internals. */
     public function testTestPrintErrorLeaksNoInternals(): void
     {

@@ -49,7 +49,16 @@ $extraHead = '<style>
                                 </div>
                             </template>
                         </div>
-                        <div x-show="logoProblem" x-cloak class="alert alert-warning small py-2 mb-2">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="printLogo"
+                                   x-model="form.print_logo">
+                            <label class="form-check-label" for="printLogo">Imprimir a logo no cupom</label>
+                        </div>
+                        <!-- div, não small.d-block: o !important do d-block venceria o x-show -->
+                        <div class="small text-muted mb-2" x-show="!form.print_logo" x-cloak>
+                            O cupom sai só com o nome do restaurante. A logo continua guardada.
+                        </div>
+                        <div x-show="logoProblem && form.print_logo" x-cloak class="alert alert-warning small py-2 mb-2">
                             <i class="fas fa-exclamation-triangle me-1"></i>
                             Esta logo não sai no cupom: <span x-text="logoProblem"></span>
                         </div>

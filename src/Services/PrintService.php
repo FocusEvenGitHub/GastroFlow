@@ -130,6 +130,15 @@ class PrintService
     }
 
     /**
+     * Chave "Imprimir a logo no cupom" (spec 075). Só '0' desliga: sem a linha em settings
+     * (toda instalação anterior) a logo continua saindo, como antes.
+     */
+    public function logoEnabled(): bool
+    {
+        return Setting::getValue('print_logo') !== '0';
+    }
+
+    /**
      * Why the current logo won't print, or null when it will (or there is none) —
      * shown next to the logo in Admin › Configurações (spec 065).
      */
@@ -344,7 +353,7 @@ class PrintService
 
         // Logo
         $logoPath = $this->settings->getLogoPath();
-        if (file_exists($logoPath)) {
+        if ($this->logoEnabled() && file_exists($logoPath)) {
             try {
                 $logo = $this->loadLogo($logoPath);
                 $printer->bitImage($logo);
@@ -396,9 +405,9 @@ class PrintService
         $printer->selectPrintMode();
         $printer->feed();
 
-        // Logo (if exists)
+        // Logo (if exists and not switched off — spec 075)
         $logoPath = $this->settings->getLogoPath();
-        if (file_exists($logoPath)) {
+        if ($this->logoEnabled() && file_exists($logoPath)) {
             try {
                 $logo = $this->loadLogo($logoPath);
                 $printer->bitImage($logo);
