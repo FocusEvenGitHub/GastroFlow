@@ -122,7 +122,7 @@ None.
 - [x] Browser check
 - [x] Docs pass and `CHANGELOG.md`
 - [x] `/spec-review`
-- [ ] PR and CI
+- [x] PR and CI (PR #66)
 - [ ] Test print on the client's printer
 
 ## Implementation log
@@ -138,7 +138,7 @@ None.
 - **AC1, AC2 — met.** `docker compose -f docker-compose.dev.yml exec -T web vendor/bin/phpunit --testsuite Unit`: `OK (245 tests, 508 assertions)`.
 - **AC3 — met.** `… -e MYSQL_DATABASE_TEST=restaurant_test web vendor/bin/phpunit --testsuite Integration`: `Tests: 75, Assertions: 328, Skipped: 2`. The 2 skipped are `MigrationUpgradeTest`, the missing grant on this machine recorded in spec 073; CI runs them.
 - **AC4 — met.** Playwright against `http://localhost:8080/admin/settings.php`, every `/api/` request mocked: `print_logo: '0'` → switch off, hint visible, logo warning hidden; switch on → hint hidden, warning visible; the two saves sent `"0"` and `"1"`; no `print_logo` key → switch on.
-- **AC5 — partly met.** PHPStan `[OK] No errors`; PHP-CS-Fixer `Found 0 of 117 files that can be fixed`; Smoke `OK (5 tests, 10 assertions)`; the whole `phpunit` run (all three suites, `MYSQL_DATABASE_TEST=restaurant_test`) exited 0. After the `symfony/filesystem` update: `composer validate --strict` valid, `composer audit` "No security vulnerability advisories found", PHP-CS-Fixer and PHPStan clean again, `phpunit` `Tests: 325, Assertions: 846, Skipped: 2`. CI pending until the second run.
+- **AC5 — met.** PHPStan `[OK] No errors`; PHP-CS-Fixer `Found 0 of 117 files that can be fixed`; Smoke `OK (5 tests, 10 assertions)`; the whole `phpunit` run (all three suites, `MYSQL_DATABASE_TEST=restaurant_test`) exited 0. After the `symfony/filesystem` update: `composer validate --strict` valid, `composer audit` "No security vulnerability advisories found", PHP-CS-Fixer and PHPStan clean again, `phpunit` `Tests: 325, Assertions: 846, Skipped: 2`. PR #66: the first `test` run (42384117028) failed at `composer audit`; the second, after the update, passed (run 42384535093, 2m1s). Only the check results were read, not the job log.
 - **AC6 — pending.** Needs the client's printer.
 
-`Implemented`, not `Verified`: AC5's CI and AC6 are still open.
+`Implemented`, not `Verified`: AC6 is still open.
