@@ -97,4 +97,17 @@ class SettingsValidatorTest extends TestCase
             $this->assertFalse($validator->validate(['discount_max_percent' => $bad]), $bad);
         }
     }
+
+    /** Spec 075 — print_logo accepts only '0' and '1'. */
+    public function testPrintLogo(): void
+    {
+        $validator = new SettingsValidator();
+
+        foreach (['0', '1'] as $ok) {
+            $this->assertTrue($validator->validate(['print_logo' => $ok]), $ok);
+        }
+        foreach (['', 'true', 'yes', '2', ' 1', null] as $bad) {
+            $this->assertFalse($validator->validate(['print_logo' => $bad]), var_export($bad, true));
+        }
+    }
 }

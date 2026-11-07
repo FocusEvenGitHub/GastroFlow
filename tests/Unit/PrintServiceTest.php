@@ -488,6 +488,36 @@ class PrintServiceTest extends TestCase
         $this->assertStringContainsString("\x1dv0\x00\x30\x00", $data);
     }
 
+    /**
+     * Spec 075 — print_logo='0' leaves the logo off both the ticket and the test page; no row
+     * (every install before 075) and '1' keep it on.
+     */
+    public function testLogoSwitchTurnsTheLogoOffTicketAndTestPage(): void
+    {
+        if (!extension_loaded('gd')) {
+            $this->markTestSkipped('GD not loaded.');
+        }
+        $settings = $this->settingsWithLogo($this->imageBytes('imagepng'));
+        $connector = new CapturingPrintConnector();
+        $service = new PrintService($this->makeLogger(), $settings, new PricingService(), fn () => $connector);
+
+        $this->assertTrue($service->logoEnabled(), 'no row = on');
+        $this->assertStringContainsString("\x1dv0", $this->printWith($settings));
+
+        Setting::setValue('print_logo', '0');
+        $this->assertFalse($service->logoEnabled());
+        $ticket = $this->printWith($settings);
+        $this->assertStringNotContainsString("\x1dv0", $ticket);
+        $this->assertStringContainsString('Senha: 5', $ticket);
+
+        $service->printTestPage();
+        $this->assertStringNotContainsString("\x1dv0", $connector->data);
+        $this->assertStringContainsString('TESTE DE IMPRESS', $connector->data);
+
+        Setting::setValue('print_logo', '1');
+        $this->assertStringContainsString("\x1dv0", $this->printWith($settings));
+    }
+
     /** Spec 065, AC5 — an unreadable logo is reported, and the ticket still prints without it. */
     public function testUnreadableLogoIsReportedAndTheTicketStillPrints(): void
     {

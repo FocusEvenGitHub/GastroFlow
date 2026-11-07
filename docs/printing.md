@@ -41,6 +41,8 @@ If it fails, the screen says why — e.g. `IP da impressora não configurado`, o
 
 Upload it in Admin › Configurações › **Logo**. GastroFlow converts it to PNG on upload and refuses a file it cannot read. If a logo is on disk but cannot be printed, a yellow warning under the logo says **"Esta logo não sai no cupom"** and why — the ticket still prints, without the logo.
 
+To print without any logo, turn off **"Imprimir a logo no cupom"** under the logo and save: the ticket and the test page come out with the restaurant name only, and the logo stays stored for when you turn it back on (spec 075).
+
 Until you upload one, the ticket carries the GastroFlow logo. The uploaded logo is stored in `public/uploads/` — a Docker volume in production — so it survives upgrades (spec 066; before v1.9 it overwrote the GastroFlow logo in the code folder, see [upgrading](upgrading.md#first-upgrade-to-v19)).
 
 ## 3. How printing works

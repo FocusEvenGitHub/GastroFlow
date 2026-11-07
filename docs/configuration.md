@@ -91,6 +91,7 @@ Only users with the `admin` role see this page. **Salvar Configurações** saves
 |---|---|---|
 | Nome do Restaurante | `GastroFlow` | Up to 100 characters. Printed at the top of the ticket. |
 | Logo | GastroFlow's logo | PNG, JPG or WebP, square (1:1). Always stored as PNG in the server's `uploads` volume — keep it in your backups ([`backup-and-restore.md`](backup-and-restore.md)). Printed at the top of the ticket. |
+| Imprimir a logo no cupom | On | Off: the ticket and the test page print without the logo; the logo stays stored. Saved as `print_logo` (`1`/`0`); an install that never saved it counts as on (spec 075). |
 
 ### Impressão Térmica
 
