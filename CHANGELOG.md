@@ -15,6 +15,9 @@ Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`** — sa
 - **Busca de adicionais no Monte Seu Prato**: o modal ganha no topo o campo "Buscar adicional…". Digitando parte do nome (sem precisar de acento), aparecem só os adicionais que batem, agrupados como na grade (Proteínas, Grãos, Molhos…) e com o preço; escolher um soma +1 nele, como o "+" do cartão, e o campo volta vazio para a próxima busca. A grade com −/+ continua igual, e o limite de 10 por adicional vale também pela busca. Usa o Tom Select que o Admin já usa e o GastroFlow já serve localmente: nenhuma biblioteca nova, funciona sem internet. No tema escuro, o campo com foco, os cabeçalhos de grupo e a opção destacada do Tom Select ficam legíveis (antes ficavam brancos ou com texto escuro sobre fundo escuro); o ajuste está no CSS comum e vale também para o campo de adicionais do Admin. O `style.css` e o selo de versão passam a ser carregados com a marca de versão (`?v=`) nas três telas, como os scripts já eram: depois de uma atualização, o navegador não fica mais com a aparência antiga em cache (spec 070)
 - **Cupom sem logo**: em Admin › Configurações, logo abaixo da logo, a chave **"Imprimir a logo no cupom"**. Desligada, o cupom e a página de teste saem só com o nome do restaurante; a logo continua guardada para quando a chave for ligada de novo. Vem ligada, então nada muda para quem não mexer nela. Com a chave desligada, o aviso "Esta logo não sai no cupom" deixa de aparecer, porque não se aplica (spec 075)
 
+### Manutenção
+- **`symfony/filesystem` 7.4.18 → 7.4.23**, por causa do aviso de segurança GHSA-6prc-h956-hxjq (2026-11-04), que fazia o `composer audit` do CI falhar. É dependência só de desenvolvimento (vem do PHP-CS-Fixer): não vai para a imagem nem afeta o GastroFlow em uso (spec 075)
+
 ## v1.9.0 — Community Productization (em andamento)
 
 ### Segurança

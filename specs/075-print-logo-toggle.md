@@ -130,6 +130,7 @@ None.
 - 2026-11-07: redone from the Trello card's description; the original commit `5027c0e` was not found on this machine or on GitHub.
 - 2026-11-07: the validator's first version used Valitron's `in` without `strict`, and AC2 caught `' 1'` passing (`' 1' == '1'` in PHP 8). Now strict.
 - 2026-11-07: the browser check caught the "off" hint staying visible with the switch on: Bootstrap's `d-block` is `!important` and beat Alpine's `x-show`. The hint is now a plain `div`.
+- 2026-11-07: the PR's first CI run failed at `composer audit`, not on this change: advisory GHSA-6prc-h956-hxjq (2026-11-04) affects `symfony/filesystem` v7.4.18, a dev-only dependency of `friendsofphp/php-cs-fixer`, so `master` fails the same way. With the owner's approval, `composer update symfony/filesystem` moved the lock to v7.4.23 in this PR. The lock's `plugin-api-version` also changed, because the container's Composer is newer than the one that last wrote it.
 - 2026-11-07: `/spec-review` found no blocker; its one finding, the `Smoke` suite not run, was fixed by running it (Validation evidence, AC5).
 
 ## Validation evidence
@@ -137,7 +138,7 @@ None.
 - **AC1, AC2 — met.** `docker compose -f docker-compose.dev.yml exec -T web vendor/bin/phpunit --testsuite Unit`: `OK (245 tests, 508 assertions)`.
 - **AC3 — met.** `… -e MYSQL_DATABASE_TEST=restaurant_test web vendor/bin/phpunit --testsuite Integration`: `Tests: 75, Assertions: 328, Skipped: 2`. The 2 skipped are `MigrationUpgradeTest`, the missing grant on this machine recorded in spec 073; CI runs them.
 - **AC4 — met.** Playwright against `http://localhost:8080/admin/settings.php`, every `/api/` request mocked: `print_logo: '0'` → switch off, hint visible, logo warning hidden; switch on → hint hidden, warning visible; the two saves sent `"0"` and `"1"`; no `print_logo` key → switch on.
-- **AC5 — partly met.** PHPStan `[OK] No errors`; PHP-CS-Fixer `Found 0 of 117 files that can be fixed`; Smoke `OK (5 tests, 10 assertions)`; the whole `phpunit` run (all three suites, `MYSQL_DATABASE_TEST=restaurant_test`) exited 0. CI pending until the PR.
+- **AC5 — partly met.** PHPStan `[OK] No errors`; PHP-CS-Fixer `Found 0 of 117 files that can be fixed`; Smoke `OK (5 tests, 10 assertions)`; the whole `phpunit` run (all three suites, `MYSQL_DATABASE_TEST=restaurant_test`) exited 0. After the `symfony/filesystem` update: `composer validate --strict` valid, `composer audit` "No security vulnerability advisories found", PHP-CS-Fixer and PHPStan clean again, `phpunit` `Tests: 325, Assertions: 846, Skipped: 2`. CI pending until the second run.
 - **AC6 — pending.** Needs the client's printer.
 
 `Implemented`, not `Verified`: AC5's CI and AC6 are still open.
