@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Approved
+- Status: Implemented
 - Created: 2026-08-19
 - Updated: 2026-08-19
 - Owner: Henry (via Claude Code)
@@ -57,3 +57,5 @@ No automated test suite exists in this project. The live app was not tested with
   - With `$_ENV["JWT_SECRET"] = "abc123"`: `OK with set var: abc123`
 - Live end-to-end request against the running app (real `.env` has `JWT_SECRET` set): `curl http://localhost:8080/api/menu` → `200 OK`, confirming the changed line doesn't break the normal (secret-present) path.
 - The genuinely-missing-env-var path through the full `App::get()` bootstrap and Slim's error middleware was not exercised live (would require unsetting `JWT_SECRET` in the real `.env`, which is blocked). The isolated expression test above exercises the identical code, and `App.php`'s global error handler (unconditionally catches `\Throwable` → JSON 500) was confirmed by reading `src/App.php:53-93` during planning, not re-tested here since it's pre-existing, unmodified infrastructure.
+
+*(Status corrected 2026-11-10, spec 080: the change shipped in `v1.5.6`, so `Approved` was out of date. It stays `Implemented`: the spec has no acceptance criteria section, and the full-bootstrap "unset" path was never run live. Found while checking this: an **empty** value is not caught. `$_ENV['JWT_SECRET'] ?? throw …` (`src/Routes.php:33`) only throws when the key is missing, and `.env.example` ships `JWT_SECRET=` empty. Measured in `restaurant_web_e2e` with `$_ENV['JWT_SECRET'] = ''` and the real `App` bootstrap: `GET /health/ready` → 200, `GET /api/menu` → 200, `GET /api/admin/settings` with a bogus token → 401 `TOKEN_INVALID`. php-jwt v7.1.0 refuses the empty key (`JWT::encode` → `DomainException: Provided key is too short`; `new Key('')` → `InvalidArgumentException`), so nothing can be signed with a known key. But the app does not fail at start the way `docs/configuration.md` says. Tracked as a separate Backlog card; no code changed here.)*

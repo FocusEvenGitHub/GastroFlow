@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-11-09
 - Updated: 2026-11-09
 - Owner: Henry
@@ -94,7 +94,7 @@ Uma instalação que copiou `CORS_ALLOWED_ORIGIN=*` do `.env.example` antigo con
 - [x] `tests/Unit/CorsMiddlewareTest.php`
 - [x] `.env.example`, `docs/configuration.md`, `docs/security.md`, `docs/architecture.md`, `docs/upgrading.md`
 - [x] `CHANGELOG.md` (Não lançado › Correções)
-- [ ] CI do PR verde
+- [x] CI do PR verde
 
 ## Open questions
 
@@ -111,3 +111,4 @@ Nenhuma.
 - 2026-11-09, `vendor/bin/phpunit` → `OK, but some tests were skipped! Tests: 347, Assertions: 567, Skipped: 78` (integração pulada sem `MYSQL_DATABASE_TEST`).
 - 2026-11-09, `git grep -n CORS_ALLOWED_ORIGIN` → só `.env.example:25` (`CORS_ALLOWED_ORIGIN=` vazio), `src/App.php:76` (padrão `''`) e as notas datadas da spec 079 em `docs/configuration.md`, `docs/security.md`, `docs/architecture.md` e `docs/upgrading.md`; nenhum outro fallback para `*` (AC 4). Achado do `/spec-review`.
 - 2026-11-09, `vendor/bin/phpstan analyse` → `[OK] No errors`; `vendor/bin/php-cs-fixer fix --dry-run --diff` → `Found 0 of 119 files that can be fixed` (AC 5).
+- 2026-11-10 (registrado na spec 080): CI do PR #73 verde — run `42749064096` (`test` success); merge `18775d7`. Todos os ACs com evidência → `Verified`.

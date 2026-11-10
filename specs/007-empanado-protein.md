@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Approved
+- Status: Implemented
 - Created: 2026-08-30
 - Updated: 2026-08-30
 - Owner: GastroFlow
@@ -190,3 +190,5 @@ AND c.name IN ('Filé de Frango','Filé de Carne');
 No automated migration-test infrastructure exists; verified manually via SQL.
 The kitchen endpoint `/api/kitchen/food-summary` groups by food_category, so
 these items now appear under "Proteínas".
+
+*(Status corrected 2026-11-10, spec 080: the migration shipped, so `Approved` was out of date. AC 1–6 have SQL/runner evidence above. AC 7 (kitchen food-summary groups the items under `protein`) is inferred from the endpoint's grouping, not observed, so the status is `Implemented`, not `Verified`.)*

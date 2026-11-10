@@ -284,7 +284,7 @@ production
 
 Production defaults must never silently enable insecure development behavior.
 
-**Status (spec 011)**: Implemented — `APP_ENV`/`APP_DEBUG`/`APP_TIMEZONE` are now read via `Settings`, documented in `.env.example`; application timezone is configurable without editing Docker/OS config.
+**Status (spec 011)**: Implemented — `APP_ENV`/`APP_DEBUG`/`APP_TIMEZONE` are now read via `Settings`, documented in `.env.example`; application timezone is configurable without editing Docker/OS config. *(Updated 2026-11-10, spec 080: `Verified` — its last open criterion, the `.env.example` read-back, now has evidence.)*
 
 ---
 
