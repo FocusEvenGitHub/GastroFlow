@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-11-09
 - Updated: 2026-11-09
 - Owner: Henry
@@ -161,7 +161,7 @@ Só testes e docs. Rollback: reverter o commit. Nada a implantar.
 - [x] AC1/AC2 — 5 runs verdes com medição
 - [x] AC3 — prova negativa
 - [x] AC4 — skip sem variável
-- [ ] AC5 — PHPStan e php-cs-fixer locais feitos; **falta o CI do PR**
+- [x] AC5 — PHPStan e php-cs-fixer locais; CI do PR #71 verde
 - [x] AC6 — CHANGELOG e architecture.md
 
 ## Implementation log
@@ -209,6 +209,6 @@ Tests: 1, Assertions: 12, Failures: 1.
 - `docker compose exec -e MYSQL_DATABASE_TEST=restaurant_test web vendor/bin/phpunit --testsuite Integration` → `OK, but some tests were skipped! Tests: 78, Assertions: 348, Skipped: 2.` (os 2 pulados não são deste teste).
 - `docker compose exec web vendor/bin/phpstan analyse --no-progress` → `[OK] No errors` (não cobre `tests/`, ver Implementation log).
 - `docker compose exec web vendor/bin/php-cs-fixer fix --dry-run --diff` → `Found 0 of 119 files that can be fixed`.
-- **CI do PR: ainda não rodou** (sem PR aberto). Por isso o status é `Implemented`, não `Verified`.
+- **CI do PR #71** (run 42737373055, job 129569787991, 2026-11-10 01:40 UTC): todos os passos verdes (`gh pr checks 71` → `test pass 1m43s`). No passo "Integration tests (PHPUnit, MySQL)": `OK (78 tests, 364 assertions)` e a medição `[spec077] jobs=200 workers=4 per-worker=[48,50,50,52] seconds=[0.763,0.772,0.762,0.766] retries={"1213":1,"40001":0,"1205":0,"other":0} operations={"claim":1}` — o deadlock real também reproduziu no CI e foi recuperado. Com isso o status passa a `Verified`.
 
 **AC6** — `CHANGELOG.md`: entrada em "Não lançado › Qualidade" e correção datada nas duas linhas de lacuna do v1.8.0; `docs/architecture.md` › Known architectural limitations: nota datada com a medição. Conferidos sem mudança necessária: `README.md`, `docs/technical-decisions.md`, `specs/000-project-baseline.md` (nenhum afirmava algo sobre carga com vários workers).

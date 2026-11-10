@@ -17,7 +17,7 @@ This skill is narrower and more targeted than the generic bundled security-revie
 | JwtMiddleware | `src/Middleware/JwtMiddleware.php` |
 | Routes | `src/Routes.php` |
 | SQL / migrations | `common/sql/001_schema.sql`, `common/migrations/*.sql`, `src/Database/MigrationRunner.php`; any raw/string-built SQL or `DB::raw` calls in Controllers/Services/Repositories |
-| Input validation | `src/Validators/OrderValidator.php` (Valitron), and any controller handling user input **without** one (`MenuController`, `IngredientController`, `DishController`, `AdminController`, ...) |
+| Input validation | `src/Validators/OrderValidator.php` (Valitron), and any controller handling user input **without** one (`MenuController`, `IngredientController`, `AdminController`, ...) |
 | Authentication | `src/Controllers/AuthController.php`, `POST /api/login`, JWT issuance via `firebase/php-jwt`, `password_verify()` |
 | Authorization | the `role` claim in the JWT, and whether anything downstream of `JwtMiddleware` actually checks it — `JwtMiddleware` validates the *token*, not necessarily the *role*; confirm whether role-based access control exists at all |
 | Secrets | `.env` / `.env.*` (never read their contents), the known hardcoded JWT fallback at `src/Routes.php:19`, and any other hardcoded credentials/keys/tokens anywhere in `src/`, `public/`, `common/` |

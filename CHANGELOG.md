@@ -8,6 +8,9 @@
 ### Qualidade
 - **Fila testada com vários workers ao mesmo tempo**: um teste de integração novo cria 200 jobs e põe 4 workers, em processos separados, para esvaziar a fila juntos contra MySQL real. Ele confere, pelo registro do próprio handler, que cada job rodou **exatamente uma vez**, e que os 200 terminaram concluídos na primeira tentativa. Em 7 runs locais (2026-11-09), cada run teve de 1 a 3 **deadlocks reais** do MySQL (`1213`), no claim e na gravação do resultado, todos recuperados pelo retry da spec 037; o erro `1205` (lock wait timeout) não apareceu. Roda no CI junto com a suíte de integração (spec 077)
 
+### Manutenção
+- **Código morto removido**: `common/config.php` e `common/db.php`, uma conexão PDO antiga sem nenhum uso desde que a pasta `legacy/` foi apagada (julho de 2026), que ainda ia para a imagem de produção com usuário e senha padrão fixos no código; e o `DishController`, que não tinha rota e nem funcionaria se tivesse (usava uma relação de ingredientes que o cardápio não tem — a edição de pratos é a do Admin › Cardápio). Nada muda para quem usa o GastroFlow (spec 078)
+
 ## v1.8.6 (2026-11-09) — Desconto por item, busca de adicionais e cupom sem logo
 
 Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`** — sai como patch, como o `v1.8.x`.
