@@ -73,7 +73,7 @@ class App
 
         // Middleware
         $app->add(new Middleware\JsonBodyParserMiddleware());
-        $app->add(new Middleware\CorsMiddleware($this->settings->get('CORS_ALLOWED_ORIGIN', '*')));
+        $app->add(new Middleware\CorsMiddleware(trim((string) $this->settings->get('CORS_ALLOWED_ORIGIN', ''))));
         // Added last among these three (still inside the error middleware below) so it's
         // outermost of the three — Slim's middleware stack is last-in-first-out (spec 042).
         // No scalar constructor args, so a class-string lets Slim resolve it via the

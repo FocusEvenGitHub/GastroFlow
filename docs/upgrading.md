@@ -73,6 +73,8 @@ git diff <old-version> vX.Y.Z -- .env.example
 
 and add or adjust the new variables in `.env` by hand. Never copy `.env.example` over `.env` — it would wipe your passwords and `JWT_SECRET`.
 
+Installs made before spec 079 have `CORS_ALLOWED_ORIGIN=*` in `.env`, copied from the old `.env.example`. Change it to `CORS_ALLOWED_ORIGIN=` (empty) unless a page on another origin really calls the API: `*` lets any website opened on a device of the network call it. *(Added 2026-11-09, spec 079.)*
+
 ## 5. Build and switch
 
 ```bash
