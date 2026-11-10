@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-10-31
 - Updated: 2026-10-31
 - Owner: Henry (FocusEven)
@@ -244,3 +244,9 @@ Release-PR simulation: a copy of `CHANGELOG.md` with the heading renamed to `## 
 **AC9** — `specs/071-security-contributing-support.md`: Status `Verified`; AC7 (GraphQL: `isSecurityPolicyEnabled: true`, the two `contactLinks`) and AC10 (PR #58 CI run `41226824001`, merge `a5c4668`) recorded.
 
 Other local checks: `bash -n` on both scripts → ok; `git diff --check` → clean; no CRLF in the new scripts/workflows; `core.fileMode=true` and the scripts are `755`, so they are committed `100755`.
+
+**Post-merge evidence (2026-11-10, recorded by spec 080; independently re-checked):**
+- **AC3** — PR run `41229109777` (`release.yml`, `pull_request`, branch `072`): `dry-run` success; `test`, `notes`, `image`, `release` skipped, so nothing was published. The next GitHub Release after that run is `v1.8.4` (2026-11-01), from its own tag.
+- **AC4** — `CI` run `41229109729` on the same PR (`pull_request`): success.
+- **AC8** — tag `v1.9.0` → run `42730071128` on `9049ec2` (the tag's commit): `test / test`, `notes`, `image`, `release` success, `dry-run` skipped. `docker buildx imagetools inspect ghcr.io/focusevengithub/gastroflow:{1.9.0,1.9,1}` → the same index digest `sha256:bf2e1605…390f53` for all three. `docker run --rm ghcr.io/focusevengithub/gastroflow:1.9.0 cat /var/www/html/VERSION` → `v1.9.0`. `gh release view v1.9.0 --json body` diffed against `.github/scripts/release-notes.sh v1.9.0` run on `git show v1.9.0:CHANGELOG.md` → identical except one trailing newline added by `gh`/`jq`.
+- Every AC has evidence → `Verified`.

@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Approved
+- Status: Verified
 - Created: 2026-08-30
 - Updated: 2026-08-30
 - Owner: GastroFlow
@@ -238,3 +238,5 @@ Salada, Molhos, Arroz Branco, Fritas Individual, Fritas com Anel Cebola)
 
 All acceptance criteria satisfied. No automated test infrastructure exists for
 migrations; verification was manual via SQL queries and runner output.
+
+*(Status corrected 2026-11-10, spec 080: the spec still said `Approved`, but the evidence above, recorded at implementation time, covers AC 1–5 and ends with "All acceptance criteria satisfied". Status raised to `Verified` on that recorded evidence; nothing was re-run. Since spec 061 a fresh install no longer gets this menu; existing installs keep it.)*

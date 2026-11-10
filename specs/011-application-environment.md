@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-09-03
 - Updated: 2026-09-03
 - Owner: Henry
@@ -182,3 +182,4 @@ No migration, no container/dependency change (`vlucas/phpdotenv` is already inst
 - Acceptance criterion 9 — `git status --short` after all changes: only `src/Settings.php`, `.env.example`, and `.claude/settings.json` (the permission exception, not application behavior) are touched by this spec; `CORS_ALLOWED_ORIGIN`/`JWT_SECRET` code paths (`src/App.php`, `src/Routes.php`) are untouched. **Confirmed.**
 - `docker compose exec web php -l src/Settings.php` → `No syntax errors detected`.
 - **Not validated**: the settings.json permission exception for `.env.example` itself (Read/Write/Edit tool access) — the stale-cache behavior noted above means it could not be proven to work within this session; it should take effect after a restart, per the same mechanism documented for the Artifact tool's hooks watcher, but this was not observed directly.
+- **2026-11-10, recorded by spec 080 — Acceptance criterion 7, read back:** `grep -o '^[A-Z_]*=' .env.example` → `DB_HOST MYSQL_ROOT_PASSWORD MYSQL_DATABASE MYSQL_USER MYSQL_PASSWORD JWT_SECRET CORS_ALLOWED_ORIGIN APP_ENV APP_DEBUG APP_TIMEZONE` plus three added later by other specs (`QUEUE_RESERVATION_TIMEOUT`, `QUEUE_RETENTION_DAYS`, `EVENTS_RETENTION_DAYS`) — the seven named in Current behavior plus the three this spec added. Values are placeholders: `MYSQL_ROOT_PASSWORD=changeme`, `MYSQL_PASSWORD=changeme`, `JWT_SECRET=` empty. **Confirmed.** Every criterion now has evidence → `Verified`.

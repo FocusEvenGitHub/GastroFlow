@@ -10,6 +10,7 @@
 - **Fila testada com vários workers ao mesmo tempo**: um teste de integração novo cria 200 jobs e põe 4 workers, em processos separados, para esvaziar a fila juntos contra MySQL real. Ele confere, pelo registro do próprio handler, que cada job rodou **exatamente uma vez**, e que os 200 terminaram concluídos na primeira tentativa. Em 7 runs locais (2026-11-09), cada run teve de 1 a 3 **deadlocks reais** do MySQL (`1213`), no claim e na gravação do resultado, todos recuperados pelo retry da spec 037; o erro `1205` (lock wait timeout) não apareceu. Roda no CI junto com a suíte de integração (spec 077)
 
 ### Manutenção
+- **Documentação e status das specs conferidos com o código**: `docs/architecture.md` passa a contar 12 services, 5 middlewares, 12 models e 23 migrations (dizia 8, 4, 9 e 21), e uma lacuna antiga do CHANGELOG que dizia que o `OrderService` nunca usava o `PrintService` foi marcada como fechada (a spec 039 passou a usá-lo). As specs 059, 072, 079, 011 e 006 passam a `Verified` com evidência conferida agora ou já registrada (a 072 com a publicação real da `v1.9.0`: imagem no GHCR com as tags `1.9.0`, `1.9` e `1` e notas iguais ao CHANGELOG); as 002 e 007, que ainda diziam `Approved`, passam a `Implemented`. As demais continuam como estão, com o motivo listado na spec. Nada muda para quem usa o GastroFlow (spec 080)
 - **Código morto removido**: `common/config.php` e `common/db.php`, uma conexão PDO antiga sem nenhum uso desde que a pasta `legacy/` foi apagada (julho de 2026), que ainda ia para a imagem de produção com usuário e senha padrão fixos no código; e o `DishController`, que não tinha rota e nem funcionaria se tivesse (usava uma relação de ingredientes que o cardápio não tem — a edição de pratos é a do Admin › Cardápio). Nada muda para quem usa o GastroFlow (spec 078)
 
 ## v1.8.6 (2026-11-09) — Desconto por item, busca de adicionais e cupom sem logo
@@ -212,7 +213,7 @@ Milestone `v1.8.0` do `ROADMAP.md`, concluído. Todos os itens têm uma seção 
 - ~~Concorrência entre workers sem teste~~ — **fechada** pela spec 035, que a testou e no caminho descobriu o defeito corrigido pela spec 037
 - O deadlock **não reproduz mais**, então o caminho de retry da spec 037 é exercitado por simulação, não pelo MySQL. O código de erro `1205` (lock wait timeout) está na lista de retry mas nunca foi observado *(Correção 2026-11-09, spec 077: com 4 workers drenando 200 jobs o deadlock `1213` reproduz de novo, 1 a 3 vezes por run, e o retry o recupera no MySQL real; o `1205` continua nunca observado)*
 - Operação com **múltiplos workers em paralelo** não foi testada sob carga; o Community roda um `print-worker` *(Correção 2026-11-09: **fechada** pela spec 077 — 200 jobs, 4 workers, cada handler executado uma única vez)*
-- `OrderService::$printService` é injetado e nunca lido — achado real do PHPStan, deixado na baseline porque removê-lo muda assinatura de construtor, fora do escopo da spec 034
+- `OrderService::$printService` é injetado e nunca lido — achado real do PHPStan, deixado na baseline porque removê-lo muda assinatura de construtor, fora do escopo da spec 034 *(Correção 2026-11-10, spec 080: **fechada** pela spec 039 — `OrderService` passou a ler `printService->isPrintingBlocked()` ao criar e ao reimprimir pedidos)*
 
 ## v1.7.1 (2026-09-19) — Monte Seu Prato, cozinha e relatórios
 

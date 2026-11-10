@@ -4,7 +4,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-10-23
 - Updated: 2026-11-01
 - Owner: Henry
@@ -107,7 +107,7 @@ None blocking.
 
 - [x] 1. Pin base image + security ini
 - [x] 2. Docs + CHANGELOG
-- [ ] 3. Rebuild and validate (AC1–AC4) — pending a machine with Docker Hub access
+- [x] 3. Rebuild and validate (AC1–AC4) — done at the `v1.8.4` release and on 2026-11-10 (spec 080), see Validation evidence
 
 ## Implementation log
 
@@ -120,3 +120,4 @@ None blocking.
 - Directive valid: `php -d session.upload_progress.enabled=0 -r 'var_dump(ini_get("session.upload_progress.enabled"));'` → `string(1) "0"` (PHP 8.3.6 CLI).
 - Image build: **not run** — Docker Hub blocked from the sandbox (`Forbidden`). AC1–AC4 pending; CI (AC3) runs on the PR.
 - **2026-11-01, released as `v1.8.4` (PR #60, merge `f512d70`, from `v1.8.3`):** `docker build --pull` on a clean tree succeeded; in the image, `php -v` → `PHP 8.2.35`, `php -i` → `session.upload_progress.enabled => Off => Off`; CI run `41358505914` green. `v1.8.3` itself fails that build (`"/legacy": not found`), so the release also removed `COPY legacy/`. Not exercised: `docker compose up` on an existing install.
+- **2026-11-10, recorded by spec 080:** AC1/AC2 re-checked on the published image: `docker run --rm ghcr.io/focusevengithub/gastroflow:1.9.0 sh -c 'php -v; php -i | grep upload_progress.enabled'` → `PHP 8.2.35 (cli)`, `session.upload_progress.enabled => Off => Off`. AC4, on `restaurant_web_e2e` (image `gastroflow-web`, built from the current `Dockerfile`; `php -v` → `PHP 8.2.35`, `upload_progress` Off; database `restaurant_test`): `/cashier/`, `/kitchen/`, `/admin/` → `200`; `POST /api/orders` with `{"customer_name":"spec 059 AC4","print_ticket":false,"items":[{"id":25,"quantity":1}]}` → `{"success":true,"id":763,"message":"Order created"}`. AC3 is the `v1.8.4` CI run above. Every AC has evidence → `Verified`.
