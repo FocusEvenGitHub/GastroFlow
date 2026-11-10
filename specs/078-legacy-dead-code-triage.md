@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-11-09
 - Updated: 2026-11-09
 - Owner: Henry
@@ -129,7 +129,7 @@ Entra na próxima tag, sem passo de operação. Rollback: reverter o commit.
 - [x] AC1–AC6 rodados
 - [x] Docs pass + CHANGELOG
 - [x] Stash da spec 077 aplicado
-- [ ] AC7 — CI do PR
+- [x] AC7 — CI do PR #72 verde
 
 ## Implementation log
 
@@ -156,7 +156,7 @@ Todos os comandos rodados em 2026-11-09 contra o stack de desenvolvimento.
 | AC4 | `docker compose exec web php -r 'require "vendor/autoload.php"; var_dump(class_exists("App\\Controllers\\DishController"));'` | `bool(false)` |
 | AC5 | `git grep -n "common/config.php\|common/db.php\|getPDO\|DishController" -- . ':!specs/0[0-6]*' ':!specs/07[0-6]*'` | só `CHANGELOG.md:12` (entrada nova), `docs/architecture.md:81,83,201` e `docs/technical-decisions.md:33` (as notas datadas desta spec), além da própria spec 078 |
 | AC6 | `docker compose exec web curl -s -o /dev/null -w "%{http_code}" http://localhost/api/admin/dishes/1`, antes e depois | `404` e `404` |
-| AC7 | CI do PR | **ainda não rodou** — por isso `Implemented` |
+| AC7 | `gh pr checks 72` (run 42741439949, job 129583195524, 2026-11-10 02:15 UTC) | `test pass 2m1s`, GitGuardian pass. Passos: PHPStan `[OK] No errors`; PHP-CS-Fixer `Found 0 of 118 files` (eram 119 — saiu o `DishController`); Unit `OK (266 tests, 560 assertions)`; Integration `OK (78 tests, 364 assertions)`; Playwright `42 passed`, `6 skipped` |
 | AC8 | revisão do diff | `CLAUDE.md`, `docs/architecture.md`, `docs/technical-decisions.md`, `specs/000-project-baseline.md` (linhas 48, 50, 55, 56, 192), `.claude/skills/security-review/SKILL.md`, `CHANGELOG.md` |
 | AC5 (complemento) | `git grep -n "DishController" -- specs/000-project-baseline.md` | as 3 ocorrências (linhas 48, 50, 55) estão em linhas com nota datada da spec 078 |
 
