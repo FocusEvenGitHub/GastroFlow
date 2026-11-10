@@ -422,7 +422,8 @@
                         <div class="edit-order-fields row g-3">
                             <div class="col-sm-5">
                                 <label class="form-label small fw-bold mb-1">Senha</label>
-                                <input type="text" class="form-control" x-model="editingOrder.order_number">
+                                <input type="text" class="form-control" x-model="editingOrder.order_number" inputmode="numeric" pattern="[1-9][0-9]{0,6}" maxlength="7"
+                                       @input="editingOrder.order_number = $event.target.value = $event.target.value.replace(/\D/g, '')">
                             </div>
                             <div class="col-sm-7">
                                 <label class="form-label small fw-bold mb-1">Cliente</label>

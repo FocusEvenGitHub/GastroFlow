@@ -1106,7 +1106,10 @@ components:
             mesa física. Opcional: se omitido, o servidor aloca o próximo
             número disponível para o dia de operação atual, de forma
             concorrência-segura. Se informado manualmente, deve ser único
-            para o dia (uma colisão retorna 409).
+            para o dia (uma colisão retorna 409) e ser um inteiro positivo de
+            até 7 dígitos, sem zero à esquerda (`^[1-9][0-9]{0,6}$`); outro
+            valor retorna 400 (spec 076).
+          pattern: '^[1-9][0-9]{0,6}$'
           example: "5"
         customer_name:
           type: string

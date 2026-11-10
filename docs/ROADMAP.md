@@ -607,6 +607,8 @@ An invalid menu item must never silently become a zero-price item.
 
 **Status (spec 022)**: Verified — orders with no items, a nonexistent/unavailable menu item, invalid quantity, or an invalid dining option are rejected before persistence. **Known gap, not covered by spec 022**: `order_number` (the manually-typed "Senha") only enforces `lengthMax: 50` — it accepts any string (`"ABC"`, `"999-TESTE"`), even though the cashier UI and the printed/kitchen-facing ticket assume a plain number. Tighten `OrderValidator` to a numeric-only rule and constrain the cashier's `<input type="text" id="orderNumber">` (`public/cashier/index.php`) accordingly — small, self-contained fix, deferred rather than bundled here.
 
+**Status (2026-11-09): gap closed — spec 076.** `order_number`, when sent, must match `^[1-9][0-9]{0,6}$` on create and update (400 otherwise); the cashier and kitchen inputs accept digits only, and the kitchen omits `order_number` from its PATCH when unchanged, so orders saved earlier with a non-numeric senha stay editable. Existing rows are not rewritten.
+
 ---
 
 ## API error standardization

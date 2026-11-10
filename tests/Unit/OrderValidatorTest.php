@@ -268,4 +268,61 @@ class OrderValidatorTest extends TestCase
 
         $this->assertFalse($result);
     }
+
+    public static function invalidOrderNumbers(): array
+    {
+        return [
+            'letters' => ['ABC'],
+            'mixed' => ['999-TESTE'],
+            'leading zero' => ['07'],
+            'zero' => ['0'],
+            'negative' => ['-5'],
+            'decimal' => ['4.2'],
+            'leading space' => [' 42'],
+            'trailing newline' => ["42\n"],
+            'eight digits' => ['12345678'],
+            'array' => [['42']],
+            'float' => [4.2],
+        ];
+    }
+
+    public static function validOrderNumbers(): array
+    {
+        return [
+            'one' => ['1'],
+            'string' => ['42'],
+            'json integer' => [42],
+            'seven digits' => ['9999999'],
+        ];
+    }
+
+    #[DataProvider('invalidOrderNumbers')]
+    public function testNonNumericOrderNumberIsRejectedOnCreateAndUpdate(mixed $orderNumber): void
+    {
+        $validator = new OrderValidator();
+
+        $this->assertFalse($validator->validateOrderData([
+            'order_number' => $orderNumber,
+            'items' => [['id' => 1, 'quantity' => 1]],
+        ]));
+        $this->assertArrayHasKey('order_number', $validator->errors());
+        $this->assertFalse($validator->validateOrderUpdate(['order_number' => $orderNumber]));
+    }
+
+    #[DataProvider('validOrderNumbers')]
+    public function testNumericOrderNumberIsAcceptedOnCreateAndUpdate(mixed $orderNumber): void
+    {
+        $validator = new OrderValidator();
+
+        $this->assertTrue($validator->validateOrderData([
+            'order_number' => $orderNumber,
+            'items' => [['id' => 1, 'quantity' => 1]],
+        ]));
+        $this->assertTrue($validator->validateOrderUpdate(['order_number' => $orderNumber]));
+    }
+
+    public function testUpdateWithoutOrderNumberIsAccepted(): void
+    {
+        $this->assertTrue((new OrderValidator())->validateOrderUpdate(['customer_name' => 'Ana']));
+    }
 }

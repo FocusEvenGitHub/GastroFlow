@@ -1,5 +1,10 @@
 # Changelog
 
+## Não lançado
+
+### Correções
+- **Senha só com números**: o "Número da Senha" do caixa e o campo "Senha" do "Editar Pedido" da cozinha aceitam só dígitos (o teclado numérico abre no celular/tablet). O servidor também recusa, com 400, uma senha que não seja um inteiro positivo de até 7 dígitos sem zero à esquerda — antes, `ABC`, `999-TESTE` ou `07` eram aceitos e saíam no cupom, e `07` e `7` podiam ser duas senhas diferentes no mesmo dia. Pedidos antigos com senha fora desse formato continuam como estão e podem ser editados normalmente: a cozinha só manda a senha quando ela é alterada (spec 076)
+
 ## v1.8.6 (2026-11-09) — Desconto por item, busca de adicionais e cupom sem logo
 
 Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`** — sai como patch, como o `v1.8.x`.

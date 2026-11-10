@@ -327,6 +327,7 @@ function kitchenApp() {
             // Cópia profunda: edições só afetam o servidor ao salvar/remover explicitamente.
             const copy = JSON.parse(JSON.stringify(order));
             copy.items.forEach(item => this.prepareDiscount(item));
+            copy.originalOrderNumber = order.order_number;
             this.editingOrder = copy;
             this.newItemId = '';
             this.newItemQty = 1;
@@ -469,13 +470,13 @@ function kitchenApp() {
             }
             this.savingOrder = true;
             try {
-                await GF.api(`/api/orders/${this.editingOrder.id}`, {
-                    method: 'PATCH',
-                    json: {
-                        order_number: this.editingOrder.order_number,
-                        customer_name: this.editingOrder.customer_name
-                    }
-                });
+                const orderJson = { customer_name: this.editingOrder.customer_name };
+                // Só manda a senha quando ela mudou (spec 076): um pedido antigo com senha
+                // não numérica continua editável.
+                if (this.editingOrder.order_number !== this.editingOrder.originalOrderNumber) {
+                    orderJson.order_number = this.editingOrder.order_number;
+                }
+                await GF.api(`/api/orders/${this.editingOrder.id}`, { method: 'PATCH', json: orderJson });
 
                 for (const item of this.editingOrder.items) {
                     const json = { quantity: item.quantity, notes: item.notes, dining_option: item.dining_option };
