@@ -2,6 +2,9 @@
 
 ## Não lançado
 
+### Segurança
+- **Segredos fora do histórico de auditoria**: ao salvar as configurações, o histórico (Admin › Auditoria) só guarda o valor antigo e o novo dos campos de Admin › Configurações (nome do restaurante, IP e porta da impressora, desconto máximo, logo no cupom). Qualquer outra configuração aparece como alterada, mas com `[REDACTED]` no lugar dos valores. O histórico nunca é apagado, então isso precisava existir antes das configurações fiscais da v2.1 (senha do certificado, CSC): sem a regra, o segredo ficaria gravado ali para sempre na primeira alteração. Nada muda nas telas de hoje (spec 081)
+
 ### Correções
 - **CORS fechado por padrão**: com `CORS_ALLOWED_ORIGIN` vazio ou ausente, a API não manda mais `Access-Control-Allow-Origin: *`, e outro site aberto num aparelho da rede deixa de conseguir chamá-la pelo navegador. As telas do GastroFlow não mudam: são servidas pelo próprio GastroFlow e não usam CORS. O `.env.example` passa a trazer a variável vazia. Um valor explícito continua valendo, `*` inclusive: **quem já tem `CORS_ALLOWED_ORIGIN=*` no `.env` (copiado do exemplo antigo) deve esvaziar a linha**, como explica `docs/upgrading.md` (spec 079)
 - **Senha só com números**: o "Número da Senha" do caixa e o campo "Senha" do "Editar Pedido" da cozinha aceitam só dígitos (o teclado numérico abre no celular/tablet). O servidor também recusa, com 400, uma senha que não seja um inteiro positivo de até 7 dígitos sem zero à esquerda — antes, `ABC`, `999-TESTE` ou `07` eram aceitos e saíam no cupom, e `07` e `7` podiam ser duas senhas diferentes no mesmo dia. Pedidos antigos com senha fora desse formato continuam como estão e podem ser editados normalmente: a cozinha só manda a senha quando ela é alterada (spec 076)

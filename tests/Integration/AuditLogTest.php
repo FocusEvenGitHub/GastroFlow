@@ -54,6 +54,26 @@ class AuditLogTest extends IntegrationTestCase
         $this->assertSame('10.0.0.5', $details['printer_ip']['new']);
     }
 
+    /** Spec 081: a key outside the allowlist is audited as changed, never with its value. */
+    public function testUnlistedSettingIsAuditedRedacted(): void
+    {
+        Setting::setValue('fiscal_csc', 'old-secret-123');
+
+        $response = $this->request('PUT', '/api/admin/settings', [
+            'settings' => ['fiscal_csc' => 'new-secret-456', 'restaurant_name' => 'Casa Teste'],
+        ], $this->authHeader('admin'));
+
+        $this->assertSame(200, $response->getStatusCode(), json_encode($this->decode($response)));
+        $this->assertSame('new-secret-456', Setting::getValue('fiscal_csc'));
+
+        $row = Db::table('audit_log')->where('action', 'settings.updated')->first();
+        $this->assertNotNull($row);
+        $this->assertStringNotContainsString('secret', $row->details);
+        $details = json_decode($row->details, true);
+        $this->assertEquals(['old' => '[REDACTED]', 'new' => '[REDACTED]'], $details['fiscal_csc']); // MySQL JSON reorders keys
+        $this->assertSame('Casa Teste', $details['restaurant_name']['new']);
+    }
+
     /** AC4 */
     public function testReopeningOrderWritesAuditRow(): void
     {

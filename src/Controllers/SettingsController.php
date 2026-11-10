@@ -15,6 +15,15 @@ use App\Validators\SettingsValidator;
 
 class SettingsController
 {
+    /**
+     * Keys whose old/new values may go into audit_log verbatim (spec 081). Any other key is
+     * still recorded as changed, but with REDACTED for both values: audit_log is append-only
+     * and never pruned, so an unlisted key (e.g. a future certificate password or CSC) must
+     * never land there by default. Add a key here only if its value is never a secret.
+     */
+    private const AUDITABLE_KEYS = ['restaurant_name', 'printer_ip', 'printer_port', 'discount_max_percent', 'print_logo'];
+    private const REDACTED = '[REDACTED]';
+
     public function __construct(
         private readonly Settings $settings,
         private readonly SettingsValidator $settingsValidator,
@@ -81,7 +90,9 @@ class SettingsController
         // and no separate read-before-write query is needed elsewhere (spec 043).
         $changes = [];
         foreach ($settings as $key => $value) {
-            $changes[$key] = ['old' => Setting::getValue($key), 'new' => $value];
+            $changes[$key] = in_array($key, self::AUDITABLE_KEYS, true)
+                ? ['old' => Setting::getValue($key), 'new' => $value]
+                : ['old' => self::REDACTED, 'new' => self::REDACTED];
             Setting::setValue($key, $value);
         }
         $this->auditLogger->record('settings.updated', null, null, $changes);
