@@ -129,6 +129,20 @@ Runs on the server itself (Git Bash on Windows), not inside a container. It save
 - The running version is the image built in step 5, not the folder: editing or checking out files in the folder changes nothing until the next `docker compose up -d --build`. Data lives in Docker volumes — the database, the uploaded logo and the application log — and survives rebuilding the image.
 - Updating to a new version: [`docs/upgrading.md`](upgrading.md).
 
+## Uninstalling
+
+1. **If the data may be needed again**, take a full backup first — the database, the logo and `.env`: [`backup-and-restore.md`](backup-and-restore.md).
+2. From the repository folder:
+
+   ```bash
+   docker compose down -v --rmi all
+   ```
+
+   Removes the containers, **every volume — the database with every order, menu item and user, the uploaded logo and the log —** and the images. It cannot be undone. Without `-v`, the data stays in Docker volumes (`docker volume ls`) even after the folder is gone.
+3. Delete the repository folder.
+
+Docker itself stays installed; remove it separately only if nothing else on the machine uses it. *(Added 2026-11-09: the question came up in the v1.9 Exit Gate run.)*
+
 ## Troubleshooting
 
 Problems during installation are below; once GastroFlow is running, start at [`troubleshooting.md`](troubleshooting.md). Every `.env` value is explained in [`configuration.md`](configuration.md).

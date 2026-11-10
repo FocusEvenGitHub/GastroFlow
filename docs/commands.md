@@ -19,6 +19,7 @@ Run them from the repository folder — **on Windows, in Git Bash**. Most run *i
 | `docker compose logs -f web` | Follows a service's output (`web`, `print-worker`, `db`). |
 | `docker compose down` | Removes the containers. Data stays in the volumes. |
 | `docker compose down -v` | Removes the containers **and every volume — every order, menu item and user, the uploaded logo and the log are lost.** Only for an install with no data, or after a backup. |
+| `docker compose down -v --rmi all` | Uninstalls: the above plus the images. Then delete the folder — [`installation.md` › Uninstalling](installation.md#uninstalling). |
 
 The application log is also readable in Admin › Logs.
 
