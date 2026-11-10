@@ -26,9 +26,9 @@ git checkout vX.Y.Z        # the newest release on the GitHub Releases page
 
 A restaurant runs a **release** (a version tag), never `master`: `master` is the next version in development and may contain unfinished work. Later updates move from tag to tag: [`docs/upgrading.md`](upgrading.md).
 
-From `v1.9.0` on, each release also publishes a prebuilt Docker image, `ghcr.io/focusevengithub/gastroflow:<version>` (e.g. `1.9.0`). This guide still builds the image from the checked-out code (step 5), which gives the same result; the published image is there for whoever prefers to pull it (`docker pull` works once the maintainer has made the package public, right after the first release). *(Added 2026-10-31, spec 072.)*
+From `v1.8.6` on, each release also publishes a prebuilt Docker image, `ghcr.io/focusevengithub/gastroflow:<version>` (e.g. `1.8.6`) *(corrected 2026-11-09: said `v1.9.0`)*. This guide still builds the image from the checked-out code (step 5), which gives the same result; the published image is there for whoever prefers to pull it (`docker pull` works once the maintainer has made the package public, right after the first release). *(Added 2026-10-31, spec 072.)*
 
-> **Transition (until `v1.9.0` is published):** this guide covers `v1.9.0` and later — the first release with it is cut when the v1.9 milestone closes. The current release, `v1.8.5`, has none of these guides; its image builds on a fresh clone (`v1.8.3`'s does not: `"/legacy": not found`), but its install path was not tested from scratch. Until `v1.9.0` exists, installing means staying on `master` (skip the `git checkout`) and accepting pre-release code.
+> **Which release:** this guide covers `v1.8.6` and later. *(Corrected 2026-11-09: it said `v1.9.0` and later, and that until then installing meant staying on `master`. `v1.8.6` was cut from `master`, so it already has these guides, the production compose file and the published image; `v1.8.5` and older do not — they came from the `release/1.8.x` branch.)*
 
 ## 3. Create `.env` — before any `docker compose` command
 

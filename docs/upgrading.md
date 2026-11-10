@@ -8,7 +8,7 @@ Run the commands from the repository folder on the server — **on Windows, in G
 
 A restaurant runs a **release**: a version tag such as `v1.9.0`, listed on the [GitHub Releases page](https://github.com/FocusEvenGitHub/GastroFlow/releases). `master` is the next version **in development** — it may contain unfinished work, and is only for development and for test installs that accept that.
 
-> **Transition (until `v1.9.0` is published):** this guide was written for `v1.9.0`, the first release it covers — it is cut when the v1.9 milestone closes. The current release, `v1.8.5`, predates it; on an older `v1.8.x`, apply its security fix with the steps in `CHANGELOG.md`. Installs that follow `master` today (e.g. the pilot install) upgrade with `git pull` instead of step 3's `git checkout`, knowing they receive unreleased code. Coming from a version before v1.9 also needs the one-time steps in [First upgrade to v1.9](#first-upgrade-to-v19).
+> **Which release:** this guide covers upgrading **to** `v1.8.6` or later. `v1.8.6` was cut from `master` and already carries the v1.9 work done so far, so coming from `v1.8.5` or older counts as the first upgrade to v1.9: also do the one-time steps in [First upgrade to v1.9](#first-upgrade-to-v19). Installs that follow `master` (e.g. the pilot install) upgrade with `git pull` instead of step 3's `git checkout`, knowing they receive unreleased code. *(Corrected 2026-11-09: it said the guide started at `v1.9.0`.)*
 
 ## What changes when
 
@@ -51,7 +51,7 @@ git fetch --tags
 git checkout vX.Y.Z        # the newest release on the GitHub Releases page
 ```
 
-Each release from `v1.9.0` on also has a prebuilt image, `ghcr.io/focusevengithub/gastroflow:<version>`; this guide keeps building from the checked-out code in step 5 (pulling the image works once the maintainer has made the package public, right after the first release). *(Added 2026-10-31, spec 072.)*
+Each release from `v1.8.6` on *(corrected 2026-11-09: said `v1.9.0`)* also has a prebuilt image, `ghcr.io/focusevengithub/gastroflow:<version>`; this guide keeps building from the checked-out code in step 5 (pulling the image works once the maintainer has made the package public, right after the first release). *(Added 2026-10-31, spec 072.)*
 
 Only move **forward** — never check out a version older than the one running (database changes cannot be undone; going back is the [Rollback](#rollback)).
 

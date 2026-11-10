@@ -1,6 +1,6 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.8.5
+> **Current version:** v1.8.6
 > **Target:** v2.0.0
 > **Current milestone:** v1.9.0 — Community Productization
 > **Edition:** GastroFlow Community
@@ -1170,6 +1170,16 @@ Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for
 **Status: Released.** Tagged `v1.8.5` (2026-11-02), documented in `CHANGELOG.md`. Cut from `v1.8.4` on the `release/1.8.x` branch (PR #63), without the v1.9 work on `master`, so the tag is not in `master`'s history. Like `v1.8.4`, it published no image, because the release workflow is not on that branch, and its GitHub Release was created by hand. *(Corrected 2026-11-02: this first said it published no GitHub Release.)*
 
 - PHP errors out of the response and argument values out of stack traces (specs 073 and 074, advisory GHSA-rp7v-47mr-x2wx): a failed database connection exposed the database user and the first 15 characters of its password.
+
+---
+
+# v1.8.6 — client work, outside the milestones
+
+**Status: Released.** Tagged `v1.8.6` (2026-11-09), documented in `CHANGELOG.md`. Unlike `v1.8.4` and `v1.8.5`, cut from `master` (owner's decision, 2026-11-09): the three items below were built on top of the v1.9 work (spec 070 needs the locally served Tom Select from spec 055; migrations 021/022 come after spec 061), so a backport to `release/1.8.x` was not viable. The tag therefore also carries the v1.9.0 items already on `master`, while `v1.9.0` stays reserved for the milestone itself. Being on `master`, it is the first `v1.8.x` published by the release workflow (spec 072).
+
+- Per-item discount in the cashier and the kitchen's "Editar Pedido", with an Admin cap, net reports and the discount on the ticket (spec 058, `Verified`, PR #44).
+- Add-on search in "Monte Seu Prato" (spec 070, `Verified`, PR #57).
+- "Imprimir a logo no cupom" switch in the Admin (spec 075, `Verified`, PRs #66 and #67).
 
 ---
 
