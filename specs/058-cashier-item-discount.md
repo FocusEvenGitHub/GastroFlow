@@ -2,9 +2,9 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-10-22
-- Updated: 2026-10-23
+- Updated: 2026-11-09
 - Owner: Henry
 - Related issue: Not applicable (client request — out of milestone, patch-tag work per `CLAUDE.md` "Release workflow")
 - Related branch: `058`
@@ -552,3 +552,10 @@ Environment: local sandbox — PHP 8.3.6 CLI, MySQL 8.0.46 installed locally (no
 - **Real thermal ticket** (AC13 manual part: 32-column fit and accents on the Epson).
 - **Non-technical user check** of the cashier modal (planned in "Testing and validation strategy").
 - The suite ran on PHP 8.3 locally; CI uses PHP 8.2.
+
+**Closed 2026-11-09:**
+
+- **PHPStan and PHP 8.2**: CI runs PHPStan and the whole PHPUnit suite on PHP 8.2 on every PR since this spec merged (PR #44); the latest green run with this code on `master` is PR #66's (run 42384535093). Only the check result was read, not the job log.
+- **Real thermal ticket** and **non-technical user check**: the owner reported both a success with the client after the feature went into use (2026-11-09). Not observed here.
+
+Status `Verified`.

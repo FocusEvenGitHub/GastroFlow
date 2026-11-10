@@ -130,7 +130,7 @@ Five picks that best represent how this project trades things off — the full l
 
 ## Roadmap
 
-Current release: **`v1.8.5`**. Current milestone: **`v1.9.0` — Community Productization** (local frontend dependencies, LAN operation without internet, installation and upgrade experience, documentation, open-source readiness).
+Current release: **`v1.8.6`**. Current milestone: **`v1.9.0` — Community Productization** (local frontend dependencies, LAN operation without internet, installation and upgrade experience, documentation, open-source readiness).
 
 What shipped and when: [`CHANGELOG.md`](CHANGELOG.md). What's planned: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -164,8 +164,7 @@ git config --global core.autocrlf false
 
 git clone https://github.com/FocusEvenGitHub/GastroFlow.git
 cd GastroFlow
-git checkout vX.Y.Z               # newest release (GitHub Releases) — never master, which is development
-                                  # until v1.9.0 is out, see the transition note in docs/installation.md
+git checkout vX.Y.Z               # newest release (GitHub Releases, v1.8.6 or later) — never master, which is development
 
 cp .env.example .env              # BEFORE any docker compose command
 # Edit .env: replace both "changeme" passwords, set JWT_SECRET to the output of:
