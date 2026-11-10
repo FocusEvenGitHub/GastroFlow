@@ -151,6 +151,82 @@ class ConcurrencyTest extends IntegrationTestCase
     }
 
     /**
+     * Spec 077 — many jobs, several workers draining the queue at once, the regime the
+     * single-job test above never reaches. Every handler must run exactly once; retries on
+     * transient MySQL errors are allowed and reported, not failed.
+     */
+    public function testManyWorkersDrainTheQueueRunningEachHandlerOnce(): void
+    {
+        $jobs    = 200;
+        $workers = 4;
+        $log     = tempnam(sys_get_temp_dir(), 'spec077-');
+        $this->assertIsString($log);
+
+        try {
+            $payload = json_encode(['handler' => 'Tests\\Integration\\RecordingJob', 'data' => ['log' => $log]]);
+            $now     = \Carbon\Carbon::now()->subMinute();
+            $rows    = [];
+            for ($i = 0; $i < $jobs; $i++) {
+                $rows[] = [
+                    'queue'        => 'spec077',
+                    'payload'      => $payload,
+                    'status'       => Job::STATUS_PENDING,
+                    'attempts'     => 0,
+                    'max_attempts' => 3,
+                    'available_at' => $now,
+                ];
+            }
+            Db::table('jobs')->insert($rows);
+            $ids = Db::table('jobs')->where('queue', 'spec077')->orderBy('id')->pluck('id')->map('intval')->all();
+            $this->assertCount($jobs, $ids);
+
+            $results = $this->runConcurrently(__DIR__ . '/bin/drain-queue.php', ['spec077', $this->testDatabase()], $workers);
+            $this->failOnUnexpectedError($results);
+
+            $reports = array_map(static fn (array $r) => json_decode($r['out'], true), $results);
+            $retries    = ['1213' => 0, '40001' => 0, '1205' => 0, 'other' => 0];
+            $operations = [];
+            foreach ($reports as $i => $report) {
+                $this->assertIsArray($report, "Worker #{$i} printed no report: " . json_encode($results[$i]));
+                foreach ($report['retries'] as $code => $count) {
+                    $retries[$code] += $count;
+                }
+                foreach ($report['operations'] as $operation => $count) {
+                    $operations[$operation] = ($operations[$operation] ?? 0) + $count;
+                }
+            }
+
+            // The measurement spec 077 records; shown in the CI log, never asserted on.
+            fwrite(STDERR, "\n[spec077] jobs={$jobs} workers={$workers} per-worker="
+                . json_encode(array_column($reports, 'processed'))
+                . ' seconds=' . json_encode(array_column($reports, 'seconds'))
+                . ' retries=' . json_encode($retries)
+                . ' operations=' . json_encode($operations) . "\n");
+
+            $byStatus = Db::table('jobs')->where('queue', 'spec077')
+                ->selectRaw('status, attempts, COUNT(*) AS n')->groupBy('status', 'attempts')->get()
+                ->map(static fn ($r) => "{$r->status}/attempts={$r->attempts}: {$r->n}")->all();
+            $this->assertSame(
+                ["completed/attempts=1: {$jobs}"],
+                $byStatus,
+                'Every job must end completed on its first attempt'
+            );
+
+            // Read from the handler's own record, not the queue: a second run of a handler
+            // would leave the job "completed" all the same.
+            $executed = array_map('intval', file($log, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []);
+            $counts   = array_count_values($executed);
+            $this->assertSame([], array_keys(array_filter($counts, static fn (int $n) => $n > 1)), 'Handlers ran more than once for these job ids');
+            sort($executed);
+            $this->assertSame($ids, $executed, 'Every job handler must run exactly once');
+
+            $this->assertSame($jobs, array_sum(array_column($reports, 'processed')), 'Workers reported a different total');
+        } finally {
+            @unlink($log);
+        }
+    }
+
+    /**
      * AC9 — spec 019's per-business-day unique index, exercised for real.
      * The index is a MySQL object; SQLite never enforced it.
      */
