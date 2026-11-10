@@ -33,7 +33,7 @@ The cashier and kitchen are open **by design**, so a busy counter never waits on
 
 - **Changing a password**: `PATCH /api/admin/account/password` with the current password and the new one (there is no screen for it yet). It requires the current password, so a stolen session alone can't lock the owner out.
 - **Login throttling**: after **10 failed logins in 15 minutes** for the same user from the same device, or **30 from the same device** across users, the login answers "Muitas tentativas de login. Tente novamente em N minutos." until 15 minutes after the last failure. A successful login clears the count. On Docker Desktop (Windows/Mac) every device is seen with the same address, so there the limits count all devices together.
-- **Changes are recorded**: Admin › **Auditoria** lists changes to the menu, the settings and orders (edits, cancellations, reopenings, discounts) with their time — and the user, when made from the Admin.
+- **Changes are recorded**: Admin › **Auditoria** lists changes to the menu, the settings and orders (edits, cancellations, reopenings, discounts) with their time — and the user, when made from the Admin. For settings, the old and new values are shown only for the fields of Admin › Configurações; any other setting appears as changed with `[REDACTED]` in place of its values, so a secret stored as a setting never ends up in the history. *(Added 2026-11-10, spec 081.)*
 
 ### Sessions
 

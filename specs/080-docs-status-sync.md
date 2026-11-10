@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-11-10
 - Updated: 2026-11-10
 - Owner: Henry
@@ -129,7 +129,7 @@ Not applicable.
 - [x] `docs/ROADMAP.md`: nota do `Verified` da spec 011
 - [x] `CHANGELOG.md` › Não lançado
 - [x] Card do achado `JWT_SECRET` vazio
-- [ ] CI do PR verde
+- [x] CI do PR verde
 
 ## Open questions
 
@@ -149,3 +149,4 @@ Ver as entradas de 2026-11-10 em cada spec alterada. Os comandos que sustentam e
 - `ls src/Services | wc -l` → 12; `ls src/Middleware` → 5; `ls src/Models` → 12; `ls common/migrations | wc -l` → 23.
 - `grep -H -m1 "^- Status:" specs/0*.md | grep -v Verified` → 24 specs antes desta; a tabela acima mostra o destino de cada uma.
 - `/spec-review` (2026-11-10): ACs 1–4 conferidos; dois motivos da tabela "continuam" estavam imprecisos (001 e 062) e foram corrigidos.
+- 2026-11-10 (registrado na spec 081): CI do PR #74 verde — run `42751863165`; merge `9abfd50`. ACs 1–4 com evidência → `Verified`.
