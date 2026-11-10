@@ -13,7 +13,11 @@ use Slim\Routing\RouteContext;
 
 class CorsMiddleware implements MiddlewareInterface
 {
-    public function __construct(private readonly string $allowedOrigin = '*')
+    /**
+     * Empty origin (the default) sends no CORS headers: only same-origin pages — the
+     * GastroFlow screens themselves — can call the API from a browser (spec 079).
+     */
+    public function __construct(private readonly string $allowedOrigin = '')
     {
     }
 
@@ -31,6 +35,10 @@ class CorsMiddleware implements MiddlewareInterface
 
     private function addCorsHeaders(ResponseInterface $response): ResponseInterface
     {
+        if ($this->allowedOrigin === '') {
+            return $response;
+        }
+
         return $response
             ->withHeader('Access-Control-Allow-Origin', $this->allowedOrigin)
             ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')

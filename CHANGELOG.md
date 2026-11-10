@@ -3,6 +3,7 @@
 ## Não lançado
 
 ### Correções
+- **CORS fechado por padrão**: com `CORS_ALLOWED_ORIGIN` vazio ou ausente, a API não manda mais `Access-Control-Allow-Origin: *`, e outro site aberto num aparelho da rede deixa de conseguir chamá-la pelo navegador. As telas do GastroFlow não mudam: são servidas pelo próprio GastroFlow e não usam CORS. O `.env.example` passa a trazer a variável vazia. Um valor explícito continua valendo, `*` inclusive: **quem já tem `CORS_ALLOWED_ORIGIN=*` no `.env` (copiado do exemplo antigo) deve esvaziar a linha**, como explica `docs/upgrading.md` (spec 079)
 - **Senha só com números**: o "Número da Senha" do caixa e o campo "Senha" do "Editar Pedido" da cozinha aceitam só dígitos (o teclado numérico abre no celular/tablet). O servidor também recusa, com 400, uma senha que não seja um inteiro positivo de até 7 dígitos sem zero à esquerda — antes, `ABC`, `999-TESTE` ou `07` eram aceitos e saíam no cupom, e `07` e `7` podiam ser duas senhas diferentes no mesmo dia. Pedidos antigos com senha fora desse formato continuam como estão e podem ser editados normalmente: a cozinha só manda a senha quando ela é alterada (spec 076)
 
 ### Qualidade

@@ -95,8 +95,9 @@ Stated so nobody relies on a protection that doesn't exist. Each is tracked for 
 |---|---|---|
 | Cashier and kitchen without login | Anyone on the network can operate orders | Keep the network the restaurant's own |
 | No HTTPS | Traffic, including Admin passwords, is readable on the network | Same; no open or shared Wi-Fi |
-| `CORS_ALLOWED_ORIGIN` defaults to `*` | Another website opened on a device of the network could call the open API from that browser | Set it to the address the screens use, e.g. `http://192.168.1.10:8080` |
 | Sessions can't be revoked one by one | A leaked Admin session works until it expires (8 h) | Rotate `JWT_SECRET` (above) |
+
+*(Updated 2026-11-09, spec 079: the row "`CORS_ALLOWED_ORIGIN` defaults to `*`" was removed. An unset or empty `CORS_ALLOWED_ORIGIN` now sends no CORS header, so other websites can't call the API from a browser. An install whose `.env` still says `CORS_ALLOWED_ORIGIN=*` keeps the old behavior until that line is emptied — see [`upgrading.md`](upgrading.md).)*
 
 ## Reporting a vulnerability
 
