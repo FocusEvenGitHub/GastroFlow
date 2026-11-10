@@ -5,6 +5,9 @@
 ### Correções
 - **Senha só com números**: o "Número da Senha" do caixa e o campo "Senha" do "Editar Pedido" da cozinha aceitam só dígitos (o teclado numérico abre no celular/tablet). O servidor também recusa, com 400, uma senha que não seja um inteiro positivo de até 7 dígitos sem zero à esquerda — antes, `ABC`, `999-TESTE` ou `07` eram aceitos e saíam no cupom, e `07` e `7` podiam ser duas senhas diferentes no mesmo dia. Pedidos antigos com senha fora desse formato continuam como estão e podem ser editados normalmente: a cozinha só manda a senha quando ela é alterada (spec 076)
 
+### Qualidade
+- **Fila testada com vários workers ao mesmo tempo**: um teste de integração novo cria 200 jobs e põe 4 workers, em processos separados, para esvaziar a fila juntos contra MySQL real. Ele confere, pelo registro do próprio handler, que cada job rodou **exatamente uma vez**, e que os 200 terminaram concluídos na primeira tentativa. Em 7 runs locais (2026-11-09), cada run teve de 1 a 3 **deadlocks reais** do MySQL (`1213`), no claim e na gravação do resultado, todos recuperados pelo retry da spec 037; o erro `1205` (lock wait timeout) não apareceu. Roda no CI junto com a suíte de integração (spec 077)
+
 ## v1.8.6 (2026-11-09) — Desconto por item, busca de adicionais e cupom sem logo
 
 Trabalho solicitado pelo cliente, **fora dos milestones do `ROADMAP.md`** — sai como patch, como o `v1.8.x`.
@@ -203,8 +206,8 @@ Milestone `v1.8.0` do `ROADMAP.md`, concluído. Todos os itens têm uma seção 
 
 ### Lacunas conhecidas nesta fase
 - ~~Concorrência entre workers sem teste~~ — **fechada** pela spec 035, que a testou e no caminho descobriu o defeito corrigido pela spec 037
-- O deadlock **não reproduz mais**, então o caminho de retry da spec 037 é exercitado por simulação, não pelo MySQL. O código de erro `1205` (lock wait timeout) está na lista de retry mas nunca foi observado
-- Operação com **múltiplos workers em paralelo** não foi testada sob carga; o Community roda um `print-worker`
+- O deadlock **não reproduz mais**, então o caminho de retry da spec 037 é exercitado por simulação, não pelo MySQL. O código de erro `1205` (lock wait timeout) está na lista de retry mas nunca foi observado *(Correção 2026-11-09, spec 077: com 4 workers drenando 200 jobs o deadlock `1213` reproduz de novo, 1 a 3 vezes por run, e o retry o recupera no MySQL real; o `1205` continua nunca observado)*
+- Operação com **múltiplos workers em paralelo** não foi testada sob carga; o Community roda um `print-worker` *(Correção 2026-11-09: **fechada** pela spec 077 — 200 jobs, 4 workers, cada handler executado uma única vez)*
 - `OrderService::$printService` é injetado e nunca lido — achado real do PHPStan, deixado na baseline porque removê-lo muda assinatura de construtor, fora do escopo da spec 034
 
 ## v1.7.1 (2026-09-19) — Monte Seu Prato, cozinha e relatórios
