@@ -131,6 +131,35 @@ class OrderWorkflowTest extends IntegrationTestCase
         $this->assertSame($before, Db::table('orders')->count(), 'Nothing may be persisted on rejection');
     }
 
+    /** Spec 076 — a non-numeric senha is rejected before anything is persisted. */
+    public function testNonNumericOrderNumberIsRejectedAndPersistsNothing(): void
+    {
+        $before = Db::table('orders')->count();
+
+        $response = $this->request('POST', '/api/orders', [
+            'order_number' => 'ABC',
+            'items'        => [['id' => (int) $this->availableMenuItem()->id, 'quantity' => 1]],
+        ]);
+
+        $this->assertSame(400, $response->getStatusCode());
+        $this->assertSame($before, Db::table('orders')->count(), 'Nothing may be persisted on rejection');
+    }
+
+    /** Spec 076 — an order saved before the rule (non-numeric senha) stays editable when the senha isn't sent. */
+    public function testLegacyNonNumericOrderNumberStaysEditable(): void
+    {
+        $order = $this->createOrder((int) $this->availableMenuItem()->id);
+        Db::table('orders')->where('id', $order['id'])->update(['order_number' => 'HIST-1']);
+
+        $rename = $this->request('PATCH', '/api/orders/' . $order['id'], ['customer_name' => 'Ana']);
+        $this->assertSame(200, $rename->getStatusCode(), json_encode($this->decode($rename)));
+
+        $resend = $this->request('PATCH', '/api/orders/' . $order['id'], ['order_number' => 'HIST-1']);
+        $this->assertSame(400, $resend->getStatusCode());
+
+        $this->assertSame('HIST-1', Db::table('orders')->where('id', $order['id'])->value('order_number'));
+    }
+
     /** AC10 — job creation is asserted at the jobs table, where the roadmap item lives. */
     public function testPrintTicketEnqueuesExactlyOnePendingPrintJob(): void
     {

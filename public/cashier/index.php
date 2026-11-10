@@ -157,7 +157,8 @@
             <div class="row mb-4 g-3">
                 <div class="col-md-6">
                     <label for="orderNumber" class="form-label fw-bold">Número da Senha *</label>
-                    <input type="text" id="orderNumber" x-model="orderNumber" @input="orderNumberAuto = false"
+                    <input type="text" id="orderNumber" x-model="orderNumber" inputmode="numeric" pattern="[1-9][0-9]{0,6}" maxlength="7"
+                           @input="orderNumber = $event.target.value = $event.target.value.replace(/\D/g, ''); orderNumberAuto = false"
                            class="form-control form-control-lg" placeholder="Ex: 42">
                 </div>
                 <div class="col-md-6">

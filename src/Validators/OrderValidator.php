@@ -27,8 +27,7 @@ class OrderValidator
         $this->v = new Validator($data);
         // order_number is optional: omitting it lets the server auto-assign the
         // next number for today, under a lock (see OrderRepository::allocateNextNumber()).
-        $this->v->rule('optional', 'order_number');
-        $this->v->rule('lengthMax', 'order_number', 50);
+        $this->orderNumberRules();
         $this->v->rule('optional', 'customer_name');
         $this->v->rule('lengthMax', 'customer_name', 100);
         $this->v->rule('required', 'items');
@@ -89,8 +88,7 @@ class OrderValidator
     public function validateOrderUpdate(array $data): bool
     {
         $this->v = new Validator($data);
-        $this->v->rule('optional', 'order_number');
-        $this->v->rule('lengthMax', 'order_number', 50);
+        $this->orderNumberRules();
         $this->v->rule('optional', 'customer_name');
         $this->v->rule('lengthMax', 'customer_name', 100);
         return $this->v->validate();
@@ -132,6 +130,22 @@ class OrderValidator
                 ->message('Desconto inválido.');
         }
         return $this->v->validate();
+    }
+
+    /**
+     * order_number (the "Senha"), when sent, is a positive integer with no
+     * leading zero, up to 7 digits (spec 076) — "07" and "7" would otherwise
+     * be two different senhas under the per-day unique key. A closure rather
+     * than Valitron's regex rule, which would hand an array to preg_match().
+     */
+    private function orderNumberRules(): void
+    {
+        $this->v->rule('optional', 'order_number');
+        $this->v->rule(
+            fn ($field, $value) => (is_int($value) || is_string($value))
+                && preg_match('/^[1-9][0-9]{0,6}$/D', (string) $value) === 1,
+            'order_number'
+        )->message('Senha deve ser um número inteiro positivo, sem zeros à esquerda.');
     }
 
     /**
