@@ -130,7 +130,7 @@ Five picks that best represent how this project trades things off — the full l
 
 ## Roadmap
 
-Current release: **`v1.8.6`**. Current milestone: **`v1.9.0` — Community Productization** (local frontend dependencies, LAN operation without internet, installation and upgrade experience, documentation, open-source readiness).
+Current release: **`v1.9.0`** — Community Productization (local frontend dependencies, LAN operation without internet, installation and upgrade experience, documentation, open-source readiness). Current milestone: **`v2.0.0` — Release Candidate**.
 
 What shipped and when: [`CHANGELOG.md`](CHANGELOG.md). What's planned: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

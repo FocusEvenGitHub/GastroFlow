@@ -1,8 +1,8 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.8.6
+> **Current version:** v1.9.0
 > **Target:** v2.0.0
-> **Current milestone:** v1.9.0 — Community Productization
+> **Current milestone:** v2.0.0 — Release Candidate
 > **Edition:** GastroFlow Community
 > **Scope:** Self-hosted restaurant management for a single restaurant/location.
 
@@ -1185,6 +1185,8 @@ Numbered as a `v1.8.x` patch, same rule as `v1.7.1`: `v1.9.0` stays reserved for
 
 # v1.9.0 — Community Productization
 
+**Status: Complete.** Tagged `v1.9.0` (2026-11-09), documented in `CHANGELOG.md`. Per-item status is noted inline below (the out-of-milestone client work in specs 058, 070 and 075 was released as `v1.8.6`); the Exit Gate was closed by the owner's decision — see its status. The v2 cycle continues with `v2.0.0 Release Candidate`.
+
 ## Objective
 
 Turn GastroFlow from a project primarily operated by its developer into a product another person can install and run.
@@ -1485,7 +1487,7 @@ Avoid relying only on:
 latest
 ```
 
-**Status (2026-10-31): done — spec 072.** `.github/workflows/release.yml`: a pushed `v*` tag runs the full CI (`ci.yml`, now reusable) on the tagged commit → refuses to go on unless `CHANGELOG.md` has a dated section for the tag → builds the amd64 image (with `/version` answering the tag) and pushes it to `ghcr.io/focusevengithub/gastroflow` as `X.Y.Z`, plus `X.Y`/`X` only when it is the highest of its line (pre-releases only the exact tag; no `latest`) → creates the GitHub Release with that CHANGELOG section as notes. Write permissions only on the two publishing jobs. A PR touching the workflow, its scripts or the `Dockerfile` runs a dry-run that publishes nothing. The procedure is in `docs/COMMIT_CONVENTION.md` › "Release & Changelog Workflow" (rewritten). The install/upgrade guides keep building from source; the first real run is the `v1.9.0` tag.
+**Status (2026-10-31): done — spec 072.** `.github/workflows/release.yml`: a pushed `v*` tag runs the full CI (`ci.yml`, now reusable) on the tagged commit → refuses to go on unless `CHANGELOG.md` has a dated section for the tag → builds the amd64 image (with `/version` answering the tag) and pushes it to `ghcr.io/focusevengithub/gastroflow` as `X.Y.Z`, plus `X.Y`/`X` only when it is the highest of its line (pre-releases only the exact tag; no `latest`) → creates the GitHub Release with that CHANGELOG section as notes. Write permissions only on the two publishing jobs. A PR touching the workflow, its scripts or the `Dockerfile` runs a dry-run that publishes nothing. The procedure is in `docs/COMMIT_CONVENTION.md` › "Release & Changelog Workflow" (rewritten). The install/upgrade guides keep building from source; the first real run is the `v1.9.0` tag. *(Corrected 2026-11-09: the first real run was the `v1.8.6` tag — run 42728097358, every job green.)*
 
 ---
 
@@ -1510,6 +1512,8 @@ then `v1.9.0` → `v2.0.0-rc.1` → release blockers only → `v2.0.0`. "Stable 
 v1.9 is complete when:
 
 > A developer unfamiliar with GastroFlow can install the project from the documentation, create an administrator, configure the restaurant, create an order, operate the kitchen and print successfully without modifying application source code.
+
+**Status (2026-11-09): closed by the owner's decision, printing not covered by this run.** Someone who did not write GastroFlow, describing himself as a layperson, installed it on his own machine from the repository and the documentation, on 2026-11-09 (link sent at 19:32, working at 20:08), and found it easy. As reported by the owner (not observed here), he then created the administrator, configured the restaurant and its menu, created an order in the cashier and operated it in the kitchen, without touching source code. Two gaps, accepted by the owner: **he did not print** — no thermal printer was used in this run; printing on real hardware rests on the owner's own test prints at a client (specs 065 and 075) — and he installed `master`, not a tag; at that hour `master` differed from `v1.8.6` only in documentation. His one question, how to uninstall, had no answer in the docs; `docs/installation.md` › "Uninstalling" now gives it.
 
 ---
 
