@@ -30,4 +30,4 @@ Decisions with a real trade-off, not a stack list. See [`docs/architecture.md`](
 ## Open, not yet resolved
 
 - Whether raw-SQL migrations remain the right choice as the schema grows, versus adopting a Schema-builder-based migration layer, is unresolved.
-- `common/config.php`/`common/db.php` (dead PDO helpers) — kept for now; whether to delete them or whether something external still depends on them is an open question in `specs/000-project-baseline.md`.
+- ~~`common/config.php`/`common/db.php` (dead PDO helpers) — kept for now; whether to delete them or whether something external still depends on them is an open question in `specs/000-project-baseline.md`.~~ *(Resolved 2026-11-09, spec 078: nothing external used them — owner's answer — so they were removed.)*

@@ -78,14 +78,14 @@ Coverage is real but uneven — this reflects what's actually implemented, not a
 
 | Layer | What exists | Gap |
 |---|---|---|
-| `Controllers/` | 10: Auth, Dish, Ingredient, Kitchen, Log, Menu, Order, Printer, Report, Settings | `Dish` has **no route registered anywhere** in `src/Routes.php` — entirely unreachable dead code (confirmed by grep, spec 027). `Ingredient` was the same until spec 027 wired `/api/admin/ingredients*` up. `AdminController` (formerly Settings+Printer+Log combined) was split into `Settings`/`Printer`/`Log` controllers in spec 028, per the roadmap's own worked example |
+| `Controllers/` | 10: Auth, Dish, Ingredient, Kitchen, Log, Menu, Order, Printer, Report, Settings | `Dish` has **no route registered anywhere** in `src/Routes.php` — entirely unreachable dead code (confirmed by grep, spec 027). `Ingredient` was the same until spec 027 wired `/api/admin/ingredients*` up. `AdminController` (formerly Settings+Printer+Log combined) was split into `Settings`/`Printer`/`Log` controllers in spec 028, per the roadmap's own worked example. *(Updated 2026-11-09, spec 078: `DishController` was **removed** — besides having no route it was broken (it used a `MenuItem::ingredients()` relation that does not exist); dish editing is `MenuController`'s `PATCH /api/admin/items/{id}` and `/items/{id}/components`. The list now has 12: AuditLog, Auth, Health, Ingredient, Kitchen, Log, Menu, Order, Printer, Report, Settings, Version — the count of 10 had already missed AuditLog, Health and Version.)* |
 | `Services/` | 8: Ingredient, Job, Kitchen, Menu, Order, Pricing, Print, Report | `PricingService` (spec 026) centralizes pricing policy previously embedded in `OrderRepository`/`PrintService` (since spec 050 the packaging fee's unit price comes from the menu item linked by `menu_items.packaging_option`, looked up by `OrderRepository` and passed in — `PricingService` stays I/O-free; since spec 058 it also owns the per-line discount rules — `chosenDiscount()` for a person's choice, `adjustedDiscount()` for the automatic recalculation after a kitchen edit — with the admin's maximum read by `OrderRepository` from `settings.discount_max_percent` and passed in); `IngredientService` (spec 029) is a thin pass-through to `IngredientRepository`, mirroring `MenuService` |
-| `Repositories/` | 3: Ingredient, Menu, Order | `Dish` controller still calls the Eloquent model directly — moot while unreachable (dead code, not fixed by spec 029, which only covers reachable `Ingredient`) |
+| `Repositories/` | 3: Ingredient, Menu, Order | `Dish` controller still calls the Eloquent model directly — moot while unreachable (dead code, not fixed by spec 029, which only covers reachable `Ingredient`). *(Updated 2026-11-09, spec 078: moot for good — `DishController` was removed.)* |
 | `Validators/` | 5: `OrderValidator`, `MenuItemValidator`, `IngredientValidator`, `SettingsValidator`, `AuthValidator` (all wrap `vlucas/valitron`) — spec 027 | — |
 | `Middleware/` | 4 (PSR-15): Cors, JsonBodyParser, Jwt, Role | `Jwt`/`Role` apply only to the `/api/admin` route group |
 | `Models/` | 9 Eloquent models: User, Category, MenuItem, Ingredient, Order, OrderItem, OrderNumberCounter, Setting, Job | — |
 
-Every subsection `docs/ROADMAP.md`'s `v1.7.0 — Domain & Architecture` phase names has a corresponding `Verified` spec as of spec 029 (specs 019–029) — whether that satisfies the phase's own Exit Gate is `docs/ROADMAP.md`'s determination to make, not asserted here. `Dish` remains dead code, untouched by any of these (no route references it — reintroducing it, if ever wanted, is new scope).
+Every subsection `docs/ROADMAP.md`'s `v1.7.0 — Domain & Architecture` phase names has a corresponding `Verified` spec as of spec 029 (specs 019–029) — whether that satisfies the phase's own Exit Gate is `docs/ROADMAP.md`'s determination to make, not asserted here. `Dish` remains dead code, untouched by any of these (no route references it — reintroducing it, if ever wanted, is new scope). *(Updated 2026-11-09, spec 078: removed.)*
 
 ## Real-time kitchen updates (SSE)
 
@@ -198,7 +198,7 @@ Read path mirrors `LogController`/`logs.php` (spec 033) exactly: `GET /api/admin
 
 Eloquent (`illuminate/database ^10`) via `Illuminate\Database\Capsule\Manager`, booted in `src/Database.php`. Initial schema: `common/sql/001_schema.sql`, mounted into the `db` container's `docker-entrypoint-initdb.d` (only runs on first volume init). Incremental changes: 21 files under `common/migrations/*.sql` (currently up to `022_clean_fresh_install.sql`; **updated 2026-10-26** for spec 061 — `001_schema.sql` now seeds only structural rows plus a `fresh_install` marker, and `022` removes the client menu that older migrations still insert, only when that marker exists; **updated 2026-10-23** for spec 058 — this line had also missed spec 053's `020_login_attempts.sql`; **updated 2026-10-02** for spec 050, previously 17 files up to `018_audit_log.sql`; **corrected 2026-09-26**, was previously stated as 13 files up to `014_order_item_name_snapshot.sql` — several specs had landed migrations since without this line being updated), applied by the custom `App\Database\MigrationRunner` through `bin/migrate`, which tracks applied files in a `migrations` table. There is no ORM-style migration framework — migrations are forward-only, with no `down()`/rollback semantics.
 
-`common/config.php` and `common/db.php` are legacy raw-PDO helpers with no callers found anywhere in `src/` or `public/` — dead code, not yet removed (open question in `specs/000-project-baseline.md`: whether something external still depends on them).
+`common/config.php` and `common/db.php` are legacy raw-PDO helpers with no callers found anywhere in `src/` or `public/` — dead code, not yet removed (open question in `specs/000-project-baseline.md`: whether something external still depends on them). *(Updated 2026-11-09, spec 078: **removed**. Their last callers were `legacy/api/*.php`, deleted in `b4c9573` (2026-07-11), and the owner confirmed nothing outside the repository used them. They carried hard-coded default credentials and shipped in the production image.)*
 
 `bin/backup-db`/`bin/restore-db` (spec 045) back up and restore this same database via the `db` container's own `mysqldump`/`mysql` — see "Known architectural limitations" below for what they deliberately don't cover.
 
@@ -221,11 +221,11 @@ GastroFlow
 ├── common/
 │   ├── sql/001_schema.sql     # Initial schema — mounted into MySQL's first-init only
 │   ├── migrations/*.sql       # Incremental migrations, applied via bin/migrate
-│   └── config.php, db.php     # Legacy raw-PDO helpers with no callers — dead code
+│   └── seeds/client-1.sql     # Pilot client's menu, loaded by bin/seed-client-1 (config.php/db.php removed by spec 078)
 ├── bin/                        # migrate, worker, create-admin, jobs-status, jobs-prune,
 │                                #   events-prune (all run inside `web`) + backup-db, restore-db
 │                                #   (host-run — the `web` container has no MySQL client)
-├── legacy/                     # Empty, tracked — kept as a marker, not in active use
+│                                # (legacy/ is gone: deleted in b4c9573, 2026-07-11 — tree corrected 2026-11-09, spec 078)
 ├── specs/                       # Spec-driven development: baseline, template, and one file per change
 ├── docs/                         # This directory
 ├── .claude/skills/               # /spec-plan and /spec-implement skill definitions

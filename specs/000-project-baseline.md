@@ -45,15 +45,15 @@ A restaurant order-management web app covering cashier order entry, kitchen orde
 - Framework: **Slim 4**, bootstrapped in `public/index.php` → `App\App::get()` (`src/App.php`): builds a PHP-DI container, boots Eloquent (`Database::boot()`), registers `JsonBodyParserMiddleware` and `CorsMiddleware`, sets a JSON-only error handler, then calls `App\Routes::register()` (`src/Routes.php`). Not Laravel, despite a leftover comment in `Dockerfile:19` ("Ajuste do DocumentRoot para a pasta public do Laravel/Framework").
 - Request flow at the web-server level: `public/.htaccess` serves any existing file/directory directly and only routes everything else through `index.php` (the Slim front controller). This means `public/cashier/index.php`, `public/kitchen/index.php`, and `public/admin/*.php` are plain PHP/HTML view scripts executed directly by Apache — they are **not** Slim routes, only the JSON API under `/api/*` and the `/` redirect go through Slim.
 - Layers under `src/`, matching what actually exists (not the idealized README description):
-  - `Controllers/` — 8 classes: `AdminController`, `AuthController`, `DishController`, `IngredientController`, `KitchenController`, `MenuController`, `OrderController`, `ReportController`.
+  - `Controllers/` — 8 classes: `AdminController`, `AuthController`, `DishController`, `IngredientController`, `KitchenController`, `MenuController`, `OrderController`, `ReportController`. *(Updated 2026-11-09, spec 078: `DishController` was removed; `src/Controllers/` now has 12 classes — see `docs/architecture.md`'s layers table.)*
   - `Services/` — 6: `JobService`, `KitchenService`, `MenuService`, `OrderService`, `PrintService`, `ReportService`.
-  - `Repositories/` — only 2: `MenuRepository`, `OrderRepository`. **Partially implemented**: `IngredientController`/`DishController` talk to Eloquent models directly, with no `IngredientRepository`.
+  - `Repositories/` — only 2: `MenuRepository`, `OrderRepository`. **Partially implemented**: `IngredientController`/`DishController` talk to Eloquent models directly, with no `IngredientRepository`. *(Updated 2026-11-09: `IngredientRepository` exists since spec 029, and `DishController` was removed by spec 078.)*
   - `Validators/` — only 1: `OrderValidator` (wraps `Valitron\Validator`). No validator exists for menu items, ingredients, or settings — **partially implemented** relative to what the README's "Validators" bullet implies.
   - `Middleware/` — 3: `CorsMiddleware`, `JsonBodyParserMiddleware`, `JwtMiddleware` (PSR-15, applied only to the `/api/admin` route group).
   - `Models/` — 8 Eloquent models (see Entities below).
   - Bootstrap/support classes not mentioned in the README's structure diagram but present and load-bearing: `src/App.php`, `src/Routes.php`, `src/Settings.php`, `src/Database.php`, `src/Database/MigrationRunner.php`, `src/Jobs/PrintOrderJob.php`.
-- `common/config.php` and `common/db.php` — **confirmed dead code**: they define a raw PDO connection helper (`getPDO()`), but a repo-wide search found no `require`/`include` of `common/config.php` anywhere, and `common/db.php` is only referenced by itself. The live app uses `src/Database.php` (Eloquent Capsule) exclusively. Not deleted as part of this baseline — flagged only.
-- `legacy/` exists as an empty tracked directory.
+- `common/config.php` and `common/db.php` — **confirmed dead code**: they define a raw PDO connection helper (`getPDO()`), but a repo-wide search found no `require`/`include` of `common/config.php` anywhere, and `common/db.php` is only referenced by itself. The live app uses `src/Database.php` (Eloquent Capsule) exclusively. Not deleted as part of this baseline — flagged only. **Updated 2026-11-09 (spec 078)**: removed — their last callers were `legacy/api/*.php`, deleted in `b4c9573` (2026-07-11), and the owner confirmed nothing external used them. `DishController` was removed in the same spec (no route, and broken: `MenuItem` has no `ingredients()` relation).
+- `legacy/` exists as an empty tracked directory. **Corrected 2026-11-09 (spec 078)**: its files were deleted in `b4c9573` (2026-07-11) and the directory is not in Git; the `Dockerfile`'s `COPY legacy/` was removed by specs 059/062.
 
 ### Order flow (confirmed in code)
 
@@ -189,7 +189,7 @@ Not applicable — no code changes.
 ## Open questions
 
 - **Not blocking**: `IngredientController.php` exists but no `/api/admin/ingredients*` (or similar) route was found in `src/Routes.php`. Is ingredient management reachable today, and if so, how?
-- **Not blocking**: `common/config.php`/`common/db.php` appear to be dead code (no callers found). Should they be removed in a future spec, or are they intentionally kept for some external/manual use not visible in `src/`?
+- **Not blocking**: `common/config.php`/`common/db.php` appear to be dead code (no callers found). Should they be removed in a future spec, or are they intentionally kept for some external/manual use not visible in `src/`? **Resolved 2026-11-09 (spec 078)**: no external use (owner); removed.
 - **Not blocking**: the README's curl example uses `docker exec -it gastroflow_web composer update`, but `docker-compose.yml` sets `container_name: restaurant_web` — the container name in the README example does not match the actual compose file.
 - **Not blocking**: `composer.lock` is gitignored and not tracked, while the Dockerfile and README workflow assume it exists and is meaningful for reproducible installs — its actual reproducibility across machines is not confirmed. *(Corrected 2026-10-26, spec 062: `composer.lock` is tracked today — `git ls-files composer.lock` lists it and `git check-ignore` does not match it.)*
 
