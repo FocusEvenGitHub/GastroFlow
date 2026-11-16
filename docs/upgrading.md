@@ -75,6 +75,8 @@ and add or adjust the new variables in `.env` by hand. Never copy `.env.example`
 
 Installs made before spec 079 have `CORS_ALLOWED_ORIGIN=*` in `.env`, copied from the old `.env.example`. Change it to `CORS_ALLOWED_ORIGIN=` (empty) unless a page on another origin really calls the API: `*` lets any website opened on a device of the network call it. *(Added 2026-11-09, spec 079.)*
 
+Check that `JWT_SECRET` is filled in. Since spec 082 an empty `JWT_SECRET=` line makes every page and API call answer HTTP 500, cashier and kitchen included; before, only the Admin login failed. Generate one with `openssl rand -base64 48`. *(Added 2026-11-16, spec 082.)*
+
 ## 5. Build and switch
 
 ```bash

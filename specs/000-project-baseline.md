@@ -162,7 +162,7 @@ Covered above under "Architecture observed" in Current behavior.
 
 ## Security considerations
 
-- **Corrected 2026-09-03**: this baseline originally confirmed a hardcoded JWT secret fallback at `src/Routes.php:19` (`$_ENV['JWT_SECRET'] ?? 'your-secret-key-change-me'`). That fallback was removed by spec 002 (shipped `v1.5.6`) — `src/Routes.php:22` now throws a `RuntimeException` if `JWT_SECRET` is unset, instead of falling back to a publicly known string.
+- **Corrected 2026-09-03**: this baseline originally confirmed a hardcoded JWT secret fallback at `src/Routes.php:19` (`$_ENV['JWT_SECRET'] ?? 'your-secret-key-change-me'`). That fallback was removed by spec 002 (shipped `v1.5.6`) — `src/Routes.php:22` now throws a `RuntimeException` if `JWT_SECRET` is unset, instead of falling back to a publicly known string. *(Updated 2026-11-16, spec 082: an empty or whitespace-only `JWT_SECRET` now throws too; before, only a missing key did.)*
 - **Confirmed**: only the `/api/admin/*` group requires a JWT; `/api/orders*`, `/api/menu`, `/api/kitchen/*` are unauthenticated by design (consistent with a single-location, trusted-network deployment model, but worth naming explicitly).
 - **Confirmed**: passwords are stored bcrypt-hashed (`password_verify()` in `AuthController`).
 - **Not confirmed**: whether `.env` values are enforced/rotated in any deployed environment — out of scope to check (would require reading `.env`, which this workflow must never do).

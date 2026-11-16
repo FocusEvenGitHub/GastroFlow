@@ -58,7 +58,7 @@ Operator-facing reference, by task: `docs/commands.md`; first installation: `doc
 - Never commit or push without an explicit request.
 - Never run destructive database operations (drops, truncates, irreversible data changes).
 - Never change the DB schema outside a migration file in `common/migrations/` (or an explicitly agreed equivalent) — no ad hoc `ALTER TABLE` outside that mechanism.
-- The hardcoded JWT-secret fallback formerly at `src/Routes.php:19` was removed by spec 002 (`v1.5.6`); `src/Routes.php:22` now throws a `RuntimeException` when `JWT_SECRET` is unset. Don't reintroduce a hardcoded-secret fallback there or elsewhere, and don't silently "fix" security-relevant code like this outside of an explicit spec.
+- The hardcoded JWT-secret fallback formerly at `src/Routes.php:19` was removed by spec 002 (`v1.5.6`); `src/Routes.php` (`Routes::register()`) now throws a `RuntimeException` when `JWT_SECRET` is unset — or empty/whitespace-only, since spec 082. Don't reintroduce a hardcoded-secret fallback there or elsewhere, and don't silently "fix" security-relevant code like this outside of an explicit spec.
 
 ## Release workflow
 

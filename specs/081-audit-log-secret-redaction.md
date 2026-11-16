@@ -2,9 +2,9 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-11-10
-- Updated: 2026-11-10
+- Updated: 2026-11-16
 - Owner: Henry
 - Related issue: Trello "Audit log: redação de segredos antes do fiscal (v2.1)" (https://trello.com/c/Co609LrB)
 - Related branch: `fix/081-audit-log-secret-redaction`
@@ -93,7 +93,7 @@ Linhas antigas de `audit_log` não mudam. As cinco chaves do Admin são auditada
 - [x] `docs/architecture.md`, `docs/ROADMAP.md`, `docs/security.md`
 - [x] `CHANGELOG.md` › Não lançado › Segurança
 - [x] Spec 080 → `Verified` (CI do PR #74), carregado neste PR
-- [ ] CI do PR verde
+- [x] CI do PR verde
 
 ## Open questions
 
@@ -109,3 +109,4 @@ Nenhuma.
 - 2026-11-10, `docker compose exec -e MYSQL_DATABASE_TEST=restaurant_test web vendor/bin/phpunit --filter AuditLogTest` → `OK (7 tests, 34 assertions)` (AC1, AC2).
 - 2026-11-10, `vendor/bin/phpunit` com `MYSQL_DATABASE_TEST=restaurant_test` → `OK, but some tests were skipped! Tests: 348, Assertions: 922, Skipped: 2` (os 2 pulados já existiam); `vendor/bin/phpstan analyse` → `[OK] No errors`; `php-cs-fixer fix --dry-run --diff` → `Found 0 of 119 files that can be fixed` (AC4).
 - AC3: ver o diff de `docs/architecture.md` (Audit history, nota "Resolved 2026-11-10, spec 081") e de `docs/ROADMAP.md` (Dependencies da v2.1, nota "Updated 2026-11-10, spec 081").
+- 2026-11-16 (registrado na spec 082): CI do PR #75 verde — `gh pr checks 75` → `test pass` (run `42756323080`); merge `f99090c`. Todos os ACs com evidência → `Verified`.

@@ -30,7 +30,12 @@ class Routes
 {
     public function register(App $app): void
     {
-        $secret = $_ENV['JWT_SECRET'] ?? throw new \RuntimeException('JWT_SECRET environment variable is not set.');
+        // Empty counts as unset (spec 082): `.env.example` ships `JWT_SECRET=`, and `??` alone
+        // let that through — the app booted and only the Admin login failed.
+        $secret = (string) ($_ENV['JWT_SECRET'] ?? '');
+        if (trim($secret) === '') {
+            throw new \RuntimeException('JWT_SECRET environment variable is not set.');
+        }
         // JwtMiddleware takes a scalar $secret, so it can't be autowired by class name like a
         // controller — built manually here, same as before spec 042, just now also handed the
         // container's shared RequestContext so a successful decode can record user_id.
