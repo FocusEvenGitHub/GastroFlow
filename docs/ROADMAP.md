@@ -36,7 +36,7 @@ v2.0.0
 GastroFlow Community
        │
        ▼
-v2.1 — Fiscal / NFC-e
+Post-v2 — optional NF-F7 integration
 ```
 
 ---
@@ -741,7 +741,7 @@ Suggested metadata:
 
 Operational kitchen views may use status/date filtering instead when that better fits the workflow.
 
-**Status (spec 025)**: Investigated, not implemented — no endpoint in the app currently has a reachable code path to an unbounded result set (orders/kitchen views are always scoped to one business day; report endpoints return one row per day/hour or use an explicit `limit`; menu/ingredient lists are small, operator-curated data). Adding `?page=&per_page=` today would be exactly the speculative optimization this milestone's own "Query performance" item warns against. Deferred to the `v2.1.0` Admin Order History feature's own spec, if that feature removes today's implicit one-day bound.
+**Status (spec 025)**: Investigated, not implemented — no endpoint in the app currently has a reachable code path to an unbounded result set (orders/kitchen views are always scoped to one business day; report endpoints return one row per day/hour or use an explicit `limit`; menu/ingredient lists are small, operator-curated data). Adding `?page=&per_page=` today would be exactly the speculative optimization this milestone's own "Query performance" item warns against. Deferred to the `v2.1.0` Admin Order History feature's own spec, if that feature removes today's implicit one-day bound. *(Updated 2026-11-16, spec 083: the `v2.1.0` fiscal milestone was retired; the deferral now points at the order-history item under "Post-v2.0 — Optional NF-F7 integration".)*
 
 ---
 
@@ -923,7 +923,7 @@ completed_at
 
 Reserving without a recovery path is a classic hand-rolled-queue defect — this is precisely what this milestone's reliability objective exists to close before v2.0.
 
-**Status (spec 033)**: Verified — the known failure mode above is closed. A claim now stamps an explicit `reserved_until` deadline, and a sweep before every claim returns an expired reservation to the queue (or marks it `failed` when no attempt remains), without refunding the attempt already consumed, so a job that reliably kills its worker cannot loop forever. `status` (`pending`/`reserved`/`completed`/`failed`), `last_error`, `failed_at` and `completed_at` were added by migration `016`; successful jobs are no longer deleted, and are pruned by retention instead (`QUEUE_RETENTION_DAYS`, default 7). `bin/jobs-status` gives the operator-visible signal this item asked for, and job failures now reach `logs/app.log` via Monolog — so they appear in the Admin log viewer, which the previous `error_log()` call never did. Two corrections to this item's own wording: **atomic claiming was already satisfied** before the spec (`DB::transaction` + `lockForUpdate()`), so no work was needed there; and **idempotency where critical is explicitly not done** — it is deferred to `v2.1.0`'s fiscal issuance job, which carries its own duplicate-prevention acceptance criteria, since reprinting a ticket twice is cosmetic while issuing an NFC-e twice is not. Also still open: concurrent claiming by two workers remains untested, because `lockForUpdate()` is a no-op under the SQLite used by the unit suite — that belongs to this milestone's "Integration tests" item.
+**Status (spec 033)**: Verified — the known failure mode above is closed. A claim now stamps an explicit `reserved_until` deadline, and a sweep before every claim returns an expired reservation to the queue (or marks it `failed` when no attempt remains), without refunding the attempt already consumed, so a job that reliably kills its worker cannot loop forever. `status` (`pending`/`reserved`/`completed`/`failed`), `last_error`, `failed_at` and `completed_at` were added by migration `016`; successful jobs are no longer deleted, and are pruned by retention instead (`QUEUE_RETENTION_DAYS`, default 7). `bin/jobs-status` gives the operator-visible signal this item asked for, and job failures now reach `logs/app.log` via Monolog — so they appear in the Admin log viewer, which the previous `error_log()` call never did. Two corrections to this item's own wording: **atomic claiming was already satisfied** before the spec (`DB::transaction` + `lockForUpdate()`), so no work was needed there; and **idempotency where critical is explicitly not done** — it is deferred to `v2.1.0`'s fiscal issuance job, which carries its own duplicate-prevention acceptance criteria, since reprinting a ticket twice is cosmetic while issuing an NFC-e twice is not. *(Updated 2026-11-16, spec 083: that fiscal job will never exist in Community — issuance and its idempotency belong to NF-F7; GastroFlow's side becomes an idempotency key on the request it sends. Spec 037 has since stopped a completed job from re-running.)* Also still open: concurrent claiming by two workers remains untested, because `lockForUpdate()` is a no-op under the SQLite used by the unit suite — that belongs to this milestone's "Integration tests" item.
 
 ---
 
@@ -1710,311 +1710,50 @@ Examples of appropriate Community 2.x releases:
 ```text
 v2.0.1 — critical bug fix
 v2.0.2 — security/dependency fix
-v2.1.0 — Fiscal / NFC-e
+v2.1.0 — small feature release
 v2.1.1 — regression fix
 ```
 
 Community may continue evolving, but stability takes priority over rapid feature expansion.
 
-The first concrete Community 2.x feature milestone is described below.
+*(Updated 2026-11-16, spec 083: the example above used to read `v2.1.0 — Fiscal / NFC-e`, and this paragraph announced it as the first 2.x feature milestone. That milestone was retired — see the next section.)*
 
 ---
 
-# v2.1.0 — Fiscal / NFC-e
+# Post-v2.0 — Optional NF-F7 integration
 
-## Objective
+**Decision (owner, 2026-11-10; recorded here 2026-11-16, spec 083): the fiscal engine does not belong to GastroFlow Community.** This section replaces the former `v2.1.0 — Fiscal / NFC-e` milestone, which planned to issue NFC-e directly against SEFAZ from inside GastroFlow (NFePHP, A1 certificate upload, CSC, XML signing, a `fiscal_documents` table, DANFE printing). None of that was ever implemented — no fiscal code, dependency, table or setting exists in the repository. The retired plan remains readable in the Git history: `git show v1.9.0:docs/ROADMAP.md`.
 
-Give GastroFlow Community the ability to issue Brazilian NFC-e (Modelo 65) directly against SEFAZ, using an A1 digital certificate, without depending on a mandatory paid fiscal API (Focus NFe, Nuvem Fiscal, etc.).
+## Boundary
 
-This is a self-hosted, single-location feature in the same spirit as the rest of Community: no forced external service, no recurring third-party billing to operate the core product.
-
-Fiscal issuance must remain **optional and disabled by default**. A restaurant that does not need fiscal documents (or is not yet in Brazil/not yet configured) must be unaffected by this milestone.
-
----
-
-## Why this starts after v2.0.0
-
-Fiscal issuance is not a self-contained feature — it depends on architectural foundations planned earlier in this roadmap:
-
-* **RBAC and authenticated admin endpoints** (`v1.6.0` — Authorization / RBAC) — certificate upload and fiscal settings must only be reachable by an authorized admin.
-* **Production-safe error handling and secret discipline** (`v1.6.0` — Production error handling, Docker secret handling) — the same discipline that keeps `.env`/DB/JWT secrets out of responses and images must extend to the A1 password and the CSC.
-* **Order lifecycle, money representation and historical snapshots** (`v1.7.0` — Order lifecycle, Pricing domain, Money representation, Historical order snapshots) — a fiscal document reports amounts and items that must match the order exactly as it was at the time of issuance, using exact arithmetic.
-* **Input validation and API error standardization** (`v1.7.0`) — fiscal settings, certificate upload and menu fiscal metadata are new external-input surfaces that must follow the same validation discipline already established for orders.
-* **Job reliability** (`v1.8.0` — atomic claiming, attempts, retries, backoff, idempotency) — fiscal issuance reuses and depends on exactly this hardened queue, not the current one, since a duplicate NFC-e is a legal/financial incident, not a cosmetic bug.
-* **Structured logging without secrets** (`v1.8.0`) — the same "never log passwords, tokens or secrets" rule extends to the certificate and the CSC.
-* **Migration reliability** (`v1.8.0`) — the new `fiscal_documents` table and fiscal columns on menu/category go through the same hardened, tracked migration path.
-* **Printing reliability** (`v1.8.0` — retries, reprinting, failed-job visibility) — DANFE printing is a new document type layered on infrastructure that must already be dependable.
-
-None of the above are blocking in the sense of "impossible before v1.8 lands" — the domain/provider abstraction (issue below) can be designed in parallel — but **actually issuing a real NFC-e against SEFAZ, with money and legal consequences, should not happen on top of a job queue or logging setup that is still being hardened.** Placing this as its own `v2.x` milestone, after the `v2.0.0` stability baseline, keeps the `v2.0.0` release candidate free of a large new feature (per the RC rule above: "avoid introducing significant new product features during the release candidate") and gives fiscal work a queue/logging/RBAC foundation that is already proven in production.
-
-## Relationship to the local-first principle
-
-Every other Community workflow (cashier, kitchen, printing, reports) must keep working over the LAN without WAN access. NFC-e issuance is the one workflow that **cannot** be local-first — SEFAZ is a remote government service. This is a deliberate, named exception, not an oversight:
-
-* Fiscal issuance must be asynchronous (queued), so a SEFAZ outage or a lost internet connection never blocks the cashier from closing an order.
-* When fiscal issuance is disabled, or SEFAZ is unreachable, the existing local workflow (order → kitchen → non-fiscal receipt) must be completely unaffected.
-* "No internet → no fiscal document yet, order still open/closed normally" is an acceptable and expected state; "no internet → cashier cannot close orders" is not.
-
----
-
-## Fiscal domain and provider abstraction
-
-**Labels:** `type: fiscal`, `area: architecture`
-**Description:** Introduce a `FiscalProviderInterface` (status/issue/query/cancel) so checkout and fiscal domain logic never call `nfephp-org/sped-nfe` directly. First and only implementation for this milestone: `SefazNFePhpProvider`, wrapping NFePHP for direct SEFAZ communication. This mirrors the project's existing Controller → Service → Repository layering (`CLAUDE.md`) rather than inventing a new pattern, and keeps the door open for a future alternate provider without rewriting checkout.
-**Files likely involved:** new `src/Fiscal/FiscalProviderInterface.php`, `src/Fiscal/SefazNFePhpProvider.php`, `src/Fiscal/FiscalStatus.php`/`FiscalResult.php` (or equivalent value objects), `src/Services/FiscalService.php`.
-**Dependencies:** none beyond a `/spec-plan` for the interface shape; everything else in this milestone builds on it.
-**Acceptance criteria:**
-- [ ] `FiscalProviderInterface` has no reference to NFePHP types in its own signature (only in the concrete provider).
-- [ ] No controller or service outside `Fiscal*`/`FiscalService` imports an NFePHP class directly.
-- [ ] A fake/mock provider can be substituted in tests without touching checkout code.
-
----
-
-## Checkout / payment foundation
-
-**Labels:** `type: fiscal`, `area: orders`, `area: domain`
-**Description:** NFC-e issuance requires payment information (amount received, payment method) that GastroFlow does not currently model — orders today move straight from creation to kitchen without a payment/checkout step. Introduce an explicit payment boundary (`payment_status`, `payment_method`, `paid_at` or equivalent, exact scope to be confirmed in `/spec-plan`) before fiscal issuance can be requested. Fiscal issuance is requested at checkout time, not at order-creation time.
-**Files likely involved:** `src/Models/Order.php`, `src/Services/OrderService.php`, `src/Controllers/OrderController.php`, a new migration under `common/migrations/`.
-**Dependencies:** Order lifecycle work (`v1.7.0`), which this extends rather than replaces.
-**Acceptance criteria:**
-- [ ] An order can be created and progress through the kitchen without any fiscal/payment data present.
-- [ ] Fiscal issuance can only be requested once an order has a defined checkout/payment state (exact rule confirmed in `/spec-plan`).
-- [ ] The existing non-fiscal flow (no payment concept) keeps working unchanged for restaurants with fiscal issuance disabled.
-
----
-
-## Fiscal settings + secure A1 certificate handling
-
-**Labels:** `type: fiscal`, `area: admin`, `area: security`
-**Description:** Add a `Fiscal / NFC-e` section to the existing Admin settings area (`public/admin/settings.php`), alongside `Restaurant` and `Impressão Térmica`, not a separate settings screen. Fields to actually model (enabled/disabled, environment, CNPJ, IE, CRT, series/number strategy, CSC, A1 upload, certificate status/expiration, SEFAZ connectivity test) are confirmed during `/spec-plan`, not assumed from this roadmap. The A1 `.pfx` is uploaded through this screen; `.pfx` never lives under `public/`, is never returned by any API response, and the certificate password/CSC are treated as write-only secrets. Homologation is the default/safe environment; switching to production requires an explicit action.
-**Files likely involved:** `public/admin/settings.php` (+ its JS), a new `FiscalSettingsController`/`FiscalSettingsService` (or extension of an existing settings path — decided in `/spec-plan`), storage location for the certificate file outside `public/`, `.gitignore`.
-**Dependencies:** RBAC (`v1.6.0`), Docker/secret handling discipline (`v1.6.0`), **and a prerequisite added 2026-09-26**: `SettingsController::updateSettings()`'s audit logging (`v1.8.0`'s "Audit history", spec 043) currently records every changed setting's `old`/`new` value verbatim into `audit_log` with no redaction — confirmed in code, see `docs/architecture.md`'s "Audit history" section. Fiscal settings must not be wired into the generic `settings` table's update path until that call site gains a sensitive-field redaction rule or an explicit allowlist of auditable keys — otherwise a certificate password or CSC lands permanently in `audit_log` the first time someone changes it. *(Updated 2026-11-10, spec 081: **met** — the call site now audits only an allowlist of keys verbatim and records every other key as `[REDACTED]`, so a new fiscal key is redacted without any change there. Keep fiscal keys out of `SettingsController::AUDITABLE_KEYS`. Still open for v2.1: `GET /api/admin/settings` returns every key's value, so write-only secrets need their own handling there.)*
-**Acceptance criteria:**
-- [ ] `.pfx`/`.p12` files, certificate passwords and CSC values are never committed to Git (verified via `.gitignore` and a manual check before merge).
-- [ ] The certificate file is stored outside `public/` and is not reachable via a direct URL.
-- [ ] The certificate password is never returned by any admin API response after upload.
-- [ ] Only authenticated Admin requests can view, upload or replace fiscal credentials.
-- [ ] Certificate upload validates file type/format/content before accepting it.
-- [ ] Production environment is not the default; enabling it is an explicit, separate action from enabling the fiscal feature.
-- [ ] Automated tests never use production fiscal credentials.
-- [ ] Changing a fiscal setting never writes its raw value into `audit_log` — redacted or excluded per the redaction rule above.
-
----
-
-## Menu and category fiscal metadata
-
-**Labels:** `type: fiscal`, `area: menu`
-**Description:** Investigate the actual NFC-e field requirements (NCM, CEST when applicable, CFOP, unit, origin, CST/CSOSN, and any IBS/CBS-related fields the applicable layout requires) in a dedicated `/spec-plan` before touching `Category`/`MenuItem`. Do not add every possible fiscal field to every item. Model as **category-level defaults with optional per-item overrides** unless the investigation shows a category-only or item-only model is actually sufficient — this avoids repeating identical tax data on every dish in a category (`categories`/`menu_items` today: `src/Models/Category.php`, `src/Models/MenuItem.php`). Group fiscal fields under a "Fiscal information" section in the menu/category editing UI, collapsed or hidden while fiscal issuance is disabled.
-**Files likely involved:** `src/Models/Category.php`, `src/Models/MenuItem.php`, `public/admin/index.php` (menu editing UI), a new migration for fiscal columns, `src/Services/MenuService.php`/`MenuRepository`.
-**Dependencies:** Fiscal domain/provider abstraction (needs to know what a `FiscalResult`/issuance actually consumes from an item).
-**Acceptance criteria:**
-- [ ] A `/spec-plan` documents exactly which fiscal fields are required, citing the NFC-e/NFePHP layout, before any schema change.
-- [ ] Fiscal fields exist on `categories`, with override support on `menu_items` only where the investigation shows it's needed.
-- [ ] Menu items without fiscal data configured do not block non-fiscal ordering.
-- [ ] The fiscal fields are visually grouped/collapsible in the editing UI, not scattered across the existing form.
-
----
-
-## Separate "print receipt" from "issue NFC-e"
-
-**Labels:** `type: fiscal`, `area: orders`, `area: printing`
-**Description:** Today `OrderService::createOrder()` decides printing from a single `print_ticket` boolean (`src/Services/OrderService.php`). Introduce an independent `issue_fiscal_document` concept (naming confirmed in `/spec-plan`) so print and fiscal are two separate checkboxes/flags with all four combinations meaningful: print+no-fiscal (today's behavior), fiscal+no-print (NFC-e without the current receipt), print+fiscal (both), neither (order only). Fiscal issuance must never be triggered implicitly by `print_ticket=true`.
-**Files likely involved:** `src/Services/OrderService.php`, `src/Controllers/OrderController.php`, `src/Validators/OrderValidator.php`, cashier UI (`public/cashier/`).
-**Dependencies:** Checkout/payment foundation (fiscal can only be requested from checkout, not order creation).
-**Acceptance criteria:**
-- [ ] `print_ticket=true, issue_fiscal_document=false` prints only the current non-fiscal receipt (unchanged behavior).
-- [ ] `print_ticket=false, issue_fiscal_document=true` issues NFC-e without printing the non-fiscal receipt.
-- [ ] `print_ticket=true, issue_fiscal_document=true` does both.
-- [ ] `print_ticket=false, issue_fiscal_document=false` only persists the order.
-- [ ] No code path sets `issue_fiscal_document` from `print_ticket` or vice versa.
-
----
-
-## NFePHP dependency, certificate loading and SEFAZ status check
-
-**Labels:** `type: fiscal`, `area: architecture`
-**Description:** First real integration point with `nfephp-org/sped-nfe`, entirely inside `SefazNFePhpProvider`: load and validate the uploaded A1, read certificate metadata (expiration, thumbprint), and implement `FiscalProviderInterface::status()` against SEFAZ's status service for the configured environment. This is the first step that actually requires the dependency to be installed — do not install it before this issue is approved and started.
-**Files likely involved:** `src/Fiscal/SefazNFePhpProvider.php`, `composer.json`/`composer.lock`.
-**Dependencies:** Fiscal domain and provider abstraction; Fiscal settings (needs a certificate to load).
-**Acceptance criteria:**
-- [ ] An invalid/expired/corrupt `.pfx` produces a clear error surfaced to Admin, not a crash.
-- [ ] Certificate expiration is readable and shown in the fiscal settings screen.
-- [ ] `status()` correctly reports SEFAZ homologation availability without requiring production credentials.
-
----
-
-## NFC-e XML generation, signing and schema validation
-
-**Labels:** `type: fiscal`
-**Description:** Implement `FiscalProviderInterface::issue()` for `SefazNFePhpProvider`: build the NFC-e XML from an order + fiscal settings + menu fiscal metadata, sign it with the A1 certificate, and validate it against the official schema before sending to SEFAZ. Scope (exact fields, contingency handling) is defined in `/spec-plan`, not here.
-**Files likely involved:** `src/Fiscal/SefazNFePhpProvider.php`, `src/Services/FiscalService.php`.
-**Dependencies:** NFePHP dependency/certificate loading; Menu and category fiscal metadata; Checkout/payment foundation (needs payment data for the XML).
-**Acceptance criteria:**
-- [ ] Generated XML validates against the current NFC-e schema before any SEFAZ submission is attempted.
-- [ ] Missing required fiscal data (e.g. an item with no fiscal classification) fails fast with an actionable error instead of producing an invalid document.
-
----
-
-## Fiscal document persistence and state machine
-
-**Labels:** `type: fiscal`, `area: db`
-**Description:** A dedicated `fiscal_documents` table (order_id, model, environment, series, number, access_key, protocol, status, error_code/message, XML reference, issued_at/authorized_at/cancelled_at, timestamps — exact schema confirmed in `/spec-plan`), not fiscal columns bolted onto `orders`. An order's fiscal lifecycle must be observable independently of its kitchen/order lifecycle. Conceptual statuses (`pending`, `processing`, `authorized`, `rejected`, `failed`, `cancelled`) are a starting point for the spec, not a locked-in final set.
-**Files likely involved:** new migration under `common/migrations/`, `src/Models/FiscalDocument.php`, `src/Services/FiscalService.php`.
-**Dependencies:** Migration reliability (`v1.8.0`); Checkout/payment foundation.
-**Acceptance criteria:**
-- [ ] `fiscal_documents` has a foreign key to `orders` and can be queried by order without touching `orders` columns.
-- [ ] Every documented status is reachable through an actual code path (no theoretical-only statuses).
-- [ ] An order can be inspected for its current fiscal status independently of its `orders.status` value.
-
----
-
-## Async fiscal issuance job, retries and idempotency
-
-**Labels:** `type: fiscal`, `area: jobs`
-**Description:** An `IssueFiscalDocumentJob`, dispatched through the same `jobs` table + `JobService` + `bin/worker` infrastructure used by `PrintOrderJob` today (`src/Jobs/PrintOrderJob.php`, `src/Services/JobService.php`), not a synchronous SEFAZ call inside the checkout HTTP request. **A retry must never issue a second valid NFC-e for the same order/transaction** — this is a critical acceptance criterion, not a nice-to-have. The job must distinguish a technical failure (network/timeout/SEFAZ unavailable — safe to retry) from a SEFAZ rejection (may require correction, not a blind retry) from an already-authorized document (must never be re-issued).
-**Files likely involved:** `src/Jobs/IssueFiscalDocumentJob.php`, `src/Services/JobService.php` (only if job reliability improvements from `v1.8.0` need extending for fiscal-specific idempotency), `src/Services/FiscalService.php`.
-**Dependencies:** Job reliability (`v1.8.0`); Fiscal document persistence.
-**Acceptance criteria:**
-- [ ] Two concurrent workers processing the same fiscal job never produce two authorized NFC-e for the same order.
-- [ ] A retried job checks the `fiscal_documents` state before re-issuing; an already-`authorized` document short-circuits instead of re-submitting.
-- [ ] Job/order/fiscal-document correlation is present in every log line for a fiscal job.
-- [ ] Logs for this job never contain certificate contents, certificate password, CSC or private key material.
-- [ ] A SEFAZ timeout/connection failure leaves the fiscal document in a retryable state, not silently `failed` or silently `authorized`.
-
----
-
-## Admin Order History and fiscal monitoring
-
-**Labels:** `type: fiscal`, `area: admin`, `area: reports`
-**Description:** A new or expanded Admin "Order History" area listing historical orders with fiscal status clearly visible (`Not requested`, `Pending`, `Authorized`, `Rejected`, `Failed`, `Cancelled`), distinct at a glance from a plain order-status column. For authorized documents, expose NFC-e number, access key, protocol, authorization timestamp and environment — never secrets, never the raw certificate/XML signing material.
-**Files likely involved:** new `public/admin/order-history.php` (or extension of an existing admin view), `src/Controllers/OrderController.php` or a new controller, `src/Services/FiscalService.php`.
-**Dependencies:** Fiscal document persistence; pagination work (`v1.7.0`) if order volume warrants it.
-**Acceptance criteria:**
-- [ ] The UI distinguishes all six fiscal states listed above without ambiguity.
-- [ ] No secret (CSC, certificate password, private key) is ever rendered in this view.
-- [ ] Only authenticated Admin can access this area (same guard as the rest of `/api/admin/*` and the admin panel).
-
----
-
-## Manual fiscal retry from Order History
-
-**Labels:** `type: fiscal`, `area: admin`
-**Description:** From Order History, Admin can retry a failed fiscal issuance. Only recoverable technical failures are retryable from the UI; an already-authorized document must never be retried/re-issued; a rejected document may need correction rather than a blind retry (exact rule per rejection reason, confirmed in `/spec-plan`). Retrying enqueues a new attempt through the same job infrastructure as initial issuance, and the action is auditable.
-**Files likely involved:** the Order History admin view/controller, `src/Services/FiscalService.php`.
-**Dependencies:** Admin Order History; Async fiscal issuance job (retry eligibility rules live in the same duplicate-prevention logic).
-**Acceptance criteria:**
-- [ ] The retry action is not shown (or is disabled) for `authorized`/`cancelled` documents.
-- [ ] Retrying enqueues a new job rather than re-using/mutating the failed job record silently.
-- [ ] The retry action and its outcome are recorded for audit (who retried, when, previous error).
-- [ ] Duplicate-issuance protection from the async job issue above still holds when the retry path is used.
-
----
-
-## DANFE NFC-e thermal printing
-
-**Labels:** `type: fiscal`, `area: printing`
-**Description:** Printing a valid DANFE NFC-e (access key, QR code, authorization info, totals, payment data, consumer identification when applicable) is a distinct responsibility from the existing non-fiscal receipt built by `PrintService` (`src/Services/PrintService.php`). Evaluate a separate `FiscalPrintService` rather than growing `PrintService` with fiscal-specific branches — keep "order receipt printing" and "fiscal DANFE printing" conceptually separate, reusing the same `mike42/escpos-php` + `NetworkPrintConnector` plumbing.
-**Files likely involved:** new `src/Services/FiscalPrintService.php`, `src/Jobs/IssueFiscalDocumentJob.php` (trigger point after authorization), printer settings already in `Setting`/`PrintService`.
-**Dependencies:** Fiscal document persistence (needs an authorized document to print); Printing reliability (`v1.8.0`).
-**Acceptance criteria:**
-- [ ] DANFE printing happens only after SEFAZ authorization, never before.
-- [ ] The existing non-fiscal receipt format/behavior is unchanged by this addition.
-- [ ] A DANFE print failure does not invalidate the already-authorized NFC-e (the fiscal document stays `authorized`; only the print can be retried).
-
----
-
-## Homologation end-to-end validation
-
-**Labels:** `type: fiscal`
-**Description:** Manual, staged validation against real SEFAZ homologation before anything touches production: load/validate A1 → certificate metadata → SEFAZ status → CSC homologation config → basic XML → signing → schema validation → send to homologation → process authorization/rejection → persist XML/protocol/access key → DANFE → integrate with real checkout → only then prepare production enablement. This is a manual/integration validation step, not something CI runs with a real company certificate.
-**Files likely involved:** none new — this is a validation pass across everything above, documented in the corresponding `/spec-plan`/`/spec-review` cycles.
-**Dependencies:** every issue above.
-**Acceptance criteria:**
-- [ ] Each of the 13 steps in the suggested sequence below has been exercised against SEFAZ homologation with recorded evidence (per `CLAUDE.md`'s "never claim a test passed without running it").
-- [ ] No step in this validation used production credentials.
+* **GastroFlow Community** — restaurant, cashier, kitchen, orders, reports, printing, and an *optional* integration with an external fiscal service.
+* **NF-F7 (FocusEven Fiscal)** — a separate product: fiscal issuance, certificates, NFC-e/NFS-e, layouts/XSD, official providers, fiscal documents, idempotency/reconciliation, DANFE and fiscal rules.
 
 ```text
-1. Load and validate A1
-2. Read certificate metadata
-3. Test SEFAZ service status
-4. Configure CSC homologation
-5. Generate basic NFC-e XML
-6. Sign XML
-7. Validate schema
-8. Send to SEFAZ homologation
-9. Process authorization/rejection
-10. Persist XML/protocol/access key
-11. Generate/print DANFE
-12. Integrate with real GastroFlow checkout
-13. Only then prepare production enablement
+GastroFlow
+    │ HTTP API
+    ▼
+NF-F7
 ```
 
----
+No shared database. No imported classes. **No NFC-e/NFS-e/SEFAZ logic and no fiscal certificate inside Community.**
 
-## Production readiness and security review
+## What stays true from the retired plan
 
-**Labels:** `type: fiscal`, `area: security`
-**Description:** Before enabling production issuance for any real restaurant, a dedicated security pass over everything fiscal-related: confirm `.pfx`/`.p12`/passwords/CSC/private keys/production credentials never entered source control (`.gitignore` review), confirm fiscal logs never contain certificate/CSC/key material, confirm every fiscal admin endpoint requires authentication, and confirm certificate download is not exposed as a normal Admin feature.
-**Files likely involved:** `.gitignore`, a manual audit of every file touched by this milestone (candidate for the `security-review` skill).
-**Dependencies:** every issue above.
-**Acceptance criteria:**
-- [ ] `.gitignore` explicitly excludes `*.pfx`, `*.p12` and any fiscal credential storage path introduced by this milestone.
-- [ ] A `git log`/history check confirms no certificate or credential ever landed in a commit.
-- [ ] Fiscal admin endpoints are exercised without a valid JWT and confirmed to be rejected.
-- [ ] Certificate raw-file download is either absent from Admin or has documented, explicit justification.
+* Fiscal issuance is **optional and disabled by default**; a restaurant that doesn't need it is unaffected.
+* It is the one workflow that cannot be local-first. The order, the kitchen and the non-fiscal receipt must keep working when the fiscal service or the internet is unavailable: a fiscal failure never invalidates or loses an order.
+* Printing the non-fiscal receipt and requesting a fiscal document are independent responsibilities.
 
----
+## Future items (not planned in detail, not scheduled)
 
-## Tests
+Each one gets its own `/spec-plan` when its time comes. Nothing here starts before `v2.0.0`, and the integration itself waits for a stable NF-F7 public API.
 
-**Labels:** `type: fiscal`, `area: tests`
-**Description:** Test coverage before any production rollout, added incrementally as each issue above lands rather than as one final pass.
+* **Integration contract and configuration** — NF-F7 URL + credential, an isolated HTTP client, a connectivity test, an order-based external reference, an idempotency key, timeouts and errors that never block local operation. The credential is a secret setting: keep its key out of `SettingsController::AUDITABLE_KEYS` (spec 081 then records it as `[REDACTED]`), and note that `GET /api/admin/settings` returns every key's value today, so a write-only secret needs its own handling there.
+* **Checkout / payment boundary** — the minimum payment information GastroFlow must model to request a fiscal document. Orders today go from creation to the kitchen with no payment step.
+* **Fiscal status in an order history** — only the summarized state NF-F7 returns for an order, with minimal external references; GastroFlow never duplicates the fiscal domain. An Admin order history over more than one business day is also where pagination (deferred by spec 025) would be decided.
+* **Fiscal artifacts / DANFE** — fetching already-authorized artifacts from NF-F7 and, if it makes sense, sending a DANFE to the thermal printer. GastroFlow does not build XML, sign documents or decide SEFAZ rules.
 
-* **Unit:** fiscal configuration validation, menu fiscal field inheritance/override, fiscal state machine transitions, retry eligibility, duplicate-issuance prevention, provider result handling, payment mapping.
-* **Integration:** using a mocked/fake `FiscalProviderInterface` implementation — authorized, rejected, timeout, connection failure, retry, already-authorized.
-* **Homologation:** manual, per the dedicated issue above — GitHub Actions must never need access to a real `.pfx`.
-
-**Files likely involved:** `tests/` (mirroring the existing PHPUnit setup from `v1.8.0`'s CI quality pipeline), a fake `FiscalProviderInterface` implementation for tests.
-**Dependencies:** Fiscal domain/provider abstraction (the interface is what makes a fake provider possible); CI quality pipeline (`v1.8.0`).
-**Acceptance criteria:**
-- [ ] `vendor/bin/phpunit` covers the fiscal state machine and idempotency/retry-eligibility logic without hitting real SEFAZ.
-- [ ] CI never references a real certificate, CSC or production credential.
-- [ ] The fake provider can simulate each of: authorized, rejected, timeout, connection failure.
-
----
-
-## Suggested execution order
-
-```text
-1.  Fiscal domain and provider abstraction        → feature/fiscal-domain-abstraction
-2.  Checkout / payment foundation                 → feature/checkout-payment-foundation
-3.  Fiscal settings + secure A1 upload             → feature/fiscal-settings-a1-upload
-4.  Menu/category fiscal metadata                  → feature/menu-fiscal-metadata
-5.  Separate print vs fiscal issuance               → feature/fiscal-print-separation
-6.  NFePHP dependency + certificate loading         → feature/nfephp-certificate-loading
-7.  NFC-e XML generation/signing                    → feature/nfce-xml-signing
-8.  Fiscal document persistence/state machine        → feature/fiscal-document-persistence
-9.  Async fiscal issuance job + retry/idempotency     → feature/fiscal-issuance-job
-10. Admin Order History                              → feature/admin-order-history
-11. Manual retry/recovery UI                          → feature/fiscal-manual-retry
-12. DANFE NFC-e thermal printing                       → feature/danfe-printing
-13. Homologation end-to-end validation                  → (validation pass, no new branch)
-14. Production readiness/security review                 → feature/fiscal-production-readiness
-```
-
-Each step is its own GitHub Issue and its own `/spec-plan` → `/spec-implement` → `/spec-review` cycle, per the project's standard workflow. Issue numbers above are placeholders (`TBD`) — no GitHub Issues exist yet for this milestone.
-
-## Suggested labels
-
-The repository does not currently define a formal GitHub label taxonomy (`.github/ISSUE_TEMPLATE/default.md` leaves `labels:` empty). If labels are introduced alongside this milestone, `type: fiscal` is the minimum useful one to group all issues above; `area: admin`, `area: orders`, `area: printing`, `area: jobs`, `area: security` (already implied by existing scopes in `docs/COMMIT_CONVENTION.md`) can be reused rather than inventing a parallel taxonomy.
-
----
-
-# v2.1.0 Exit Gate
-
-v2.1.0 is complete when:
-
-> A restaurant can enable NFC-e issuance, configure fiscal data once (settings + menu), and have GastroFlow issue, persist, monitor, retry and print DANFE for NFC-e documents directly against SEFAZ homologation and production — without any restaurant using GastroFlow being forced to pay for or depend on a third-party fiscal API, and without a fiscal failure or retry ever compromising an order, duplicating a legal document, or leaking a secret.
+**No version number is reserved for this.** Which `2.x` release carries the integration is decided after `v2.0.0`, once the NF-F7 API is stable.
 
 ---
 

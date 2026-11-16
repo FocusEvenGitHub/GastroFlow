@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-11-16
 - Updated: 2026-11-16
 - Owner: Henry
@@ -91,7 +91,7 @@ Uma instalação que roda hoje com `JWT_SECRET` vazio (Admin já sem login) pass
 - [x] `docs/configuration.md`, `docs/upgrading.md`, `CLAUDE.md`, `specs/002`, `specs/000`
 - [x] `CHANGELOG.md` › Não lançado › Segurança
 - [x] Spec 081 → `Verified` (CI do PR #75), carregado neste PR
-- [ ] CI do PR verde
+- [x] CI do PR verde
 
 ## Open questions
 
@@ -110,3 +110,4 @@ Nenhuma.
 - 2026-11-16, `docker compose exec web php -r '…'` carregando o `.env`, pondo `$_ENV["JWT_SECRET"] = ""` e chamando `(new App\App(new App\Settings()))->get()` → `RuntimeException: JWT_SECRET environment variable is not set.` (AC4).
 - 2026-11-16, `vendor/bin/phpunit` com `MYSQL_DATABASE_TEST=restaurant_test` → `OK, but some tests were skipped! Tests: 352, Assertions: 929, Skipped: 2` (os 2 pulados já existiam); `vendor/bin/phpstan analyse` → `[OK] No errors`; `php-cs-fixer fix --dry-run --diff` → `Found 0 of 120 files that can be fixed` (AC5).
 - AC6: ver o diff dos arquivos listados.
+- 2026-11-16: CI do PR #76 verde — `gh pr checks 76` → `test pass` (run `43961317447`), no commit `63fd5c3`. Todos os ACs com evidência → `Verified`.

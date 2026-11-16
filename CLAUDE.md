@@ -75,7 +75,7 @@ Operator-facing reference, by task: `docs/commands.md`; first installation: `doc
 
 ## Trello board
 
-- The project is tracked on the Trello board **"GastroFlow Community"** (https://trello.com/b/8wJbH7PY), reached through the `trello` MCP server. Lists are the `docs/ROADMAP.md` milestones (`📌 Visão & Regras`, `✅ Concluído / Histórico`, `🚧 v1.8`, `📦 v1.9`, `🧪 v2.0`, `🧾 v2.1`, `🧹 Backlog / Follow-ups`); progress lives in each card's **`Spec / Delivery`** checklist. The repository stays the source of truth — the board mirrors it, never the other way round.
+- The project is tracked on the Trello board **"GastroFlow Community"** (https://trello.com/b/8wJbH7PY), reached through the `trello` MCP server. Lists are the `docs/ROADMAP.md` milestones (`📌 Visão & Regras`, `✅ Concluído / Histórico`, `📦 v1.9`, `🧪 v2.0`, `🔌 Pós-v2 — Integração NF-F7`, `🧹 Backlog / Follow-ups`); progress lives in each card's **`Spec / Delivery`** checklist. The repository stays the source of truth — the board mirrors it, never the other way round.
 - **Updating the board is part of the work, like `CHANGELOG.md` — during development, not only at the end, and without waiting to be asked.** Tick a `Spec / Delivery` item when the step actually happens:
   - `/spec-plan` creates a spec → put the spec number/path and branch on the matching card (create the card if the work has none); tick investigation + spec items.
   - Spec approved / `/spec-implement` / tests / `/spec-review` / PR opened → tick the corresponding items as each one is really done.
