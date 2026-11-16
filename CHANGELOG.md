@@ -3,6 +3,7 @@
 ## Não lançado
 
 ### Segurança
+- **`JWT_SECRET` vazio não sobe mais**: com a linha `JWT_SECRET=` vazia no `.env` (é como ela vem no `.env.example`), ou só com espaços, o GastroFlow passa a responder erro 500 em todas as telas e chamadas, como já fazia quando a linha não existia e como a documentação dizia. Antes, caixa e cozinha funcionavam e só o login do Admin falhava, sem nenhum aviso do motivo. Não era possível forjar um login: a biblioteca de tokens recusa a chave vazia. **Quem atualiza deve conferir se o `JWT_SECRET` está preenchido**, como explica `docs/upgrading.md` (spec 082)
 - **Segredos fora do histórico de auditoria**: ao salvar as configurações, o histórico (Admin › Auditoria) só guarda o valor antigo e o novo dos campos de Admin › Configurações (nome do restaurante, IP e porta da impressora, desconto máximo, logo no cupom). Qualquer outra configuração aparece como alterada, mas com `[REDACTED]` no lugar dos valores. O histórico nunca é apagado, então isso precisava existir antes das configurações fiscais da v2.1 (senha do certificado, CSC): sem a regra, o segredo ficaria gravado ali para sempre na primeira alteração. Nada muda nas telas de hoje (spec 081)
 
 ### Correções

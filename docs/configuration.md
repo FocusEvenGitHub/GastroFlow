@@ -35,7 +35,7 @@ docker compose up -d
 
 | Variable | Required | Default | What it does |
 |---|---|---|---|
-| `JWT_SECRET` | **yes** | empty | Signs the Admin login tokens. Generate with `openssl rand -base64 48`. Empty → every page and API call, `/health/ready` included, fails with HTTP 500 (`JWT_SECRET environment variable is not set.` in the log); the containers still show "Up". Changing it ends every Admin session ([`security.md`](security.md#sessions)). |
+| `JWT_SECRET` | **yes** | empty | Signs the Admin login tokens. Generate with `openssl rand -base64 48`. Empty → every page and API call, `/health/ready` included, fails with HTTP 500 (`JWT_SECRET environment variable is not set.` in the log); the containers still show "Up". Changing it ends every Admin session ([`security.md`](security.md#sessions)). *(Corrected 2026-11-16, spec 082 — until then only a missing line failed this way; an empty one started normally and just the Admin login failed.)* |
 | `CORS_ALLOWED_ORIGIN` | no | empty | Which other web origin may call the API from a browser. The GastroFlow screens are served by GastroFlow itself and don't need it, so leave it empty: no other website can then call the API from a browser on the network. `*` allows any website — avoid it. *(Updated 2026-11-09, spec 079 — the default was `*` before.)* |
 
 ### Environment
