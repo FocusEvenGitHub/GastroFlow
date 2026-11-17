@@ -49,7 +49,7 @@ Added 2026-11-16, spec 084. Only for a restaurant that has **NF-F7**, FocusEven'
 
 With both set, Admin › Configurações shows a **Nota fiscal (NF-F7)** card: "Conectado" or "Sem conexão" with what to check, and a **Testar conexão** button. Today that connectivity test is all the integration does — no order, kitchen or printing step calls NF-F7, so NF-F7 being down changes nothing for the cashier. A change to either variable is picked up on the next request, no restart.
 
-Installing NF-F7 itself (its image, its own `nff7/` folder and `compose.override.yml` beside GastroFlow's files) is described in NF-F7's package, not here. Both paths are ignored by git and kept out of the GastroFlow image.
+Installing NF-F7 next to GastroFlow (its image, its own `nff7/` folder and `compose.override.yml` beside GastroFlow's files), step by step: [`fiscal-nff7.md`](fiscal-nff7.md). Both paths are ignored by git and kept out of the GastroFlow image. *(Updated 2026-11-17, spec 084 — it said the steps lived only in NF-F7's package.)*
 
 ### Environment
 

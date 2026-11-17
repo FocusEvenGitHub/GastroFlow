@@ -245,6 +245,8 @@ Respondidas pelo owner em 2026-11-16: **1 → (a)**, mergear agora, saindo inert
 - 2026-11-16: o AC5 completo e o AC6 não foram feitos: pedem `docker login ghcr.io` com leitura do pacote privado e mudar o `.env` do GastroFlow (`COMPOSE_FILE`, `NF_F7_URL`, `NF_F7_API_KEY`), que não é lido nem alterado (regra de segurança). Por isso o status ficou `Implemented` no merge do PR #78 (`624ef90`).
 - 2026-11-17: o owner fez a instalação com fiscal nesta máquina pelo passo a passo (login no GHCR, `nff7/` tirada da tag `v0.1.0-gastroflow.1`, `compose.override.yml`, `COMPOSE_FILE=docker-compose.dev.yml:compose.override.yml`, porta da UI 8091 porque o NF-F7 de desenvolvimento já usa a 8090). Dois tropeços do passo a passo, ambos meus: o `sed` do `nff7.env` tinha um `\|` dentro de `$( … )` (trocado por `openssl rand -base64 32`), e faltava dizer onde achar o id do emitente para `bin/api-client create`. O `README.md` de `deploy/gastroflow/` do NF-F7 não tem esses dois problemas; o passo a passo era só desta conversa.
 
+- 2026-11-17: a pedido do owner, o passo a passo da instalação virou `docs/fiscal-nff7.md`, público, com as duas correções acima e uma tabela de problemas com os erros vistos na instalação real. Isso muda o que Proposed behavior › Docs dizia ("documentada no pacote privado dele"): o pacote do NF-F7 continua com o próprio `README.md`, e o GastroFlow passa a ter o lado dele. Nada ali é segredo; a imagem segue exigindo token de leitura.
+
 ## Validation evidence
 
 - 2026-11-16, `docker compose exec -e MYSQL_DATABASE_TEST=restaurant_test web vendor/bin/phpunit --filter "Nff7ClientTest|FiscalStatusTest"` → `OK (15 tests, 62 assertions)` (AC1, AC2, AC3, AC4).
