@@ -231,7 +231,7 @@ Respondidas pelo owner em 2026-11-16: **1 → (a)**, mergear agora, saindo inert
 - [ ] Cartão conferido no navegador (AC6) — passo do owner
 - [x] Docs + `CHANGELOG.md`
 - [x] Trello
-- [ ] CI do PR verde
+- [x] CI do PR verde — PR #78, run 43996672652
 
 ## Implementation log
 
@@ -255,4 +255,6 @@ Respondidas pelo owner em 2026-11-16: **1 → (a)**, mergear agora, saindo inert
   **Não verificado:** a imagem publicada `0.1.0-gastroflow.1` incluída pelo `compose.override.yml`, o endereço `http://nff7-app` na rede interna e a chamada pelo endpoint com as variáveis no `.env`.
 - 2026-11-16, **AC6 não verificado** no navegador. Só `node --check public/admin/settings.js` → sem erro.
 - 2026-11-16, AC7 — com `nff7/nff7.env` e `compose.override.yml` de teste na pasta: `git check-ignore -v` aponta `.gitignore:110:/nff7/` e `.gitignore:109:/compose.override.yml`, e `git status` não os lista; uma imagem de teste (`FROM busybox`, `COPY . /ctx`) construída com o contexto e o `.dockerignore` do repositório tem `/ctx/src` e não tem `/ctx/nff7` nem `/ctx/compose.override.yml`. Arquivos e imagem de teste removidos.
+- 2026-11-16, AC8 (CI): `gh pr checks 78` → `test pass` (run 43996672652) e GitGuardian `pass`, no commit `0bc8739`.
+- 2026-11-16, revisão da spec contra o diff (os quatro elos do `/spec-review`, feita depois de aberto o PR): nenhum arquivo fora do que a spec lista, nenhuma dependência nem mudança de schema, e todo FR tem teste ou evidência, menos o FR-10 (AC6, navegador) e a parte do AC5 já marcada como não verificada. O status `Implemented` confere.
 - AC9: ver o diff de `docs/configuration.md`, `docs/ROADMAP.md`, `docs/architecture.md`, `specs/000-project-baseline.md`, `CLAUDE.md` e `CHANGELOG.md`.
