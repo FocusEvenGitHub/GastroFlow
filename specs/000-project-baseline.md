@@ -112,6 +112,7 @@ Public (no auth):
 Behind `JwtMiddleware` (`/api/admin/*`):
 - `GET /api/admin/menu`, `POST /api/admin/items`, `PATCH /api/admin/items/{id}`, `DELETE /api/admin/items/{id}`, `GET /api/admin/items/{id}/components`, `PUT /api/admin/items/{id}/components`
 - `GET/PUT /api/admin/settings`, `POST /api/admin/settings/logo`, `POST /api/admin/settings/test-print`, `GET /api/admin/logs`
+- `GET /api/admin/fiscal/status` — *added 2026-11-16, spec 084*: connectivity test of the optional external fiscal service (NF-F7); `{"enabled": false}` unless `NF_F7_URL`/`NF_F7_API_KEY` are set
 - `GET /api/admin/reports/{sales,top-items,dining-options,summary,peak-hours,prep-time,month-comparison}`
 
 **Not confirmed**: no `/api/admin/ingredients*` routes were found in `src/Routes.php`, even though `src/Controllers/IngredientController.php` exists — either ingredient management is invoked another way not identified during this investigation, or its routes are not yet wired up. Flagged as an open question below rather than guessed at.

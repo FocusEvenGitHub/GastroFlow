@@ -11,6 +11,7 @@ use App\Controllers\MenuController;
 use App\Controllers\OrderController;
 use App\Controllers\AuditLogController;
 use App\Controllers\AuthController;
+use App\Controllers\FiscalController;
 use App\Controllers\HealthController;
 use App\Controllers\KitchenController;
 use App\Controllers\IngredientController;
@@ -113,6 +114,7 @@ class Routes
             $group->get('/logs', [LogController::class, 'getLogs'])->add($adminOnly());
             $group->get('/audit-log', [AuditLogController::class, 'index'])->add($adminOnly());
             $group->post('/settings/test-print', [PrinterController::class, 'testPrint'])->add($adminOnly());
+            $group->get('/fiscal/status', [FiscalController::class, 'status'])->add($adminOnly());
             $group->get('/reports/sales', [ReportController::class, 'sales'])->add($adminOrManager());
             $group->get('/reports/top-items', [ReportController::class, 'topItems'])->add($adminOrManager());
             $group->get('/reports/main-dishes', [ReportController::class, 'mainDishes'])->add($adminOrManager());

@@ -15,10 +15,26 @@ function settingsApp() {
         logoProblem: '',
         saving: false,
         testing: false,
+        // Serviço fiscal opcional (spec 084). enabled=false: o cartão nem existe na tela.
+        fiscal: { enabled: false },
+        fiscalTesting: false,
 
         init() {
             if (!this.guard()) return;
             this.loadSettings();
+            this.loadFiscal();
+        },
+
+        async loadFiscal() {
+            this.fiscalTesting = true;
+            try {
+                this.fiscal = await this.api('/api/admin/fiscal/status');
+            } catch (err) {
+                // Falhou a chamada ao próprio GastroFlow: mantém o que já estava na tela.
+                console.error('Erro ao consultar o serviço fiscal:', err);
+            } finally {
+                this.fiscalTesting = false;
+            }
         },
 
         async loadSettings() {

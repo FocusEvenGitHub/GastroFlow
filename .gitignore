@@ -103,3 +103,8 @@ tests/e2e/node_modules/
 tests/e2e/test-results/
 tests/e2e/playwright-report/
 .codegraph/
+
+# Instalação com a área fiscal (spec 084): o NF-F7 entra por estes dois caminhos locais,
+# e nff7/nff7.env tem segredos dele.
+/compose.override.yml
+/nff7/

@@ -38,6 +38,19 @@ docker compose up -d
 | `JWT_SECRET` | **yes** | empty | Signs the Admin login tokens. Generate with `openssl rand -base64 48`. Empty → every page and API call, `/health/ready` included, fails with HTTP 500 (`JWT_SECRET environment variable is not set.` in the log); the containers still show "Up". Changing it ends every Admin session ([`security.md`](security.md#sessions)). *(Corrected 2026-11-16, spec 082 — until then only a missing line failed this way; an empty one started normally and just the Admin login failed.)* |
 | `CORS_ALLOWED_ORIGIN` | no | empty | Which other web origin may call the API from a browser. The GastroFlow screens are served by GastroFlow itself and don't need it, so leave it empty: no other website can then call the API from a browser on the network. `*` allows any website — avoid it. *(Updated 2026-11-09, spec 079 — the default was `*` before.)* |
 
+### Fiscal service (optional)
+
+Added 2026-11-16, spec 084. Only for a restaurant that has **NF-F7**, FocusEven's separate fiscal service; GastroFlow itself issues no fiscal document. Leave both empty otherwise: the fiscal area is off and nothing changes.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `NF_F7_URL` | empty | Where NF-F7 answers. With NF-F7 in the same Docker Compose project: `http://nff7-app`. |
+| `NF_F7_API_KEY` | empty | The key NF-F7 printed once when the API client was created (`nff7_…`). A secret, like `JWT_SECRET`: it lives only here, never in Admin › Configurações. |
+
+With both set, Admin › Configurações shows a **Nota fiscal (NF-F7)** card: "Conectado" or "Sem conexão" with what to check, and a **Testar conexão** button. Today that connectivity test is all the integration does — no order, kitchen or printing step calls NF-F7, so NF-F7 being down changes nothing for the cashier. A change to either variable is picked up on the next request, no restart.
+
+Installing NF-F7 itself (its image, its own `nff7/` folder and `compose.override.yml` beside GastroFlow's files) is described in NF-F7's package, not here. Both paths are ignored by git and kept out of the GastroFlow image.
+
 ### Environment
 
 | Variable | Default | What it does |
@@ -62,7 +75,7 @@ The print queue and the kitchen's realtime events are stored in the database and
 
 | Variable | Default | What it does |
 |---|---|---|
-| `COMPOSE_FILE` | unset | Unset → `docker-compose.yml`, the production setup. Developers set `docker-compose.dev.yml`. **Leave it unset in a restaurant.** |
+| `COMPOSE_FILE` | unset | Unset → `docker-compose.yml`, the production setup. Developers set `docker-compose.dev.yml`. **Leave it unset in a restaurant.** Docker only loads a `compose.override.yml` by itself while this is unset; a developer who uses one (the NF-F7 include, spec 084) lists it too: `docker-compose.dev.yml:compose.override.yml`. |
 | `GASTROFLOW_VERSION` | unset | The version shown at `/version`. Passed on the build command line (`GASTROFLOW_VERSION=$(git describe --tags --always) docker compose up -d --build`), not set here. Unset → `dev`. |
 
 ### Tests (developers only)

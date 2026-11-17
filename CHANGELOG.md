@@ -2,6 +2,9 @@
 
 ## Não lançado
 
+### Novidades
+- **Conexão com o serviço fiscal NF-F7 (opcional, desligada por padrão)**: o GastroFlow continua sem emitir nota. Para o restaurante que tem o NF-F7, um produto separado da FocusEven, duas linhas novas no `.env` (`NF_F7_URL` e `NF_F7_API_KEY`) ligam a área fiscal, e Admin › Configurações ganha o cartão "Nota fiscal (NF-F7)", que mostra "Conectado" ou "Sem conexão" com o que conferir, e o botão "Testar conexão". Por enquanto é só esse teste: nenhum pedido chama o NF-F7, então caixa, cozinha e impressão funcionam igual com ele fora do ar. Com as duas linhas vazias, como vêm, nada muda e o cartão não aparece. As pastas da instalação com fiscal (`nff7/` e `compose.override.yml`) ficam fora do git e fora da imagem do GastroFlow (spec 084).
+
 ### Segurança
 - **`JWT_SECRET` vazio não sobe mais**: com a linha `JWT_SECRET=` vazia no `.env` (é como ela vem no `.env.example`), ou só com espaços, o GastroFlow passa a responder erro 500 em todas as telas e chamadas, como já fazia quando a linha não existia e como a documentação dizia. Antes, caixa e cozinha funcionavam e só o login do Admin falhava, sem nenhum aviso do motivo. Não era possível forjar um login: a biblioteca de tokens recusa a chave vazia. **Quem atualiza deve conferir se o `JWT_SECRET` está preenchido**, como explica `docs/upgrading.md` (spec 082)
 - **Segredos fora do histórico de auditoria**: ao salvar as configurações, o histórico (Admin › Auditoria) só guarda o valor antigo e o novo dos campos de Admin › Configurações (nome do restaurante, IP e porta da impressora, desconto máximo, logo no cupom). Qualquer outra configuração aparece como alterada, mas com `[REDACTED]` no lugar dos valores. O histórico nunca é apagado, então isso precisava existir antes de qualquer configuração secreta (como a credencial de uma integração fiscal): sem a regra, o segredo ficaria gravado ali para sempre na primeira alteração. Nada muda nas telas de hoje (spec 081)
