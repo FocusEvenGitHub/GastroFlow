@@ -2,9 +2,9 @@
 
 ## Metadata
 
-- Status: Implemented
+- Status: Verified
 - Created: 2026-11-16
-- Updated: 2026-11-16
+- Updated: 2026-11-17
 - Owner: Henry
 - Related issue: Trello "Integração NF-F7 — contrato API e configuração" (https://trello.com/c/ecET8cGE)
 - Related branch: `feat/084-nff7-connection`
@@ -227,8 +227,8 @@ Respondidas pelo owner em 2026-11-16: **1 → (a)**, mergear agora, saindo inert
 - [x] `FiscalController` + rota + testes de proteção (`FiscalStatusTest`)
 - [x] Cartão em Admin › Configurações
 - [x] `.env.example`, `.gitignore`, `.dockerignore`
-- [ ] Verificação real com a imagem publicada no compose do GastroFlow (AC5) — feita só em parte, contra o NF-F7 de desenvolvimento; falta o passo do owner
-- [ ] Cartão conferido no navegador (AC6) — passo do owner
+- [x] Verificação real com a imagem publicada no compose do GastroFlow (AC5) — 2026-11-17
+- [x] Cartão conferido no navegador (AC6) — 2026-11-17
 - [x] Docs + `CHANGELOG.md`
 - [x] Trello
 - [x] CI do PR verde — PR #78, run 43996672652
@@ -242,7 +242,8 @@ Respondidas pelo owner em 2026-11-16: **1 → (a)**, mergear agora, saindo inert
 - 2026-11-16: `tests/Integration/GuardTest.php` não enumera rotas (testa o banco de teste); a proteção da rota nova está em `FiscalStatusTest`.
 - 2026-11-16: o caso `UNREACHABLE` do teste de integração usa `http://127.0.0.1:9` (porta fechada no próprio container), sem rede externa.
 - 2026-11-16: para o AC5 parcial foi criada, e revogada em seguida, uma chave de teste (`gastroflow-spec084-teste`, id 1) no NF-F7 **de desenvolvimento** desta máquina. Ficam lá uma linha revogada em `api_clients` e duas no audit dele.
-- 2026-11-16: o AC5 completo e o AC6 não foram feitos: pedem `docker login ghcr.io` com leitura do pacote privado e mudar o `.env` do GastroFlow (`COMPOSE_FILE`, `NF_F7_URL`, `NF_F7_API_KEY`), que não é lido nem alterado (regra de segurança). Por isso o status é `Implemented`, não `Verified`.
+- 2026-11-16: o AC5 completo e o AC6 não foram feitos: pedem `docker login ghcr.io` com leitura do pacote privado e mudar o `.env` do GastroFlow (`COMPOSE_FILE`, `NF_F7_URL`, `NF_F7_API_KEY`), que não é lido nem alterado (regra de segurança). Por isso o status ficou `Implemented` no merge do PR #78 (`624ef90`).
+- 2026-11-17: o owner fez a instalação com fiscal nesta máquina pelo passo a passo (login no GHCR, `nff7/` tirada da tag `v0.1.0-gastroflow.1`, `compose.override.yml`, `COMPOSE_FILE=docker-compose.dev.yml:compose.override.yml`, porta da UI 8091 porque o NF-F7 de desenvolvimento já usa a 8090). Dois tropeços do passo a passo, ambos meus: o `sed` do `nff7.env` tinha um `\|` dentro de `$( … )` (trocado por `openssl rand -base64 32`), e faltava dizer onde achar o id do emitente para `bin/api-client create`. O `README.md` de `deploy/gastroflow/` do NF-F7 não tem esses dois problemas; o passo a passo era só desta conversa.
 
 ## Validation evidence
 
@@ -257,4 +258,8 @@ Respondidas pelo owner em 2026-11-16: **1 → (a)**, mergear agora, saindo inert
 - 2026-11-16, AC7 — com `nff7/nff7.env` e `compose.override.yml` de teste na pasta: `git check-ignore -v` aponta `.gitignore:110:/nff7/` e `.gitignore:109:/compose.override.yml`, e `git status` não os lista; uma imagem de teste (`FROM busybox`, `COPY . /ctx`) construída com o contexto e o `.dockerignore` do repositório tem `/ctx/src` e não tem `/ctx/nff7` nem `/ctx/compose.override.yml`. Arquivos e imagem de teste removidos.
 - 2026-11-16, AC8 (CI): `gh pr checks 78` → `test pass` (run 43996672652) e GitGuardian `pass`, no commit `0bc8739`.
 - 2026-11-16, revisão da spec contra o diff (os quatro elos do `/spec-review`, feita depois de aberto o PR): nenhum arquivo fora do que a spec lista, nenhuma dependência nem mudança de schema, e todo FR tem teste ou evidência, menos o FR-10 (AC6, navegador) e a parte do AC5 já marcada como não verificada. O status `Implemented` confere.
+- 2026-11-17, **AC5 completo** — instalação com fiscal real no compose de desenvolvimento, imagem publicada `ghcr.io/focusevengithub/nf-f7:0.1.0-gastroflow.1`:
+  - owner, no navegador: Admin › Configurações mostrou "Conectado como gastroflow (NF-F7 0.1.0-gastroflow.1)";
+  - `Nff7Client` real rodado no container `web`, lendo o `.env` como uma requisição (`NF_F7_URL=http://nff7-app`): como está → `{"enabled":true,"connected":true,"client_name":"gastroflow","issuer_id":1,"version":"0.1.0-gastroflow.1"}` em 0,01 s; chave com um caractere a mais (só em memória) → `KEY_REJECTED`; `http://nff7-app:81` → `UNREACHABLE`; `http://nff7-inexistente` → `UNREACHABLE`. A chave não foi impressa.
+- 2026-11-17, **AC6** — com as variáveis ainda não lidas pelo app (`enabled:false`, conferido no container), o owner não achou o cartão na tela; com elas, o cartão apareceu com "Conectado". Os dois lados do `x-if` observados.
 - AC9: ver o diff de `docs/configuration.md`, `docs/ROADMAP.md`, `docs/architecture.md`, `specs/000-project-baseline.md`, `CLAUDE.md` e `CHANGELOG.md`.
