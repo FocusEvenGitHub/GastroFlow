@@ -97,6 +97,23 @@ class Settings
         return $value > 0 ? $value : 2;
     }
 
+    /**
+     * Base URL of NF-F7, the optional external fiscal service (spec 084), without a trailing
+     * slash. Null when unset: with the key also unset, the fiscal area is off.
+     */
+    public function getNff7Url(): ?string
+    {
+        $value = rtrim(trim((string) $this->get('NF_F7_URL', '')), '/');
+        return $value !== '' ? $value : null;
+    }
+
+    /** NF-F7 API key (spec 084). A secret: never log it or return it in a response. */
+    public function getNff7ApiKey(): ?string
+    {
+        $value = trim((string) $this->get('NF_F7_API_KEY', ''));
+        return $value !== '' ? $value : null;
+    }
+
     public function getBasePath(): string
     {
         return $this->basePath;

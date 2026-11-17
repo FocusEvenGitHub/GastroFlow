@@ -1748,12 +1748,14 @@ No shared database. No imported classes. **No NFC-e/NFS-e/SEFAZ logic and no fis
 
 Each one gets its own `/spec-plan` when its time comes. Nothing here starts before `v2.0.0`, and the integration itself waits for a stable NF-F7 public API.
 
-* **Integration contract and configuration** — NF-F7 URL + credential, an isolated HTTP client, a connectivity test, an order-based external reference, an idempotency key, timeouts and errors that never block local operation. The credential is a secret setting: keep its key out of `SettingsController::AUDITABLE_KEYS` (spec 081 then records it as `[REDACTED]`), and note that `GET /api/admin/settings` returns every key's value today, so a write-only secret needs its own handling there.
+*(Updated 2026-11-16, spec 084 — owner decision of the same day: the first slice below started before `v2.0.0`. NF-F7 now ships a private image and an API-key-authenticated `GET /api/v1/ping`, and runs inside GastroFlow's Compose project through a local `compose.override.yml` that only a fiscal install has; the public `docker-compose.yml` is unchanged. The slice ships in `v2.0.0` inert: off unless two `.env` variables are set.)*
+
+* **Integration contract and configuration** — NF-F7 URL + credential, an isolated HTTP client, a connectivity test, an order-based external reference, an idempotency key, timeouts and errors that never block local operation. The credential is a secret setting: keep its key out of `SettingsController::AUDITABLE_KEYS` (spec 081 then records it as `[REDACTED]`), and note that `GET /api/admin/settings` returns every key's value today, so a write-only secret needs its own handling there. *(Updated 2026-11-16, spec 084: **partly done** — `NF_F7_URL` + `NF_F7_API_KEY`, the isolated client (`Nff7Client`) and the connectivity test (`GET /api/admin/fiscal/status`, a card in Admin › Configurações). The credential went to `.env`, not to the `settings` table, so neither the audit log nor `GET /api/admin/settings` ever sees it. Still open, waiting for NF-F7's `POST /api/v1/nfce`: the external reference and the idempotency key.)*
 * **Checkout / payment boundary** — the minimum payment information GastroFlow must model to request a fiscal document. Orders today go from creation to the kitchen with no payment step.
 * **Fiscal status in an order history** — only the summarized state NF-F7 returns for an order, with minimal external references; GastroFlow never duplicates the fiscal domain. An Admin order history over more than one business day is also where pagination (deferred by spec 025) would be decided.
 * **Fiscal artifacts / DANFE** — fetching already-authorized artifacts from NF-F7 and, if it makes sense, sending a DANFE to the thermal printer. GastroFlow does not build XML, sign documents or decide SEFAZ rules.
 
-**No version number is reserved for this.** Which `2.x` release carries the integration is decided after `v2.0.0`, once the NF-F7 API is stable.
+**No version number is reserved for this.** Which `2.x` release carries the integration is decided after `v2.0.0`, once the NF-F7 API is stable. *(Corrected 2026-11-16, spec 084 — owner decision: the fiscal area is the closed area of GastroFlow **2.1**. Closed means NF-F7, which is private; the small client in this repository is public and does nothing without NF-F7.)*
 
 ---
 

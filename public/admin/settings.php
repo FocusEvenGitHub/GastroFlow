@@ -124,6 +124,34 @@ $extraHead = '<style>
         </div>
     </div>
 
+    <!-- Nota fiscal (spec 084): só existe na instalação com o NF-F7 configurado -->
+    <template x-if="fiscal.enabled">
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Nota fiscal (NF-F7)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div x-show="fiscal.connected" class="alert alert-success small py-2 mb-3" role="status">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Conectado como <strong x-text="fiscal.client_name"></strong>
+                            (NF-F7 <span x-text="fiscal.version"></span>).
+                        </div>
+                        <div x-show="!fiscal.connected" class="alert alert-warning small py-2 mb-3" role="alert">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Sem conexão. <span x-text="fiscal.message"></span>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" @click="loadFiscal" :disabled="fiscalTesting">
+                            <span x-show="!fiscalTesting"><i class="fas fa-plug"></i> Testar conexão</span>
+                            <span x-show="fiscalTesting"><span class="spinner-border spinner-border-sm"></span> Testando...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
     <!-- Botão Salvar -->
     <div class="row">
         <div class="col-12">

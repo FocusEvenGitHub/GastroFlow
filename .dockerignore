@@ -14,3 +14,6 @@ vendor/
 backups/
 tests/
 public/uploads/
+# Spec 084: arquivos locais da instalação com o NF-F7; nff7/nff7.env tem segredos dele.
+compose.override.yml
+nff7/
