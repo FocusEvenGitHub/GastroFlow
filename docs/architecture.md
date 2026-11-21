@@ -198,6 +198,8 @@ Read path mirrors `LogController`/`logs.php` (spec 033) exactly: `GET /api/admin
 
 Added 2026-11-16, spec 084. GastroFlow issues no fiscal document; a restaurant that has NF-F7 (a separate, private FocusEven product) points GastroFlow at it with `NF_F7_URL` + `NF_F7_API_KEY` in `.env`. Both empty, the default, means off.
 
+*(Updated 2026-11-21, [ADR 0001](adr/0001-descontinuacao-nf-f7.md): NF-F7 is no longer a product of its own — it is only GastroFlow's closed fiscal module, for the restaurant's NFC-e, still run through GastroFlow's Compose project and reached over HTTP as described here.)*
+
 `Services/Nff7Client` is the only class that talks to NF-F7, over HTTP (`curl`, 2 s to connect, 5 s total, no redirects) with `Authorization: Bearer`. It knows one call, `GET /api/v1/ping`, exposed as `GET /api/admin/fiscal/status` (admin only, always 200: `enabled`, `connected`, and a fixed `reason`/`message` on failure — never the key, the transport error or NF-F7's body). Nothing in the order, kitchen or print paths uses it. No shared database, no shared code, no fiscal logic here.
 
 ## Persistence
