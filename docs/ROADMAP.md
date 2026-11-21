@@ -1729,7 +1729,7 @@ Community may continue evolving, but stability takes priority over rapid feature
 * **GastroFlow Community** — restaurant, cashier, kitchen, orders, reports, printing, and an *optional* integration with an external fiscal service.
 * **NF-F7 (FocusEven Fiscal)** — a separate product: fiscal issuance, certificates, NFC-e/NFS-e, layouts/XSD, official providers, fiscal documents, idempotency/reconciliation, DANFE and fiscal rules.
 
-*(Updated 2026-11-21, [ADR 0001](adr/0001-descontinuacao-nf-f7.md) — owner decision: NF-F7 is no longer a separate product with clients of its own; it is only **GastroFlow's fiscal module**, closed, running in GastroFlow's Compose project as today. Its scope is the restaurant's NFC-e: NFS-e, condominium charges and the accounting-office features it was built for are out. The boundary below — HTTP only, no fiscal logic in Community — is unchanged.)*
+*(Updated 2026-11-21, [ADR 0001](adr/0001-descontinuacao-nf-f7.md) — owner decision: NF-F7 is no longer a separate product; it is only **GastroFlow's fiscal module**, closed, running in GastroFlow's Compose project as today. Its scope is the restaurant's NFC-e; any other use outside GastroFlow is out. The boundary below — HTTP only, no fiscal logic in Community — is unchanged.)*
 
 ```text
 GastroFlow
