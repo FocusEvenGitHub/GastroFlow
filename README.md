@@ -55,6 +55,7 @@ This README is the entry point. Depth lives alongside it, by topic:
 | [`docs/upgrading.md`](docs/upgrading.md) | Updating to a newer version without losing data, and rolling back |
 | [`docs/configuration.md`](docs/configuration.md) | Every `.env` variable and every Admin setting: default, effect, when it applies |
 | [`docs/fiscal-nff7.md`](docs/fiscal-nff7.md) | Optional: running NF-F7, the separate fiscal service, next to GastroFlow |
+| [`docs/adr/`](docs/adr/) | Architecture decision records — e.g. NF-F7 becomes GastroFlow's fiscal module only |
 | [`docs/security.md`](docs/security.md) | Deployment model, what needs a login, roles, sessions, secrets, known limitations |
 | [`docs/backup-and-restore.md`](docs/backup-and-restore.md) | A complete backup (database, logo, `.env`), scheduling, restoring on the same or a new server |
 | [`docs/troubleshooting.md`](docs/troubleshooting.md) | First checks and symptom tables, linking each guide's own troubleshooting |
