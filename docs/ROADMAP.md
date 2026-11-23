@@ -2,7 +2,7 @@
 
 > **Current version:** v1.9.0
 > **Target:** v2.0.0
-> **Current milestone:** v2.0.0 — Release Candidate
+> **Current milestone:** v2.0.0 — Release Candidate (`v2.0.0-rc.1`, spec 086: Verification Matrix in progress)
 > **Edition:** GastroFlow Community
 > **Scope:** Self-hosted restaurant management for a single restaurant/location.
 
