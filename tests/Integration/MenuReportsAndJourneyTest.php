@@ -127,4 +127,43 @@ class MenuReportsAndJourneyTest extends IntegrationTestCase
             'Reported revenue must match exact pricing, in cents'
         );
     }
+
+    /**
+     * Spec 086 — the midnight boundary. A new order's business_date is the date in the app's
+     * configured timezone, and orders at 23:59 and 00:01 of consecutive days each land only
+     * in their own day's reports.
+     * shortcut: the clock can't be frozen here, so the two orders are moved to fixed times
+     * after creation; the same-day check below is what ties business_date to local time.
+     */
+    public function testOrdersAroundMidnightBelongToTheirOwnBusinessDay(): void
+    {
+        $item = $this->availableMenuItem();
+        $localToday = (new \DateTimeImmutable('now', new \DateTimeZone(date_default_timezone_get())))->format('Y-m-d');
+
+        foreach (['2026-03-10 23:59:00', '2026-03-11 00:01:00'] as $at) {
+            $create = $this->request('POST', '/api/orders', ['items' => [['id' => $item->id, 'quantity' => 1]]]);
+            $this->assertSame(201, $create->getStatusCode());
+            $id = (int) $this->decode($create)['id'];
+            $this->assertSame($localToday, (string) Db::table('orders')->where('id', $id)->value('business_date'));
+            $this->assertSame(200, $this->request('POST', "/api/orders/{$id}/complete")->getStatusCode());
+            Db::table('orders')->where('id', $id)->update([
+                'business_date' => substr($at, 0, 10),
+                'created_at' => $at,
+                'updated_at' => $at,
+            ]);
+        }
+
+        $auth = $this->authHeader('admin');
+        foreach (['2026-03-10' => 23, '2026-03-11' => 0] as $day => $hour) {
+            $sales = $this->decode($this->request('GET', "/api/admin/reports/sales?date_from={$day}&date_to={$day}", null, $auth));
+            $this->assertCount(1, $sales['data'], "sales rows for {$day}");
+            $this->assertSame($day, $sales['data'][0]['date']);
+            $this->assertSame(1, (int) $sales['data'][0]['orders'], "orders on {$day}");
+
+            $peak = $this->decode($this->request('GET', "/api/admin/reports/peak-hours?date_from={$day}&date_to={$day}", null, $auth));
+            $byHour = array_column($peak['data'], 'orders', 'hour');
+            $this->assertSame(1, (int) $byHour[$hour], "{$day} peaks at {$hour}h");
+            $this->assertSame(1, array_sum(array_map('intval', $byHour)), "only one order on {$day}");
+        }
+    }
 }
