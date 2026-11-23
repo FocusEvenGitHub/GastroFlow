@@ -1,6 +1,8 @@
 # Changelog
 
-## Não lançado
+## v2.0.0-rc.1 (2026-11-23) — Release Candidate 1
+
+Primeira versão candidata da v2.0.0. É uma pré-release: serve para passar a matriz de verificação do `docs/ROADMAP.md` antes da versão estável, e uma instalação de restaurante continua na `v1.9.0` até a `v2.0.0` sair. Não traz nenhuma migration nova desde a `v1.9.0`.
 
 ### Novidades
 - **Conexão com o serviço fiscal NF-F7 (opcional, desligada por padrão)**: o GastroFlow continua sem emitir nota. Para o restaurante que tem o NF-F7, um produto separado da FocusEven, duas linhas novas no `.env` (`NF_F7_URL` e `NF_F7_API_KEY`) ligam a área fiscal, e Admin › Configurações ganha o cartão "Nota fiscal (NF-F7)", que mostra "Conectado" ou "Sem conexão" com o que conferir, e o botão "Testar conexão". Por enquanto é só esse teste: nenhum pedido chama o NF-F7, então caixa, cozinha e impressão funcionam igual com ele fora do ar. Com as duas linhas vazias, como vêm, nada muda e o cartão não aparece. As pastas da instalação com fiscal (`nff7/` e `compose.override.yml`) ficam fora do git e fora da imagem do GastroFlow. Passo a passo da instalação em `docs/fiscal-nff7.md` (spec 084).
@@ -18,6 +20,7 @@
 
 ### Qualidade
 - **Fila testada com vários workers ao mesmo tempo**: um teste de integração novo cria 200 jobs e põe 4 workers, em processos separados, para esvaziar a fila juntos contra MySQL real. Ele confere, pelo registro do próprio handler, que cada job rodou **exatamente uma vez**, e que os 200 terminaram concluídos na primeira tentativa. Em 7 runs locais (2026-11-09), cada run teve de 1 a 3 **deadlocks reais** do MySQL (`1213`), no claim e na gravação do resultado, todos recuperados pelo retry da spec 037; o erro `1205` (lock wait timeout) não apareceu. Roda no CI junto com a suíte de integração (spec 077)
+- **Testes para o que a matriz da v2.0 ainda não cobria**: três testes de integração novos. O primeiro cobre o token de login vencido, que é recusado com 401 `TOKEN_EXPIRED`. O segundo cobre a troca de senha do Admin: a senha atual errada e a nova senha curta são recusadas sem mudar nada, e depois da troca a senha antiga deixa de entrar e a nova entra. O terceiro cobre os pedidos de 23:59 e 00:01 de dias seguidos: cada um entra só no relatório de vendas e de horário de pico do próprio dia. Nada muda para quem usa o GastroFlow (spec 086)
 
 ### Manutenção
 - **Roadmap sem emissão fiscal dentro do GastroFlow**: o plano antigo da v2.1, que emitiria NFC-e direto na SEFAZ de dentro do GastroFlow (certificado A1, CSC, XML, DANFE), foi aposentado por decisão de 2026-11-10. Nada dele chegou a ser implementado. A emissão fiscal fica num produto separado, o NF-F7, e o `docs/ROADMAP.md` passa a prever só uma integração opcional com ele, depois da v2.0 e ainda sem versão definida. Nada muda para quem usa o GastroFlow (spec 083)
