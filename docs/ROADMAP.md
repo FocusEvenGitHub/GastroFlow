@@ -1,8 +1,7 @@
 # GastroFlow Community Roadmap
 
-> **Current version:** v1.9.0
-> **Target:** v2.0.0
-> **Current milestone:** v2.0.0 — Release Candidate (`v2.0.0-rc.1`, spec 086: Verification Matrix in progress)
+> **Current version:** v2.0.0
+> **Current milestone:** Community 2.x maintenance (`v2.0.0` released; the Verification Matrix closed by spec 086)
 > **Edition:** GastroFlow Community
 > **Scope:** Self-hosted restaurant management for a single restaurant/location.
 
@@ -1521,6 +1520,8 @@ v1.9 is complete when:
 
 # v2.0.0 Release Candidate
 
+**Status: Complete.** `v2.0.0-rc.1` tagged 2026-11-23 (spec 086), with no new feature since `v1.9.0` other than the inert NF-F7 connection test (spec 084). Validation against it found no blocker, so `rc.2` was not needed and `v2.0.0` was cut from the same code, with documentation corrections only.
+
 Once v1.9 is complete, development enters release-candidate mode.
 
 During the RC cycle, only the following should normally be accepted:
@@ -1551,135 +1552,137 @@ v2.0.0
 
 # v2.0 Verification Matrix
 
+**Status (2026-11-24): complete — spec 086.** Passed against `v2.0.0-rc.1` (tag on `97ced23`, published as a pre-release on 2026-11-23). Every item names its evidence in `specs/086-v2-verification-matrix.md`: an automated test by name, a command run against the rc.1 (Quality, E2E, a clean install from `docs/installation.md`, a real backup → restore), or the owner's validation (pilot upgraded to the rc.1, a real ticket printed, the cashier without WAN on 2026-11-24; the 2026-11-10 run for the rest). No release blocker was found, so there is no `rc.2`.
+
 ## Fresh installation
 
-* [ ] Clone/install from a clean environment
-* [ ] Follow documented configuration only
-* [ ] Containers/services start successfully
-* [ ] Database migrations succeed
-* [ ] Administrator can be created
-* [ ] No private restaurant data exists in the default database
-* [ ] Application becomes usable without source-code modifications
+* [x] Clone/install from a clean environment
+* [x] Follow documented configuration only
+* [x] Containers/services start successfully
+* [x] Database migrations succeed
+* [x] Administrator can be created
+* [x] No private restaurant data exists in the default database
+* [x] Application becomes usable without source-code modifications
 
 ---
 
 ## Authentication
 
-* [ ] Valid login works
-* [ ] Invalid login fails safely
-* [ ] Expired authentication fails safely
-* [ ] Invalid tokens are rejected
-* [ ] Roles are enforced
-* [ ] Unauthorized operations are blocked
-* [ ] Password changes work
+* [x] Valid login works
+* [x] Invalid login fails safely
+* [x] Expired authentication fails safely
+* [x] Invalid tokens are rejected
+* [x] Roles are enforced
+* [x] Unauthorized operations are blocked
+* [x] Password changes work
 
 ---
 
 ## Ordering
 
-* [ ] Order creation succeeds
-* [ ] `order_number` is generated correctly
-* [ ] Concurrent order creation does not produce duplicate numbers
-* [ ] Invalid items are rejected
-* [ ] Invalid quantities are rejected
-* [ ] Pricing is exact
-* [ ] Historical item name remains correct
-* [ ] Historical price remains correct
+* [x] Order creation succeeds
+* [x] `order_number` is generated correctly
+* [x] Concurrent order creation does not produce duplicate numbers
+* [x] Invalid items are rejected
+* [x] Invalid quantities are rejected
+* [x] Pricing is exact
+* [x] Historical item name remains correct
+* [x] Historical price remains correct
 
 ---
 
 ## Kitchen
 
-* [ ] New orders appear correctly
-* [ ] Order status transitions work
-* [ ] Invalid transitions fail
-* [ ] Reopening behaves as documented
-* [ ] Realtime reconnection works
-* [ ] Network failure is visible to the operator
+* [x] New orders appear correctly
+* [x] Order status transitions work
+* [x] Invalid transitions fail
+* [x] Reopening behaves as documented
+* [x] Realtime reconnection works
+* [x] Network failure is visible to the operator
 
 ---
 
 ## Printing
 
-* [ ] Test print works
-* [ ] Order printing works
-* [ ] Printer failure does not lose the order
-* [ ] Failed prints are visible
-* [ ] Retry works
-* [ ] Reprint works
+* [x] Test print works
+* [x] Order printing works
+* [x] Printer failure does not lose the order
+* [x] Failed prints are visible
+* [x] Retry works
+* [x] Reprint works
 
 ---
 
 ## Reports
 
-* [ ] Sales totals match actual orders
-* [ ] Historical prices are respected
-* [ ] Date filtering works
-* [ ] Timezone boundaries behave correctly
-* [ ] Pagination works where applicable
+* [x] Sales totals match actual orders
+* [x] Historical prices are respected
+* [x] Date filtering works
+* [x] Timezone boundaries behave correctly
+* [x] Pagination works where applicable — *not applicable: no endpoint returns an unbounded result (spec 025)*
 
 ---
 
 ## Jobs
 
-* [ ] Jobs are claimed safely
-* [ ] Failed jobs can retry
-* [ ] Attempt count is tracked
-* [ ] Failed jobs expose meaningful diagnostics
-* [ ] Multiple worker execution does not duplicate critical work
+* [x] Jobs are claimed safely
+* [x] Failed jobs can retry
+* [x] Attempt count is tracked
+* [x] Failed jobs expose meaningful diagnostics
+* [x] Multiple worker execution does not duplicate critical work
 
 ---
 
 ## Recovery
 
-* [ ] Database backup succeeds
-* [ ] Database restore succeeds
-* [ ] GastroFlow works after restore
-* [ ] Recovery procedure matches documentation
+* [x] Database backup succeeds
+* [x] Database restore succeeds
+* [x] GastroFlow works after restore
+* [x] Recovery procedure matches documentation
 
 ---
 
 ## Network
 
-* [ ] Cashier works without WAN access
-* [ ] Kitchen works without WAN access
-* [ ] Printing works without WAN access
-* [ ] Local frontend dependencies work without WAN access
+* [x] Cashier works without WAN access
+* [x] Kitchen works without WAN access
+* [x] Printing works without WAN access
+* [x] Local frontend dependencies work without WAN access
 
 ---
 
 ## Upgrade
 
-* [ ] Supported v1.x installation can be upgraded
-* [ ] Existing orders survive
-* [ ] Existing users survive
-* [ ] Existing settings survive
-* [ ] Migrations preserve historical information
+* [x] Supported v1.x installation can be upgraded
+* [x] Existing orders survive
+* [x] Existing users survive
+* [x] Existing settings survive
+* [x] Migrations preserve historical information
 
 ---
 
 ## Quality
 
-* [ ] `composer validate` passes
-* [ ] Dependency audit passes or exceptions are documented
-* [ ] Static analysis passes
-* [ ] Code style validation passes
-* [ ] Unit tests pass
-* [ ] Integration tests pass
-* [ ] Core E2E smoke flow passes
+* [x] `composer validate` passes
+* [x] Dependency audit passes or exceptions are documented
+* [x] Static analysis passes
+* [x] Code style validation passes
+* [x] Unit tests pass
+* [x] Integration tests pass
+* [x] Core E2E smoke flow passes
 
 ---
 
 ## Documentation
 
-* [ ] README reflects actual functionality
-* [ ] CLAUDE.md reflects actual tooling/workflow
-* [ ] Architecture documentation reflects code
-* [ ] Technical decisions reflect current implementation
-* [ ] Installation instructions were tested
-* [ ] Backup instructions were tested
-* [ ] Printing instructions were tested
-* [ ] CHANGELOG is complete
+* [x] README reflects actual functionality
+* [x] CLAUDE.md reflects actual tooling/workflow
+* [x] Architecture documentation reflects code
+* [x] Technical decisions reflect current implementation
+* [x] Installation instructions were tested
+* [x] Backup instructions were tested
+* [x] Printing instructions were tested
+* [x] CHANGELOG is complete
 
 ---
 

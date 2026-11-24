@@ -105,7 +105,7 @@ Supported printers, finding the printer's IP, what happens when printing fails, 
 
 ## 10. Create the menu
 
-A new installation has no menu — only the categories and the packaging items ("Embalagem Simples/Especial", charged on take-away orders). Create your items in Admin.
+A new installation has no menu — only the categories, the packaging items ("Embalagem Simples/Especial", charged on take-away orders) and "Monte Seu Prato", the build-your-own dish whose add-ons you create. Create your items in Admin. *(Corrected 2026-11-23, spec 086: "Monte Seu Prato" was missing — migration 022 keeps it on purpose, it carries behavior; seen in the clean-room install of `v2.0.0-rc.1`.)*
 
 To try GastroFlow first with sample data — a fictional menu plus 45 days of orders for the kitchen and reports:
 

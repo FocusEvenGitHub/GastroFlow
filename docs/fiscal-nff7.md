@@ -1,6 +1,6 @@
 # Fiscal service (NF-F7) — installation
 
-GastroFlow issues no fiscal document. A restaurant that needs one runs **NF-F7**, FocusEven's separate and private fiscal service, inside GastroFlow's own Docker Compose project. GastroFlow talks to it over HTTP only (`http://nff7-app` on the internal Docker network), with an API key. Nothing else is shared: NF-F7 has its own database, volumes and secrets.
+GastroFlow issues no fiscal document. A restaurant that needs one runs **NF-F7**, GastroFlow's closed, private fiscal module, inside GastroFlow's own Docker Compose project. GastroFlow talks to it over HTTP only (`http://nff7-app` on the internal Docker network), with an API key. Nothing else is shared: NF-F7 has its own database, volumes and secrets. *(Corrected 2026-11-23, spec 086: it said "FocusEven's separate and private fiscal service" — see ADR 0001.)*
 
 **What it does today (spec 084):** a connectivity test. Admin › Configurações shows a **Nota fiscal (NF-F7)** card with "Conectado" or "Sem conexão". No order, kitchen or printing step calls NF-F7, so NF-F7 being down changes nothing for the cashier. Issuing NFC-e comes later, once NF-F7 offers it.
 
