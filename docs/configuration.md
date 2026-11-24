@@ -40,7 +40,7 @@ docker compose up -d
 
 ### Fiscal service (optional)
 
-Added 2026-11-16, spec 084. Only for a restaurant that has **NF-F7**, FocusEven's separate fiscal service; GastroFlow itself issues no fiscal document. Leave both empty otherwise: the fiscal area is off and nothing changes.
+Added 2026-11-16, spec 084. Only for a restaurant that has **NF-F7**, GastroFlow's closed fiscal module; GastroFlow itself issues no fiscal document. *(Corrected 2026-11-23, spec 086: it said "FocusEven's separate fiscal service" — since ADR 0001 (spec 085) NF-F7 is no longer a product of its own.)* Leave both empty otherwise: the fiscal area is off and nothing changes.
 
 | Variable | Default | What it does |
 |---|---|---|

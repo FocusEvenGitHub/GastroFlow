@@ -2,12 +2,12 @@
 
 ## Metadata
 
-- Status: In Progress
+- Status: Verified
 - Created: 2026-11-21
-- Updated: 2026-11-23
+- Updated: 2026-11-24
 - Owner: Henry
 - Related issue: Trello "🧭 Plano de fechamento — GastroFlow Community v2.0" (https://trello.com/b/8wJbH7PY) e os 12 cards "v2.0 Verification — …" da lista `🧪 v2.0`
-- Related branch: `release/086-v2-verification` (a criar)
+- Related branch: `release/086-v2-verification` (PR #82, rc.1) e `release/v2.0.0` (PR de release)
 
 ## Context
 
@@ -183,14 +183,15 @@ Existe infraestrutura automatizada: PHPUnit com Unit, Smoke e Integration contra
 - [x] Mapeamento de evidência de Authentication/Ordering/Kitchen/Reports/Jobs (tabela abaixo; marcação final contra a rc.1)
 - [x] CHANGELOG `v2.0.0-rc.1 (2026-11-23)` e cabeçalho do ROADMAP no working tree
 - [x] `/spec-review` (2026-11-23): sem bloqueador; corrigidos data do heading, variável sem uso e comentário do teste
-- [ ] PR da spec aberto e mergeado
-- [ ] Tag `v2.0.0-rc.1` (confirmação) e pré-release conferida
-- [ ] Quality no commit da rc.1
-- [ ] Instalação limpa da rc.1 (scratchpad)
-- [ ] Passe de documentação
-- [ ] Itens do owner: upgrade piloto, impressão real, caixa sem WAN
-- [ ] Blockers resolvidos (ou nenhum)
-- [ ] PR de release `v2.0.0`, matriz completa no ROADMAP
+- [x] PR da spec aberto e mergeado (#82, merge `97ced23`, 2026-11-23)
+- [x] Tag `v2.0.0-rc.1` (confirmação do owner, 2026-11-23) e pré-release conferida
+- [x] Quality no commit da rc.1
+- [x] Instalação limpa da rc.1 (scratchpad), com backup→restore real
+- [x] Passe de documentação (3 correções, branch `release/v2.0.0`)
+- [x] Itens do owner: upgrade piloto, impressão real, caixa sem WAN (confirmados pelo owner em 2026-11-24)
+- [x] Blockers resolvidos (nenhum encontrado; sem `rc.2`)
+- [x] Matriz completa no ROADMAP, CHANGELOG `v2.0.0 (2026-11-24)`, versões no ROADMAP e no README
+- [ ] PR de release `v2.0.0` aberto e mergeado
 - [ ] Tag `v2.0.0` (confirmação)
 - [ ] Trello sincronizado
 
@@ -271,12 +272,51 @@ Legenda: **T** = teste automatizado (passou nos runs acima); **O** = validação
 | Quality | validate · audit · static analysis · style · unit · integration · E2E | T, tabelas acima; repetir no commit da tag (AC5) |
 | Docs | README · CLAUDE.md · arquitetura · decisões técnicas · instalação/backup/impressão testados · CHANGELOG completo | **rc.1**: passe de docs + AC4; instalação/backup/impressão também cobertos por O |
 
-### Ainda sem evidência (bloqueia a `v2.0.0`)
+### Contra a `v2.0.0-rc.1` (2026-11-23, tag em `97ced23`)
 
-1. AC3: tag `v2.0.0-rc.1` e pré-release publicada (precisa de commit, PR, merge e a confirmação da tag).
-2. AC4: instalação limpa da rc.1 no scratchpad.
-3. AC5: Quality + E2E no commit da tag.
-4. Prova de que `MigrationUpgradeTest` rodou de fato na CI, e não foi pulado.
-5. Owner: upgrade do piloto para a rc.1, um cupom real impresso pela rc.1, e a confirmação de que a evidência de 2026-11-10 vale para a rc.1.
-6. Passe de documentação contra a rc.1.
-7. AC6–AC8: ROADMAP marcado, cards completos, PR de release e tag `v2.0.0`.
+| AC | Comando / observação | Resultado |
+|---|---|---|
+| AC3 | `gh run list --workflow release.yml` | run 45232020616 `success` (4m43s) |
+| AC3 | `gh release view v2.0.0-rc.1` | `isPrerelease: true`, nome `v2.0.0-rc.1 — Release Candidate 1`, notas = seção do CHANGELOG |
+| AC3 | `gh api …/packages/container/gastroflow/versions` | versão nova só com a tag `2.0.0-rc.1` (sem `2.0`/`2`/`latest`); `gh release list`: `v1.9.0` continua `Latest` |
+| AC4 | clone da tag no scratchpad, `cp .env.example .env`, senhas/`JWT_SECRET` gerados com `openssl rand` (passo 4), `GASTROFLOW_VERSION=v2.0.0-rc.1`, `docker compose -p gfrc1 up -d --build` | `db` healthy, `migrate` `Exited (0)` com 23 migrations `[OK]` e `✓ Concluído.`, `web`/`print-worker` `Up` |
+| AC4 | `bin/create-admin admin` (senha via stdin) | `✓ Usuário "admin" (admin) criado com sucesso.` |
+| AC4 | `curl /health/ready`, `/version`, `POST /api/login`, `/cashier/`, `/kitchen/`, `/admin/` | `{"success":true,"status":"ready"}`, `"version":"v2.0.0-rc.1"`, 200, 200, 200, 200 |
+| AC4 | `curl /api/menu` | só `Monte Seu Prato`, `Embalagem Especial`, `Embalagem Simples` — nenhum dado de restaurante |
+| AC4 | `curl -H 'Origin: http://evil.example' /api/menu` | nenhum header `Access-Control-*` (spec 079 no default) |
+| Recovery | `bin/backup-db` → criar item "Prato restore" + pedido (201) → `bin/restore-db --yes` | antes do restore: 1 pedido pendente, item no menu; depois: 0 e 0; `/health/ready` ready, login 200 |
+| AC5 | no `web` de dev com o working tree em `97ced23` (= `git describe --exact-match` `v2.0.0-rc.1`): validate, audit, PHPStan, CS, PHPUnit | `./composer.json is valid`, `No security vulnerability advisories found.`, `[OK] No errors`, `0 of 124`, `Tests: 370, Assertions: 1019, Skipped: 2` |
+| AC5 | `npx playwright test` (porta 8081) | `48 passed (1.9m)` |
+| AC5 | `MigrationUpgradeTest` com `MYSQL_DATABASE_TEST_UPGRADE=restaurant_test_upgrade` (banco criado com `CREATE DATABASE` + `GRANT`, setup de teste, dentro do container `db`, sem ler credencial) | `OK (2 tests, 16 assertions)` — fecha a pendência dos 2 skipped |
+
+Desvios na instalação limpa, todos só para coexistir com os stacks desta máquina, e nenhum no que o guia manda fazer:
+- portas e `container_name` vêm fixos no `docker-compose.yml`, então um `compose.override.yml` trocou `8080`→`8095`, `3306`→`3326` e os nomes para `gfrc1_*`;
+- a primeira tentativa usou `8090`/`3316`, que já são do NF-F7 de dev, e falhou no bind (`port is already allocated`), deixando o `db` sem rede; com portas livres o `up` saiu limpo;
+- o clone foi feito do repositório local na tag (mesmo commit da tag no GitHub), não por `https://github.com/…`.
+
+Passe de documentação (branch `release/v2.0.0`), com nota datada em cada correção:
+- `README.md:57`, `docs/configuration.md:43` e `docs/fiscal-nff7.md:3` ainda chamavam o NF-F7 de serviço separado; desde o ADR 0001 (spec 085) ele é o módulo fiscal fechado do GastroFlow;
+- `docs/installation.md:108` dizia que a instalação nova traz só categorias e embalagens; também traz o "Monte Seu Prato", de propósito (migration 022). Visto na instalação limpa acima.
+
+Conferido sem achado: `docs/architecture.md` (13 controllers, 13 services, 5 middlewares, 12 models, 23 migrations, iguais ao código) e `CLAUDE.md` (comandos e arquitetura batem com o que foi rodado).
+
+### Itens do owner contra a rc.1 (2026-11-24)
+
+Em 2026-11-24 o Henry respondeu, sobre os três itens abaixo, "sobre os que falta, ta tudo ok". É validação relatada pelo owner, não observada aqui:
+
+1. Owner: atualizar a instalação piloto para a `v2.0.0-rc.1` seguindo `docs/upgrading.md` (conferir o `JWT_SECRET` preenchido e o `CORS_ALLOWED_ORIGIN`); ao terminar, `/version` mostra `v2.0.0-rc.1`, `/health/ready` está ready, e os pedidos, usuários e configurações de antes continuam lá.
+2. Owner: um cupom real impresso pela rc.1 (pedido com a senha numérica) e o caixa operando com a WAN desligada.
+3. Owner: confirmar que a validação de 2026-11-10 (instalação por outra pessoa, impressora, sem WAN, backup→restore, upgrade) vale para a rc.1 nos itens não repetidos aqui.
+
+### Fechamento (2026-11-24, branch `release/v2.0.0`)
+
+| AC | Comando / observação | Resultado |
+|---|---|---|
+| AC6 | contagem de `* [ ]` / `* [x]` na seção "v2.0 Verification Matrix" do `docs/ROADMAP.md` | 0 abertos, 72 marcados (a matriz tem 72 itens, não 60 como a spec dizia); "Pagination" marcado como não aplicável, com a referência à spec 025 |
+| AC7 | Trello | os 12 cards de verificação completos, com comentário apontando esta spec |
+| AC8 | `.github/scripts/release-notes.sh --title v2.0.0` | `v2.0.0 — GastroFlow Community 2.0`; a seção imprime a abertura e o conteúdo da rc.1. A tag sai só depois do merge do PR de release e da confirmação do owner. **Se ela não sair em 2026-11-24, a data do heading precisa ser corrigida antes.** |
+
+Passe de docs do fechamento:
+- `docs/technical-decisions.md` foi conferido linha por linha, sem achado. A decisão fiscal está no ADR 0001, e nenhuma linha diz algo que o código não faz.
+- No CHANGELOG, duas entradas ainda chamavam o NF-F7 de produto separado: a da spec 084 em "Novidades" e a da spec 083 em "Manutenção". As duas ganharam uma nota datada.
+- Com a `v2.0.0`, o conteúdo da seção da rc.1 passou para a seção `v2.0.0`. A seção da rc.1 ficou com uma linha que aponta para ela.

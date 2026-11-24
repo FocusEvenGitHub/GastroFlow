@@ -54,7 +54,7 @@ This README is the entry point. Depth lives alongside it, by topic:
 | [`docs/printing.md`](docs/printing.md) | Thermal printer: what's supported, network setup, test print, failures and troubleshooting |
 | [`docs/upgrading.md`](docs/upgrading.md) | Updating to a newer version without losing data, and rolling back |
 | [`docs/configuration.md`](docs/configuration.md) | Every `.env` variable and every Admin setting: default, effect, when it applies |
-| [`docs/fiscal-nff7.md`](docs/fiscal-nff7.md) | Optional: running NF-F7, the separate fiscal service, next to GastroFlow |
+| [`docs/fiscal-nff7.md`](docs/fiscal-nff7.md) | Optional: running NF-F7, GastroFlow's closed fiscal module, next to GastroFlow |
 | [`docs/adr/`](docs/adr/) | Architecture decision records — e.g. NF-F7 becomes GastroFlow's fiscal module only |
 | [`docs/security.md`](docs/security.md) | Deployment model, what needs a login, roles, sessions, secrets, known limitations |
 | [`docs/backup-and-restore.md`](docs/backup-and-restore.md) | A complete backup (database, logo, `.env`), scheduling, restoring on the same or a new server |
@@ -132,7 +132,7 @@ Five picks that best represent how this project trades things off — the full l
 
 ## Roadmap
 
-Current release: **`v1.9.0`** — Community Productization (local frontend dependencies, LAN operation without internet, installation and upgrade experience, documentation, open-source readiness). Current milestone: **`v2.0.0` — Release Candidate**.
+Current release: **`v2.0.0`** — GastroFlow Community 2.0, the first stable release: every item of the v2.0 Verification Matrix (installation, authentication, ordering, kitchen, printing, reports, jobs, recovery, offline operation, upgrade, quality, documentation) passed against `v2.0.0-rc.1`. Next: Community 2.x maintenance.
 
 What shipped and when: [`CHANGELOG.md`](CHANGELOG.md). What's planned: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
