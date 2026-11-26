@@ -11,7 +11,9 @@ function adminApp() {
         searchQuery: '',
         categoryFilter: 'all',
         loading: true,
-        newItem: { name: '', price: '', category_name: '', description: '' },
+        newItem: { name: '', price: '', category_name: '', description: '', show_in_kitchen: false },
+        // O switch "Aparece na Cozinha" segue a categoria até o usuário mexer nele (spec 087).
+        newItemKitchenTouched: false,
         newItemOpen: false,
         saving: false,
         viewMode: GFAdmin.read('adminViewMode') || 'grid',
@@ -91,12 +93,15 @@ function adminApp() {
         },
 
         openNewItem() {
+            const category = this.categoryFilter !== 'all' ? this.categoryFilter : '';
             this.newItem = {
                 name: '',
                 price: '',
-                category_name: this.categoryFilter !== 'all' ? this.categoryFilter : '',
-                description: ''
+                category_name: category,
+                description: '',
+                show_in_kitchen: category === 'Pratos Principais'
             };
+            this.newItemKitchenTouched = false;
             this.newItemOpen = true;
         },
 
@@ -127,7 +132,8 @@ function adminApp() {
                 name: item.name,
                 price: item.price,
                 category_name: item.category_name,
-                description: item.description || ''
+                description: item.description || '',
+                show_in_kitchen: !!item.show_in_kitchen
             };
             this.editComponents = (item.components || []).map(c => ({ ...c }));
 
@@ -220,6 +226,21 @@ function adminApp() {
                 method: 'PUT',
                 json: { components: this.editComponents }
             });
+        },
+
+        async toggleShowInKitchen(itemId, show) {
+            try {
+                await this.api(`/api/admin/items/${itemId}`, {
+                    method: 'PATCH',
+                    json: { show_in_kitchen: show }
+                });
+                const cat = this.menu.find(c => c.items.some(i => i.id === itemId));
+                const item = cat && cat.items.find(i => i.id === itemId);
+                if (item) item.show_in_kitchen = show;
+                this.showMessage(show ? 'Item aparece na cozinha.' : 'Item não aparece mais na cozinha.', 'success');
+            } catch (err) {
+                this.handleError(err);
+            }
         },
 
         async toggleAvailability(itemId, newAvailable) {

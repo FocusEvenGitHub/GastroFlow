@@ -35,6 +35,10 @@ class MenuItemValidator
         $this->v->rule(function ($field, $value) {
             return is_bool($value);
         }, 'available')->message('{field} deve ser verdadeiro ou falso');
+        $this->v->rule('optional', 'show_in_kitchen');
+        $this->v->rule(function ($field, $value) {
+            return is_bool($value);
+        }, 'show_in_kitchen')->message('{field} deve ser verdadeiro ou falso');
         return $this->v->validate();
     }
 
@@ -60,6 +64,10 @@ class MenuItemValidator
         $this->v->rule(function ($field, $value) {
             return is_bool($value);
         }, 'available')->message('{field} deve ser verdadeiro ou falso');
+        $this->v->rule('optional', 'show_in_kitchen');
+        $this->v->rule(function ($field, $value) {
+            return is_bool($value);
+        }, 'show_in_kitchen')->message('{field} deve ser verdadeiro ou falso');
         return $this->v->validate();
     }
 

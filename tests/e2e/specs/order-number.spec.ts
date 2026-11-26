@@ -35,7 +35,7 @@ const LEGACY_ORDER = {
   items: [
     {
       item_id: 601, name: 'Prato Teste', description: '', quantity: 1, notes: '', dining_option: 'local',
-      unit_price: 20, packaging_cost: 0, category_name: 'Pratos Principais', components: [], discount: null,
+      unit_price: 20, packaging_cost: 0, category_name: 'Pratos Principais', show_in_kitchen: true, components: [], discount: null,
     },
   ],
 };

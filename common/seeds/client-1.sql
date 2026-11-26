@@ -201,3 +201,7 @@ INSERT INTO dish_components (dish_id, component_id, quantity) SELECT d.id, k.id,
 INSERT INTO dish_components (dish_id, component_id, quantity) SELECT d.id, k.id, 1 FROM menu_items d JOIN menu_items k ON k.name = 'Alface' WHERE d.name = 'Salada de Tilápia';
 INSERT INTO dish_components (dish_id, component_id, quantity) SELECT d.id, k.id, 1 FROM menu_items d JOIN menu_items k ON k.name = 'Tomate' WHERE d.name = 'Salada de Tilápia';
 INSERT INTO dish_components (dish_id, component_id, quantity) SELECT d.id, k.id, 1 FROM menu_items d JOIN menu_items k ON k.name = 'Cenoura' WHERE d.name = 'Salada de Tilápia';
+
+-- Itens que aparecem na tela da Cozinha (spec 087): os INSERTs acima são
+-- anteriores à coluna e entram desligados; liga o que a cozinha sempre mostrou.
+UPDATE menu_items m JOIN categories c ON c.id = m.category_id SET m.show_in_kitchen = 1 WHERE c.name IN ('Pratos Principais', 'Adicionais');

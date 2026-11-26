@@ -10,6 +10,8 @@ use App\Money;
 
 class MenuRepository
 {
+    private const MAIN_DISH_CATEGORY = 'Pratos Principais';
+
     public function getFullMenu(): array
     {
         $categories = Category::with(['menuItems' => function ($query) {
@@ -26,6 +28,7 @@ class MenuRepository
                     'description'   => $item->description,
                     'price'         => $item->price,
                     'available'     => $item->available,
+                    'show_in_kitchen' => (bool) $item->show_in_kitchen,
                     'food_category' => $item->food_category,
                     'is_customizable' => (bool) $item->is_customizable,
                     'packaging_option' => $item->packaging_option,
@@ -58,6 +61,8 @@ class MenuRepository
             'description'  => $data['description'] ?? '',
             'price'        => Money::fromReais($data['price'])->toReais(),
             'available'    => $data['available'] ?? true,
+            // Omitido: só Pratos Principais nascem visíveis na cozinha (spec 087).
+            'show_in_kitchen' => $data['show_in_kitchen'] ?? ($category->name === self::MAIN_DISH_CATEGORY),
         ]);
     }
 
@@ -84,6 +89,9 @@ class MenuRepository
         }
         if (isset($data['available'])) {
             $item->available = (bool) $data['available'];
+        }
+        if (isset($data['show_in_kitchen'])) {
+            $item->show_in_kitchen = (bool) $data['show_in_kitchen'];
         }
         if (isset($data['category_name'])) {
             $category = Category::where('name', $data['category_name'])->firstOrFail();

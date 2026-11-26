@@ -114,6 +114,7 @@ $extraHead = '<link href="/vendor/tom-select-2.6.2/css/tom-select.bootstrap5.min
                                                   x-text="item.packaging_option === 'viagem_vip' ? 'Embalagem VIP' : 'Embalagem Simples'"></span>
                                         </template>
                                         <span class="badge bg-secondary" x-show="!item.available">Indisponível</span>
+                                        <span class="badge bg-light text-dark border" x-show="!item.show_in_kitchen">Fora da cozinha</span>
                                     </div>
                                     <template x-if="category.category_name !== 'Pratos Principais'">
                                         <p class="item-desc" x-text="item.description || ''"></p>
@@ -136,6 +137,14 @@ $extraHead = '<link href="/vendor/tom-select-2.6.2/css/tom-select.bootstrap5.min
                                                     :aria-label="(item.available ? 'Desativar ' : 'Ativar ') + item.name"
                                                     @click="toggleAvailability(item.id, !item.available)">
                                                 <i class="fas" :class="item.available ? 'fa-ban' : 'fa-check'"></i>
+                                            </button>
+                                            <button class="btn btn-sm"
+                                                    :class="item.show_in_kitchen ? 'btn-outline-primary' : 'btn-outline-secondary'"
+                                                    :title="item.show_in_kitchen ? 'Tirar da tela da cozinha' : 'Mostrar na tela da cozinha'"
+                                                    :aria-label="(item.show_in_kitchen ? 'Tirar da tela da cozinha: ' : 'Mostrar na tela da cozinha: ') + item.name"
+                                                    :aria-pressed="item.show_in_kitchen ? 'true' : 'false'"
+                                                    @click="toggleShowInKitchen(item.id, !item.show_in_kitchen)">
+                                                <i class="fas fa-utensils"></i>
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(item)" title="Excluir" :aria-label="'Excluir ' + item.name">
                                                 <i class="fas fa-trash"></i>
@@ -173,7 +182,8 @@ $extraHead = '<link href="/vendor/tom-select-2.6.2/css/tom-select.bootstrap5.min
                             </div>
                             <div class="col-sm-7">
                                 <label class="form-label" for="newCategory">Categoria *</label>
-                                <select id="newCategory" x-model="newItem.category_name" class="form-select" required>
+                                <select id="newCategory" x-model="newItem.category_name" class="form-select" required
+                                        @change="if (!newItemKitchenTouched) newItem.show_in_kitchen = newItem.category_name === 'Pratos Principais'">
                                     <option value="">Selecione...</option>
                                     <template x-for="cat in categories" :key="cat">
                                         <option :value="cat" x-text="cat"></option>
@@ -184,6 +194,11 @@ $extraHead = '<link href="/vendor/tom-select-2.6.2/css/tom-select.bootstrap5.min
                         <div>
                             <label class="form-label" for="newDescription">Descrição</label>
                             <textarea id="newDescription" x-model="newItem.description" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="form-check form-switch mt-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="newShowInKitchen"
+                                   x-model="newItem.show_in_kitchen" @change="newItemKitchenTouched = true">
+                            <label class="form-check-label" for="newShowInKitchen">Aparece na Cozinha</label>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -227,6 +242,11 @@ $extraHead = '<link href="/vendor/tom-select-2.6.2/css/tom-select.bootstrap5.min
                                     </template>
                                 </select>
                             </div>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="editShowInKitchen"
+                                   x-model="editForm.show_in_kitchen">
+                            <label class="form-check-label" for="editShowInKitchen">Aparece na Cozinha</label>
                         </div>
                         <!-- Descrição (esconder para Pratos Principais) -->
                         <div class="mb-3" x-show="editForm.category_name !== 'Pratos Principais'">

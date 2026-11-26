@@ -132,7 +132,7 @@ const KITCHEN_ORDER = {
   items: [
     {
       item_id: 501, name: 'Prato Teste', description: '', quantity: 2, notes: '', dining_option: 'local',
-      unit_price: 20, packaging_cost: 0, category_name: 'Pratos Principais', components: [],
+      unit_price: 20, packaging_cost: 0, category_name: 'Pratos Principais', show_in_kitchen: true, components: [],
       discount: { type: 'percent', value: 20, amount: 8 },
     },
   ],

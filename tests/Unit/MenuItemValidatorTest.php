@@ -158,4 +158,33 @@ class MenuItemValidatorTest extends TestCase
 
         $this->assertFalse($validator->validateUpdate(['name' => str_repeat('a', 101)]));
     }
+
+    // show_in_kitchen (spec 087): booleano estrito, como available.
+    public function testShowInKitchenAcceptsBooleanOnCreateAndUpdate(): void
+    {
+        $validator = new MenuItemValidator();
+
+        $this->assertTrue($validator->validateCreate([
+            'name' => 'Cartela de Ovos',
+            'price' => 18.0,
+            'category_name' => 'Viagem',
+            'show_in_kitchen' => true,
+        ]));
+        $this->assertTrue($validator->validateUpdate(['show_in_kitchen' => false]));
+    }
+
+    public function testShowInKitchenRejectsNonBoolean(): void
+    {
+        $validator = new MenuItemValidator();
+
+        $this->assertFalse($validator->validateUpdate(['show_in_kitchen' => 'sim']));
+        $this->assertArrayHasKey('show_in_kitchen', $validator->errors());
+        $this->assertFalse($validator->validateUpdate(['show_in_kitchen' => 1]));
+        $this->assertFalse($validator->validateCreate([
+            'name' => 'X',
+            'price' => 1.0,
+            'category_name' => 'Viagem',
+            'show_in_kitchen' => 'sim',
+        ]));
+    }
 }

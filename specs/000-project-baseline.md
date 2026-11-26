@@ -66,7 +66,7 @@ A restaurant order-management web app covering cashier order entry, kitchen orde
 
 ### Kitchen flow (confirmed in code)
 
-`public/kitchen/` polls `GET /api/orders?status=pending` and `GET /api/kitchen/food-summary` (`KitchenController::foodCategorySummary` → `KitchenService`, which aggregates pending order items into a per-category production summary, resolving dish "components"), and listens to the SSE stream for near-real-time updates. Orders are marked done/reopened via `/api/orders/{id}/complete` and `/api/orders/{id}/uncomplete`.
+`public/kitchen/` polls `GET /api/orders?status=pending` and `GET /api/kitchen/food-summary` (`KitchenController::foodCategorySummary` → `KitchenService`, which aggregates pending order items into a per-category production summary, resolving dish "components"), and listens to the SSE stream for near-real-time updates. **Updated 2026-11-24 (spec 087)**: an order card lists only the items whose menu item has `show_in_kitchen` on (Admin switch "Aparece na Cozinha"; migration 023), no longer a hard-coded category list, and the kitchen also reloads on the `menu.updated` event. Orders are marked done/reopened via `/api/orders/{id}/complete` and `/api/orders/{id}/uncomplete`.
 
 ### Menu administration (confirmed in code)
 
