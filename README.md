@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Slim-4-8A2BE2?style=flat-square" alt="Slim 4"/>
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker" alt="Docker Compose"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square" alt="License: Apache-2.0"/></a>
-  <a href="https://github.com/FocusEvenGitHub/GastroFlow/actions/workflows/ci.yml"><img src="https://github.com/FocusEvenGitHub/GastroFlow/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
+  <a href="https://github.com/FocusEvenGitHub/GastroFlow-Community/actions/workflows/ci.yml"><img src="https://github.com/FocusEvenGitHub/GastroFlow-Community/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
 </p>
 
 ---
@@ -164,7 +164,7 @@ The full guide — configuration, printer, first backup, troubleshooting — is 
 # Windows only, before cloning: keep LF line endings (see "Line endings" below)
 git config --global core.autocrlf false
 
-git clone https://github.com/FocusEvenGitHub/GastroFlow.git
+git clone https://github.com/FocusEvenGitHub/GastroFlow-Community.git GastroFlow
 cd GastroFlow
 git checkout vX.Y.Z               # newest release (GitHub Releases, v1.8.6 or later) — never master, which is development
 
@@ -272,7 +272,7 @@ Setup, the checks CI runs, conventions and what's welcome: [`CONTRIBUTING.md`](C
 3. Commit following [`docs/COMMIT_CONVENTION.md`](docs/COMMIT_CONVENTION.md)
 4. Push and open a Pull Request
 
-Bugs, questions and improvement ideas: [open an issue](https://github.com/FocusEvenGitHub/GastroFlow/issues).
+Bugs, questions and improvement ideas: [open an issue](https://github.com/FocusEvenGitHub/GastroFlow-Community/issues).
 
 ---
 

@@ -2,8 +2,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/FocusEvenGitHub/GastroFlow/security/advisories/new
+    url: https://github.com/FocusEvenGitHub/GastroFlow-Community/security/advisories/new
     about: Report it privately — never in a public issue. See SECURITY.md.
   - name: Support and supported versions
-    url: https://github.com/FocusEvenGitHub/GastroFlow/blob/master/SUPPORT.md
+    url: https://github.com/FocusEvenGitHub/GastroFlow-Community/blob/master/SUPPORT.md
     about: Where to ask, which versions are supported, and what isn't promised.

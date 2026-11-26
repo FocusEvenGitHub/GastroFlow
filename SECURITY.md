@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 **Report vulnerabilities privately, through GitHub:** on this repository, open the **Security** tab and choose **Report a vulnerability**, or go straight to
-<https://github.com/FocusEvenGitHub/GastroFlow/security/advisories/new>.
+<https://github.com/FocusEvenGitHub/GastroFlow-Community/security/advisories/new>.
 
 Please **don't** open a public issue, pull request or discussion about a vulnerability, and don't publish details before a fix is released. This is the only reporting channel.
 
@@ -32,7 +32,7 @@ Security fixes go to the **latest release only**, and always ship as a new tag �
 
 | Version | Security fixes |
 |---|---|
-| Latest release ([releases](https://github.com/FocusEvenGitHub/GastroFlow/releases) / [tags](https://github.com/FocusEvenGitHub/GastroFlow/tags)) | ✅ |
+| Latest release ([releases](https://github.com/FocusEvenGitHub/GastroFlow-Community/releases) / [tags](https://github.com/FocusEvenGitHub/GastroFlow-Community/tags)) | ✅ |
 | Any older release | ❌ — upgrade to the latest ([`docs/upgrading.md`](docs/upgrading.md)) |
 | `master` | ❌ — it is the next version in development, not a release |
 
