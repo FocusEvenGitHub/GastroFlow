@@ -59,6 +59,8 @@ class OrderRepository
                     'packaging_cost' => (float) $item->packaging_cost,
                     'discount'       => self::discountPayload($item),
                     'category_name'  => $item->menuItem->category->name ?? null,
+                    // Lido ao vivo do cardápio: o Admin muda e a cozinha acompanha (spec 087).
+                    'show_in_kitchen' => (bool) ($item->menuItem->show_in_kitchen ?? false),
                     'components'     => $item->components->map(fn ($c) => [
                         'menu_item_id' => (int) $c->menu_item_id,
                         'name'         => $c->item_name,
@@ -563,6 +565,7 @@ class OrderRepository
                 'packaging_cost' => (float) $item->packaging_cost,
                 'discount'       => null,
                 'category_name'  => $menuItem->category->name ?? null,
+                'show_in_kitchen' => (bool) $menuItem->show_in_kitchen,
                 'components'     => [],
             ];
         });

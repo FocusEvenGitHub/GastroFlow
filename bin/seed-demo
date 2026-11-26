@@ -76,6 +76,8 @@ if (!$hasMenu) {
                 'price'         => $price,
                 'food_category' => $foodCategory,
                 'position'      => $position + 1,
+                // Mesmo padrão da migration 023 (spec 087).
+                'show_in_kitchen' => in_array($category, ['Pratos Principais', 'Adicionais'], true),
             ]);
         }
     }

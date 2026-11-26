@@ -39,7 +39,6 @@ function kitchenApp() {
         // Desconto por item (spec 058): só no modal "Editar Pedido" — o quadro e o
         // resumo da cozinha nunca mostram desconto. Teto do Admin em centésimos de %.
         maxDiscount: 10000,
-        KITCHEN_CATEGORIES: ['Pratos Principais', 'Adicionais'],
         // 'ingredients' | 'dishes' — qual resumo mostrar no painel lateral (spec 030)
         summaryMode: localStorage.getItem('kitchenSummaryMode') === 'dishes' ? 'dishes' : 'ingredients',
 
@@ -166,6 +165,11 @@ function kitchenApp() {
             // removed in favor of soft-cancel (spec 020) — this listener was
             // never updated then (code review fix).
             this.eventSource.addEventListener('order.cancelled', () => {
+                if (this.selectedDate === this._today()) this.fetchAll();
+            });
+
+            // Item ligado/desligado no Admin (spec 087): os cartões mudam sem recarregar.
+            this.eventSource.addEventListener('menu.updated', () => {
                 if (this.selectedDate === this._today()) this.fetchAll();
             });
 
@@ -318,9 +322,9 @@ function kitchenApp() {
             }
         },
 
-        // Itens que a cozinha precisa preparar (prato principal + adicionais)
+        // Itens marcados no Admin como "Aparece na Cozinha" (spec 087)
         kitchenItems(order) {
-            return (order.items || []).filter(i => this.KITCHEN_CATEGORIES.includes(i.category_name));
+            return (order.items || []).filter(i => i.show_in_kitchen);
         },
 
         openEditModal(order) {
