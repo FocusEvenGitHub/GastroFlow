@@ -6,7 +6,7 @@ GastroFlow Community is free, open-source software ([Apache License 2.0](LICENSE
 
 | You have | Go to |
 |---|---|
-| A bug, a question, an idea | [GitHub issues](https://github.com/FocusEvenGitHub/GastroFlow/issues) — search first, then open one with the version (`GET /version` or the tag), what you did, what you expected and what happened |
+| A bug, a question, an idea | [GitHub issues](https://github.com/FocusEvenGitHub/GastroFlow-Community/issues) — search first, then open one with the version (`GET /version` or the tag), what you did, what you expected and what happened |
 | A security vulnerability | **Not an issue** — [`SECURITY.md`](SECURITY.md) |
 | A problem installing, upgrading or printing | The guides first: [`docs/installation.md`](docs/installation.md), [`docs/upgrading.md`](docs/upgrading.md), [`docs/printing.md`](docs/printing.md), [`docs/troubleshooting.md`](docs/troubleshooting.md) |
 

@@ -8,7 +8,7 @@ Thanks for wanting to help. GastroFlow is a restaurant order system that runs on
 ## Before you start
 
 - **Small fixes** (a typo, a clear bug with an obvious fix, a doc correction): just open a pull request.
-- **Anything bigger** — a new feature, a behavior change, a new dependency, a schema change: open an [issue](https://github.com/FocusEvenGitHub/GastroFlow/issues) first and describe the problem. Not everything fits GastroFlow Community ([`SUPPORT.md`](SUPPORT.md) › "What is not promised"), and it's better to agree before you spend time on it.
+- **Anything bigger** — a new feature, a behavior change, a new dependency, a schema change: open an [issue](https://github.com/FocusEvenGitHub/GastroFlow-Community/issues) first and describe the problem. Not everything fits GastroFlow Community ([`SUPPORT.md`](SUPPORT.md) › "What is not promised"), and it's better to agree before you spend time on it.
 
 Welcome: bug fixes, tests, documentation, compatibility fixes, and features that were discussed in an issue first.
 

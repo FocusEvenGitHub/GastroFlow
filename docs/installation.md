@@ -19,7 +19,7 @@ Every command below runs from the repository folder. **On Windows, run them in G
 ## 2. Clone and check out a release
 
 ```bash
-git clone https://github.com/FocusEvenGitHub/GastroFlow.git
+git clone https://github.com/FocusEvenGitHub/GastroFlow-Community.git GastroFlow
 cd GastroFlow
 git checkout vX.Y.Z        # the newest release on the GitHub Releases page
 ```

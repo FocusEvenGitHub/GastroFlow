@@ -6,7 +6,7 @@ Run the commands from the repository folder on the server — **on Windows, in G
 
 ## Releases, not `master`
 
-A restaurant runs a **release**: a version tag such as `v1.9.0`, listed on the [GitHub Releases page](https://github.com/FocusEvenGitHub/GastroFlow/releases). `master` is the next version **in development** — it may contain unfinished work, and is only for development and for test installs that accept that.
+A restaurant runs a **release**: a version tag such as `v1.9.0`, listed on the [GitHub Releases page](https://github.com/FocusEvenGitHub/GastroFlow-Community/releases). `master` is the next version **in development** — it may contain unfinished work, and is only for development and for test installs that accept that.
 
 > **Which release:** this guide covers upgrading **to** `v1.8.6` or later. `v1.8.6` was cut from `master` and already carries the v1.9 work done so far, so coming from `v1.8.5` or older counts as the first upgrade to v1.9: also do the one-time steps in [First upgrade to v1.9](#first-upgrade-to-v19). Installs that follow `master` (e.g. the pilot install) upgrade with `git pull` instead of step 3's `git checkout`, knowing they receive unreleased code. *(Corrected 2026-11-09: it said the guide started at `v1.9.0`.)*
 
