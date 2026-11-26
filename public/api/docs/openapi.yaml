@@ -586,6 +586,9 @@ paths:
                 available:
                   type: boolean
                   default: true
+                show_in_kitchen:
+                  type: boolean
+                  description: Aparece nos cartões da Cozinha (spec 087). Omitido → true só em "Pratos Principais".
       responses:
         "201":
           description: Item criado com sucesso
@@ -637,6 +640,9 @@ paths:
                   format: float
                   example: 29.90
                 available:
+                  type: boolean
+                  example: true
+                show_in_kitchen:
                   type: boolean
                   example: true
                 description:
@@ -969,6 +975,10 @@ components:
         available:
           type: boolean
           example: true
+        show_in_kitchen:
+          type: boolean
+          example: true
+          description: Aparece nos cartões da Cozinha (spec 087)
         is_customizable:
           type: boolean
           description: >-
